@@ -783,8 +783,11 @@ let dataState = 'loading'; // loading | ok | error | empty
 //  INIT
 // ═══════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', ()=>{
+  // URL 파라미터 (?code=) 또는 해시 (#boss, #staff) 모두 지원
   const params = new URLSearchParams(window.location.search);
-  const code = params.get('code') || '';
+  const hashCode = window.location.hash.replace('#','');
+  const code = params.get('code') || hashCode || '';
+  console.log('URL:', window.location.href, 'code:', code);
 
   if(code === 'boss'){
     userRole = 'boss';
