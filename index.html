@@ -329,6 +329,15 @@ option{background:var(--s2);}
 
 /* ── 삭제 버튼 ─────────────────────────────────── */
 .del-btn{background:rgba(240,84,84,.1);border:none;color:var(--red);font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;}
+.site-select-btn{
+  width:100%;background:var(--s2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:13px 16px;color:var(--text);font-family:'Pretendard',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.site-select-btn:active{border-color:var(--accent);}
+.site-select-btn.selected{border-color:var(--accent);background:rgba(232,184,75,.08);color:var(--accent);}
+.site-select-btn .site-btn-meta{font-size:10px;color:var(--muted);font-weight:500;}
+.site-select-btn.selected .site-btn-meta{color:rgba(232,184,75,.6);}
 
 /* ── 검색 ─────────────────────────────────── */
 .search-wrap{position:relative;margin-bottom:12px;}
@@ -479,10 +488,20 @@ option{background:var(--s2);}
       <button class="type-btn" id="btn-as" onclick="setType('as')">🔧 AS</button>
     </div>
 
-    <!-- 현장 선택 -->
+    <!-- 현장 선택 (선택형) -->
     <div class="form-label">현장 *</div>
-    <input class="form-input" id="f-site" type="text" placeholder="현장 선택" readonly onfocus="showPicker('site')">
-    <div class="process-tags" id="site-picker" style="display:none;"></div>
+    <div id="site-selector-wrap">
+      <!-- 현장 없을 때 안내 -->
+      <div id="site-empty-msg" style="display:none;background:var(--s2);border:1.5px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;margin-bottom:14px;">
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;">등록된 현장이 없습니다.<br>먼저 <span style="color:var(--accent);font-weight:700;">현장 탭</span>에서 현장을 추가해주세요.</div>
+        <button onclick="goPage('sites')" style="margin-top:10px;background:var(--accent);color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;">+ 현장 추가하러 가기</button>
+      </div>
+      <!-- 현장 선택 버튼 목록 -->
+      <div id="site-btn-list" style="display:none;margin-bottom:14px;">
+        <div id="site-btns" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <input type="hidden" id="f-site" value="">
+      </div>
+    </div>
 
     <!-- 금액 -->
     <div class="form-label">금액 (원) *</div>
@@ -821,7 +840,10 @@ function startListeners(){
   // siteInfo 리스너
   db.ref('siteInfo').on('value', snap=>{
     siteInfoCache = snap.val() || {};
-    if(dataState === 'ok') renderAll();
+    if(dataState === 'ok'){
+      renderAll();
+      renderSiteSelector(); // 현장 등록/변경 시 입력탭 즉시 반영
+    }
   });
 
   // fixedCosts 리스너
@@ -971,6 +993,7 @@ function goPage(name){
   document.querySelector('.page-wrap').scrollTop = 0;
 
   if(name==='home') renderDash();
+  if(name==='entry') renderSiteSelector();
   if(name==='sites') renderSites();
   if(name==='settings'){ loadFC(); updateFCDisplay(); }
 }
@@ -1268,8 +1291,7 @@ async function saveSite(){
   showToast('✅ 현장 저장됨!');
   closeSiteModal();
   renderSites();
-  // 입력 현장 피커에도 반영
-  updateSitePicker();
+  renderSiteSelector(); // 거래 입력 탭 현장 목록도 즉시 반영
 }
 
 // ═══════════════════════════════════════════════════
@@ -1292,28 +1314,61 @@ function toggleDetail(){
 }
 
 function showPicker(type){
-  ['site','process','writer'].forEach(t=>{
+  // site는 renderSiteSelector로 별도 처리 - process/writer만
+  ['process','writer'].forEach(t=>{
     const el = document.getElementById(t+'-picker');
     if(el) el.style.display = (t===type)?'flex':'none';
   });
-  if(type==='site') updateSitePicker();
+}
+
+// 현장 선택 컴포넌트 렌더 (siteInfo 기준, 최신순 최대 8개)
+function renderSiteSelector(){
+  const emptyMsg = document.getElementById('site-empty-msg');
+  const btnList  = document.getElementById('site-btn-list');
+  const btnsWrap = document.getElementById('site-btns');
+  if(!emptyMsg||!btnList||!btnsWrap) return;
+
+  // siteInfo 기준 최신 등록순 정렬, 최대 8개
+  const siteList = Object.values(siteInfoCache)
+    .filter(info=>info?.name)
+    .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))
+    .slice(0,8);
+
+  if(siteList.length === 0){
+    emptyMsg.style.display = 'block';
+    btnList.style.display  = 'none';
+    document.getElementById('f-site').value = '';
+    return;
+  }
+
+  emptyMsg.style.display = 'none';
+  btnList.style.display  = 'block';
+
+  const currentSite = document.getElementById('f-site').value;
+  const STATUS_SHORT = {
+    consult:'상담중', contract:'계약완료', active:'공사중',
+    settle:'정산중', balance:'잔금대기', done:'마감', as:'AS'
+  };
+
+  btnsWrap.innerHTML = siteList.map(info=>{
+    const ym = info.year&&info.month ? String(info.year).slice(2)+'/'+info.month : '';
+    const statusTxt = info.status ? (STATUS_SHORT[info.status]||'') : '';
+    const meta = [ym, statusTxt].filter(Boolean).join(' · ');
+    const isSelected = currentSite === info.name;
+    return '<button class="site-select-btn '+(isSelected?'selected':'')+'" onclick="selectSiteBtn(''+info.name.replace(/'/g,"\'")+''  , this)"><span>'+info.name+'</span>'+(meta?'<span class="site-btn-meta">'+meta+'</span>':'')+'</button>';
+  }).join('');
+}
+
+function selectSiteBtn(name, el){
+  document.getElementById('f-site').value = name;
+  document.querySelectorAll('.site-select-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
 }
 
 function updateSitePicker(){
-  const picker = document.getElementById('site-picker');
-  if(!picker) return;
-
-  // Firebase entries + siteInfo에서 현장 목록 최신순
-  const siteMap = {};
-  entries.forEach(e=>{ if(e.site && e.id > (siteMap[e.site]||0)) siteMap[e.site]=e.id; });
-  Object.values(siteInfoCache).forEach(info=>{ if(info?.name && !siteMap[info.name]) siteMap[info.name]=info.updatedAt||0; });
-
-  const sites = Object.keys(siteMap).sort((a,b)=>siteMap[b]-siteMap[a]);
-  picker.innerHTML = sites.map(s=>
-    `<div class="process-tag" onclick="setPicker('site','${s.replace(/'/g,"\\'")}')">${s}</div>`
-  ).join('') + `<div class="process-tag" onclick="setPickerCustom('site')" style="color:var(--accent);">✏️ 직접</div>`;
-  picker.style.display = 'flex';
+  renderSiteSelector();
 }
+
 
 function setPicker(type, val){
   const input = document.getElementById('f-'+type);
@@ -1336,7 +1391,7 @@ async function addEntry(){
   const date   = document.getElementById('f-date').value;
   const item   = document.getElementById('f-item').value.trim();
 
-  if(!site){ showToast('⚠️ 현장을 선택해주세요'); return; }
+  if(!site){ showToast('⚠️ 현장을 선택해주세요'); renderSiteSelector(); return; }
   if(amount<=0){ showToast('⚠️ 금액을 입력해주세요'); return; }
 
   const btn = document.getElementById('submit-btn');
@@ -1353,12 +1408,12 @@ async function addEntry(){
     });
     // 초기화
     document.getElementById('f-site').value='';
-    document.getElementById('f-site').readOnly=true;
     document.getElementById('f-amount').value='';
     document.getElementById('f-item').value='';
     document.getElementById('f-process').value='';
     document.getElementById('f-process').readOnly=true;
-    document.getElementById('site-picker').style.display='none';
+    // 현장 선택 초기화
+    document.querySelectorAll('.site-select-btn').forEach(b=>b.classList.remove('selected'));
     showToast('✅ 입력 완료!');
     setTimeout(()=>goPage('home'), 500);
   } catch(e){ showToast('저장 실패. 네트워크를 확인해주세요.'); }
