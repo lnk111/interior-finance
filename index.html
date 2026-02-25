@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0c10">
+<!-- GitHub Pages jekyll 처리 비활성화 -->
+<meta name="generator" content="none">
 <title>현장 손익 관리</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -370,7 +372,7 @@ option{background:var(--s2);}
 /* ── 잠금 화면 ─────────────────────────────────── */
 #lock-screen{
   position:fixed;inset:0;z-index:999;
-  background:var(--bg);display:flex;align-items:center;justify-content:center;
+  background:var(--bg);display:none;align-items:center;justify-content:center;
 }
 .lock-box{text-align:center;padding:40px 28px;max-width:320px;width:90%;}
 .lock-icon{font-size:48px;margin-bottom:16px;}
@@ -783,27 +785,39 @@ let dataState = 'loading'; // loading | ok | error | empty
 //  INIT
 // ═══════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', ()=>{
-  // URL 파라미터 (?code=) 또는 해시 (#boss, #staff) 모두 지원
+  // ── 접근 코드 3중 fallback ──────────────────────
+  // 1순위: URL 쿼리스트링 (?code=boss)
+  // 2순위: URL 해시 (#boss)
+  // 3순위: localStorage (한번 인증 후 유지)
   const params = new URLSearchParams(window.location.search);
-  const hashCode = window.location.hash.replace('#','');
-  const code = params.get('code') || hashCode || '';
-  console.log('URL:', window.location.href, 'code:', code);
+  const qCode    = params.get('code') || '';
+  const hCode    = window.location.hash.replace(/^#/,'');
+  const lsCode   = localStorage.getItem('app_role') || '';
+  const code     = qCode || hCode || lsCode;
+
+  // 인증 성공 시 localStorage에 저장 (다음 접속 편의)
+  if(qCode || hCode) {
+    localStorage.setItem('app_role', qCode || hCode);
+  }
+
+  const lockEl = document.getElementById('lock-screen');
 
   if(code === 'boss'){
     userRole = 'boss';
     document.getElementById('role-disp').textContent = '대표 (전체)';
+    lockEl.style.display = 'none';
   } else if(code === 'staff'){
     userRole = 'staff';
     document.getElementById('role-disp').textContent = '직원';
-    // 설정/대시보드 nav 숨기기
+    lockEl.style.display = 'none';
     document.getElementById('nav-home').style.display = 'none';
     document.getElementById('nav-settings').style.display = 'none';
     goPage('entry');
   } else {
-    return; // 잠금 화면 유지
+    // 인증 실패 - lock-screen 표시
+    lockEl.style.display = 'flex';
+    return;
   }
-
-  document.getElementById('lock-screen').style.display = 'none';
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 
   // 현재 연월 자동 선택
@@ -837,7 +851,9 @@ function startListeners(){
     setConnState('ok');
     renderAll();
   }, err=>{
+    dataState = 'error';
     setConnState('error');
+    renderDash(); // 오류 상태 즉시 화면에 반영
   });
 
   // siteInfo 리스너
@@ -1042,14 +1058,30 @@ function renderDash(){
   const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
   const setColor = (id, col) => { const el=document.getElementById(id); if(el) el.style.color=col; };
 
-  // 데이터 없을 때 - 진짜 0인지 로딩 중인지 구분
-  if(dataState !== 'ok'){
+  // ── 상태별 명확한 UI 분리 ──────────────────────
+  // loading  → shimmer 애니메이션
+  // error    → 빨간색 오류 표시
+  // ok+0     → 진짜 0원 표시
+  // ok+data  → 정상 표시
+  if(dataState === 'loading'){
     ['k-revenue','k-cost','k-fixed','k-tax','k-profit','k-opprofit','k-margin'].forEach(id=>{
       const el = document.getElementById(id);
-      if(el){ el.textContent='--'; el.className='kpi-val loading-shimmer'; }
+      if(el){ el.textContent='로딩중...'; el.style.color='var(--muted)'; el.style.fontSize='12px'; }
     });
     return;
   }
+  if(dataState === 'error'){
+    ['k-revenue','k-cost','k-fixed','k-tax','k-profit','k-opprofit','k-margin'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el){ el.textContent='연결 오류'; el.style.color='var(--red)'; el.style.fontSize='12px'; }
+    });
+    return;
+  }
+  // dataState === 'ok' → 0원 포함 정상 표시
+  ['k-revenue','k-cost','k-fixed','k-tax','k-profit','k-opprofit','k-margin'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.style.fontSize=''; el.style.color=''; }
+  });
 
   // 정상 표시
   set('k-revenue', fmtW(revenue));
