@@ -318,39 +318,31 @@ option{background:var(--s2);}
     <input class="f-input" id="f-amount" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()">
     <div class="f-label">날짜</div>
     <input class="f-input" id="f-date" type="date">
-    <div class="f-label">메모</div>
-    <input class="f-input" id="f-item" type="text" placeholder="공정 · 항목 (예: 도배 합지)">
-    <button class="detail-toggle" id="detail-tog" onclick="toggleDetail()">
-      <svg width="14" height="14" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-      상세 항목 펼치기
-    </button>
-    <div class="detail-body" id="detail-body">
-      <div class="f-label">공정</div>
-      <input class="f-input" id="f-process" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('process')">
-      <div class="tag-wrap" id="tags-process" style="display:none;">
-        <div class="tag" onclick="pickTag('process','도배')">도배</div>
-        <div class="tag" onclick="pickTag('process','타일')">타일</div>
-        <div class="tag" onclick="pickTag('process','전기')">전기</div>
-        <div class="tag" onclick="pickTag('process','설비')">설비</div>
-        <div class="tag" onclick="pickTag('process','목공')">목공</div>
-        <div class="tag" onclick="pickTag('process','도장')">도장</div>
-        <div class="tag" onclick="pickTag('process','철거')">철거</div>
-        <div class="tag" onclick="pickTag('process','마루')">마루</div>
-        <div class="tag" onclick="pickTag('process','가구')">가구</div>
-        <div class="tag" onclick="pickTag('process','조명')">조명</div>
-        <div class="tag" onclick="pickTag('process','창호')">창호</div>
-        <div class="tag" onclick="pickTag('process','욕실')">욕실</div>
-        <div class="tag" onclick="pickTag('process','주방')">주방</div>
-        <div class="tag" onclick="pickCustom('process')">✏️ 직접</div>
-      </div>
-      <div class="f-label">입력자</div>
-      <input class="f-input" id="f-writer" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('writer')">
-      <div class="tag-wrap" id="tags-writer" style="display:none;">
-        <div class="tag" onclick="pickTag('writer','김실장')">김실장</div>
-        <div class="tag" onclick="pickTag('writer','이남경팀장')">이남경팀장</div>
-        <div class="tag" onclick="pickTag('writer','김덕수대리')">김덕수대리</div>
-        <div class="tag" onclick="pickCustom('writer')">✏️ 직접</div>
-      </div>
+    <div class="f-label">공정</div>
+    <input class="f-input" id="f-process" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('process')">
+    <div class="tag-wrap" id="tags-process" style="display:none;">
+      <div class="tag" onclick="pickTag('process','도배')">도배</div>
+      <div class="tag" onclick="pickTag('process','타일')">타일</div>
+      <div class="tag" onclick="pickTag('process','전기')">전기</div>
+      <div class="tag" onclick="pickTag('process','설비')">설비</div>
+      <div class="tag" onclick="pickTag('process','목공')">목공</div>
+      <div class="tag" onclick="pickTag('process','도장')">도장</div>
+      <div class="tag" onclick="pickTag('process','철거')">철거</div>
+      <div class="tag" onclick="pickTag('process','마루')">마루</div>
+      <div class="tag" onclick="pickTag('process','가구')">가구</div>
+      <div class="tag" onclick="pickTag('process','조명')">조명</div>
+      <div class="tag" onclick="pickTag('process','창호')">창호</div>
+      <div class="tag" onclick="pickTag('process','욕실')">욕실</div>
+      <div class="tag" onclick="pickTag('process','주방')">주방</div>
+      <div class="tag" onclick="pickCustom('process')">✏️ 직접</div>
+    </div>
+    <div class="f-label">입력자</div>
+    <input class="f-input" id="f-writer" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('writer')">
+    <div class="tag-wrap" id="tags-writer" style="display:none;">
+      <div class="tag" onclick="pickTag('writer','김실장')">김실장</div>
+      <div class="tag" onclick="pickTag('writer','이남경팀장')">이남경팀장</div>
+      <div class="tag" onclick="pickTag('writer','김덕수대리')">김덕수대리</div>
+      <div class="tag" onclick="pickCustom('writer')">✏️ 직접</div>
     </div>
     <button class="submit-btn" id="f-submit" onclick="addEntry()">+ 입력 완료</button>
   </div>
@@ -1140,14 +1132,13 @@ function pickSite(name) {
 }
 
 async function addEntry() {
-  const site   = document.getElementById('f-site')?.value?.trim() || '';
-  const amount = parseInt(document.getElementById('f-amount')?.value || '0') || 0;
-  const date   = document.getElementById('f-date')?.value || today();
-  const item   = document.getElementById('f-item')?.value?.trim() || '';
+  const site    = document.getElementById('f-site')?.value?.trim() || '';
+  const amount  = parseInt(document.getElementById('f-amount')?.value || '0') || 0;
+  const date    = document.getElementById('f-date')?.value || today();
   const process = document.getElementById('f-process')?.value?.trim() || '';
   const writer  = document.getElementById('f-writer')?.value?.trim() || '';
 
-  if (!site)   { toast('⚠️ 현장을 선택해주세요'); return; }
+  if (!site)       { toast('⚠️ 현장을 선택해주세요'); return; }
   if (amount <= 0) { toast('⚠️ 금액을 입력해주세요'); return; }
 
   const btn = document.getElementById('f-submit');
@@ -1155,14 +1146,14 @@ async function addEntry() {
 
   try {
     const id = Date.now();
-    await db.ref('entries/' + id).set({ id, site, process, item, amount, type: curType, writer, date });
+    await db.ref('entries/' + id).set({ id, site, process, amount, type: curType, writer, date });
     // 초기화
-    document.getElementById('f-site').value = '';
     document.getElementById('f-amount').value = '';
-    document.getElementById('f-item').value = '';
     document.getElementById('f-process').value = '';
     document.getElementById('f-process').readOnly = true;
-    document.querySelectorAll('.site-sel-btn').forEach(b => b.classList.remove('on'));
+    document.getElementById('f-writer').value = '';
+    document.getElementById('f-writer').readOnly = true;
+    renderSiteSelector(); // 현장 선택 초기화
     toast('✅ 입력 완료!');
     setTimeout(() => goPage('home'), 500);
   } catch (e) {
