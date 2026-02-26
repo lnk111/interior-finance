@@ -1147,35 +1147,45 @@ function openDetail(site) {
   const asAmt  = s.filter(e => e.type==='as').reduce((a,e)=>a+(e.amount||0),0);
   const profit = rev - cost - asAmt;
 
-  db.ref('procData/' + encKey(site)).once('value').then(snap => {
+  const path = 'procData/' + encKey(site);
+  console.log('[openDetail] 읽기 경로:', path);
+
+  db.ref(path).once('value').then(snap => {
     const raw = snap.val() || {};
+    console.log('[openDetail] Firebase 응답 RAW:', JSON.stringify(raw, null, 2));
+
     _phCache = {};
 
-    // raw가 phases 배열인지 단계 맵인지 처리
     if (Array.isArray(raw.phases)) {
-      // 새 구조: { phases: [...] }
-      raw.phases.forEach(ph => { _phCache[ph.id] = ph; });
+      // phases 배열 구조
+      raw.phases.forEach(ph => {
+        if (ph && ph.id) _phCache[ph.id] = ph;
+      });
     } else {
-      // 이전 호환: { 공정명: { status, tasks, ... } }
+      // 플랫 맵 구조: { phaseId: { id, name, status, ... } }
       Object.entries(raw).forEach(([key, val]) => {
+        if (!val || typeof val !== 'object') return;
         if (key === 'phases') return;
-        if (typeof val !== 'object') return;
+
         const ph = {
-          id: key,
-          name: val.name || key,
-          status: val.status || 'wait',
+          id:        val.id        || key,
+          name:      val.name      || key,   // ★ name 필드 우선 사용
+          status:    val.status    || 'wait',
           startDate: val.startDate || '',
-          endDate: val.endDate || '',
-          tasks: {}
+          endDate:   val.endDate   || '',
+          order:     val.order     ?? 9999,
+          tasks:     {}
         };
-        // 이전 tasks 변환 (type 필드 제거, order 추가)
-        if (val.tasks) {
+
+        // tasks 파싱 (type 필드 무시, order 보장)
+        if (val.tasks && typeof val.tasks === 'object') {
           Object.entries(val.tasks).forEach(([tid, t], i) => {
+            if (!t || typeof t !== 'object') return;
             ph.tasks[tid] = {
-              id:     tid,
-              text:   t.text || '',
+              id:     t.id     || tid,
+              text:   t.text   || '',
               isDone: t.isDone || false,
-              order:  t.order ?? (i * 10)
+              order:  t.order  ?? (i * 10)
             };
           });
         }
@@ -1183,25 +1193,31 @@ function openDetail(site) {
       });
     }
 
-    // 새로 생성된 공정에 DEFAULT_TASKS 초기화 (tasks가 비어있을 때만)
+    console.log('[openDetail] _phCache 파싱 결과:', JSON.stringify(
+      Object.values(_phCache).map(p => ({ id:p.id, name:p.name, status:p.status, order:p.order, taskCount:Object.keys(p.tasks||{}).length }))
+    , null, 2));
+
+    // tasks 비어있는 공정에 DEFAULT_TASKS 초기값 1회 투입
+    const taskUpdates = {};
     Object.values(_phCache).forEach(ph => {
       if (!ph.tasks || Object.keys(ph.tasks).length === 0) {
         ph.tasks = makeInitTasks(ph.name);
-        // DB에 초기 tasks 저장
-        const taskUpdates = {};
         Object.values(ph.tasks).forEach(t => {
-          taskUpdates[`procData/${encKey(site)}/${ph.id}/tasks/${t.id}`] = t;
+          taskUpdates[`${path}/${ph.id}/tasks/${t.id}`] = t;
         });
-        db.ref().update(taskUpdates).catch(()=>{});
       }
     });
+    if (Object.keys(taskUpdates).length > 0) {
+      db.ref().update(taskUpdates).catch(()=>{});
+    }
 
     // 진행중 공정 기본으로 열기
     const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
     _openPhId = activePh ? activePh.id : '';
 
     renderDetailModal(site, rev, cost, asAmt, profit, s);
-  }).catch(() => {
+  }).catch(err => {
+    console.error('[openDetail] Firebase 읽기 실패:', err);
     _phCache = {};
     renderDetailModal(site, rev, cost, asAmt, profit, s);
   });
@@ -1643,23 +1659,63 @@ function onProcStatusChange(phId) {
 async function saveProcEdit() {
   const updates = {};
   Object.values(_phCache).forEach(ph => {
-    const status    = document.getElementById('ps-' + ph.id)?.value    || ph.status    || 'wait';
-    const startDate = document.getElementById('pd-s-' + ph.id)?.value  || ph.startDate || '';
-    const endDate   = document.getElementById('pd-e-' + ph.id)?.value  || ph.endDate   || '';
+    const status    = document.getElementById('ps-' + ph.id)?.value   || ph.status    || 'wait';
+    const startDate = document.getElementById('pd-s-' + ph.id)?.value || ph.startDate || '';
+    const endDate   = document.getElementById('pd-e-' + ph.id)?.value || ph.endDate   || '';
+
+    // 캐시 업데이트
     ph.status    = status;
     ph.startDate = startDate;
     ph.endDate   = endDate;
+
+    // ★ name, order, status, startDate, endDate 전부 저장 (name 누락이 핵심 버그)
     const base = `procData/${encKey(_curSite)}/${ph.id}`;
+    updates[base + '/id']        = ph.id;
+    updates[base + '/name']      = ph.name;
+    updates[base + '/order']     = ph.order ?? 0;
     updates[base + '/status']    = status;
     updates[base + '/startDate'] = startDate;
     updates[base + '/endDate']   = endDate;
   });
+
+  console.log('[saveProcEdit] 저장 경로:', `procData/${encKey(_curSite)}`);
+  console.log('[saveProcEdit] 저장 데이터:', JSON.stringify(updates, null, 2));
+
   try {
     await db.ref().update(updates);
     toast('✅ 공정 저장됨!');
     closeProcEdit();
-    openDetail(_curSite);
-  } catch(e) { toast('저장 실패'); }
+    // 현장 상세가 열려있으면 즉시 갱신 (모달 닫지 않고 타임라인만 새로고침)
+    _refreshDetailTimeline();
+  } catch(e) {
+    console.error('[saveProcEdit] 저장 실패:', e);
+    toast('❌ 저장 실패 — 네트워크를 확인해주세요');
+  }
+}
+
+// 상세 모달 타임라인/패널만 즉시 갱신 (모달 재오픈 없이)
+function _refreshDetailTimeline() {
+  const tlWrap = document.querySelector('.proc-section');
+  if (!tlWrap) return; // 상세 모달이 열려있지 않으면 스킵
+
+  // 타임라인 노드 재렌더
+  const tlEl = tlWrap.querySelector('.timeline-wrap');
+  if (tlEl) tlEl.outerHTML = buildTimelineHtml();
+
+  // 공정 패널 전체 재렌더
+  const panelEl = document.getElementById('step-panels');
+  if (panelEl) panelEl.innerHTML = buildAllPanelsHtml();
+
+  // 오늘의 공정 재렌더
+  _refreshTodayProc();
+
+  // 진행중 공정 패널 자동 열기
+  const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
+  if (activePh) {
+    _openPhId = activePh.id;
+    const panel = document.getElementById('tp-' + activePh.id);
+    if (panel) panel.classList.add('open');
+  }
 }
 
 function closeProcEdit() {
