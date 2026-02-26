@@ -103,10 +103,10 @@ option{background:#fff;}
 
 /* ── 이익률 ── */
 .margin-card{margin-bottom:12px;}
-.progress-wrap{height:10px;background:var(--s3);border-radius:6px;overflow:visible;position:relative;}
-.progress-bar{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1);position:relative;}
-.goal-marker{position:absolute;top:-4px;width:3px;height:18px;background:#64748b;border-radius:2px;z-index:2;transform:translateX(-50%);}
-.goal-marker::after{content:'목표 25%';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#64748b;white-space:nowrap;letter-spacing:.2px;}
+.progress-wrap{height:10px;background:var(--s3);border-radius:6px;overflow:visible;position:relative;pointer-events:none;}
+.progress-bar{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1);position:relative;pointer-events:none;}
+.goal-marker{position:absolute;top:-4px;width:3px;height:18px;background:#64748b;border-radius:2px;z-index:2;transform:translateX(-50%);pointer-events:none;}
+.goal-marker::after{content:'목표 25%';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#64748b;white-space:nowrap;letter-spacing:.2px;pointer-events:none;}
 
 /* ── TOP3 ── */
 .top3-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);}
@@ -178,7 +178,7 @@ option{background:#fff;}
 .submit-btn:disabled{background:var(--s3);color:var(--dim);cursor:not-allowed;box-shadow:none;}
 
 /* ── 현장 카드 ── */
-.site-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s,border-color .15s;}
+.site-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s,border-color .15s;position:relative;z-index:1;}
 .site-card:active{border-color:var(--accent);box-shadow:var(--shadow-lg);}
 .site-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px;}
 .site-ym{font-size:10px;font-family:'JetBrains Mono',monospace;background:var(--s3);color:var(--muted);padding:2px 7px;border-radius:4px;}
