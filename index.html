@@ -312,25 +312,27 @@ option{background:#fff;}
 /* ── 태스크 패널 ── */
 .task-panel{display:none;background:#fff;}
 .task-panel.open{display:block;}
-.task-list{}
-.task-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--border);background:#fff;}
+.task-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid var(--border);background:#fff;transition:background .15s;}
 .task-item:last-child{border-bottom:none;}
+.task-item.drag-over{background:rgba(26,86,219,.07);border-top:2px solid var(--accent);}
+
+/* 드래그 핸들 */
+.drag-handle{font-size:14px;color:var(--dim);cursor:grab;flex-shrink:0;user-select:none;padding:0 2px;}
+.drag-handle:active{cursor:grabbing;}
 
 /* 체크박스 */
 .task-cb{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;}
 .task-cb.done{background:var(--green);border-color:var(--green);}
 .task-cb.done::after{content:'✓';font-size:12px;font-weight:800;color:#fff;}
-.task-text{flex:1;font-size:13px;font-weight:600;color:var(--text);line-height:1.4;transition:color .18s;}
+
+/* 텍스트 — contenteditable */
+.task-text{flex:1;font-size:13px;font-weight:600;color:var(--text);line-height:1.4;outline:none;border-radius:4px;padding:1px 4px;transition:all .18s;cursor:text;}
+.task-text:focus{background:rgba(26,86,219,.06);box-shadow:0 0 0 2px rgba(26,86,219,.15);}
 .task-text.done{text-decoration:line-through;color:var(--dim);}
 
-/* 뱃지 */
-.task-type-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0;}
-.task-type-base{background:rgba(26,86,219,.1);color:var(--accent);}
-.task-type-custom{background:rgba(5,150,105,.1);color:var(--green);}
-
 /* 삭제 버튼 */
-.task-del-btn{background:none;border:none;font-size:16px;color:var(--dim);cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1;}
-.task-del-btn:active{color:var(--red);}
+.task-del-btn{background:none;border:none;font-size:16px;color:#ccc;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1;transition:color .15s;}
+.task-del-btn:hover,.task-del-btn:active{color:var(--red);}
 
 /* 업무 추가 행 */
 .task-add-row{display:flex;gap:8px;padding:10px 12px;background:var(--s2);border-top:1px solid var(--border);}
@@ -346,6 +348,21 @@ option{background:#fff;}
 
 /* 오늘의 공정 */
 .todo-count{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:#fff;margin-bottom:12px;}
+
+
+/* ── 드래그앤드롭 ── */
+.prow{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--border);transition:background .15s;user-select:none;}
+.prow:last-child{border:none;}
+.prow.dragging{opacity:.4;background:var(--s3);}
+.prow.drag-over{background:rgba(26,86,219,.07);border-top:2px solid var(--accent);}
+.prow-drag{color:var(--dim);font-size:16px;cursor:grab;padding:2px 4px;flex-shrink:0;touch-action:none;}
+.prow-drag:active{cursor:grabbing;color:var(--accent);}
+.prow-num{width:22px;height:22px;border-radius:50%;background:var(--s3);font-size:10px;font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.prow-name{flex:1;font-size:13px;font-weight:700;min-width:0;}
+.prow-sel{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:5px 6px;font-size:11px;font-weight:600;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;-webkit-appearance:none;flex-shrink:0;}
+.prow-sel:focus{border-color:var(--accent);}
+.prow-date{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:5px 6px;font-size:11px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;width:105px;flex-shrink:0;}
+.prow-date:focus{border-color:var(--accent);}
 
 </style>
 </head>
@@ -1025,116 +1042,175 @@ function setSiteFilter(f, el) {
 // ═══════════════════════════════
 //  공정 데이터 상수
 // ═══════════════════════════════
-// ═══════════════════════════════
-//  공정 상수 & 기본 업무 템플릿
-// ═══════════════════════════════
-const PROC_STEPS = ['철거','샷시','전기','목공','타일','필름','도배','바닥','가구','마감','AS'];
+
+// 공정별 아이콘 (name 기준)
 const PROC_ICONS = {
-  '철거':'🔨','샷시':'🪟','전기':'⚡','목공':'🪚','타일':'🟦',
-  '필름':'🎞','도배':'🎨','바닥':'🟫','가구':'🛋','마감':'✨','AS':'🔧'
+  '현장답사':'🗺️','철거':'🔨','샷시':'🪟','전기배선':'⚡','욕실 도막방수':'💧',
+  '목공':'🪚','가스관 철거':'🔧','타일':'🟦','필름':'🎞','욕실설비':'🚿',
+  '천정돔':'⭕','폐기물 반출':'🚛','바닥':'🟫','도배':'🎨','가구':'🛋',
+  '상판시공':'🪵','조명마감':'💡','중문':'🚪','실리콘마감':'🔵',
+  '공사잔마감':'✅','A/S':'🔧','탄성코트':'🪣',
+  // fallback
+  '전기':'⚡','마감':'✨','AS':'🔧','목공 2회차':'🪚'
 };
 
-// 공정별 기본(base) 업무 — 삭제 불가, 현장별 isDone만 저장
-const BASE_TASKS_TEMPLATE = {
-  '철거': ['철거 범위 최종 확인','보양 작업 완료','폐기물 처리 확인','구조 이상 유무 점검'],
-  '샷시': ['창호 사이즈 재확인','시공 순서 협의','단열 처리 확인','마감 실리콘 확인'],
-  '전기': ['스위치 위치 최종 확정','콘센트 수량 체크','조명 타공 위치 검토','에어컨 배관 위치 확인'],
-  '목공': ['합판 두께 및 자재 확인','천장 높이 재확인','문틀 사이즈 체크','붙박이 위치 도면 확인'],
-  '타일': ['타일 패턴 확인','줄눈 색상 확인','단차 체크','배수 기울기 확인'],
-  '필름': ['필름 색상 최종 확정','필름 면적 계산','시공 전 표면 이물질 제거','모서리 마감 확인'],
-  '도배': ['도배지 종류 최종 확정','초배 작업 완료 확인','천장 vs 벽 작업 순서','콘센트 구멍 위치 확인'],
-  '바닥': ['바닥재 색상 최종 확정','문틈 간격 확인','기존 바닥 평탄 작업 완료','걸레받이 색상 확인'],
-  '가구': ['도면대로 사이즈 확인','손잡이 색상 확정','내부 선반 위치 확인','설치 후 수평 체크'],
-  '마감': ['전체 하자 점검','도어 개폐 확인','조명 전체 점등 테스트','청소 상태 확인'],
-  'AS':  ['하자 항목 리스트 작성','보수 일정 협의','자재 수급 확인','완료 후 고객 확인']
+function getProcIcon(name) {
+  return PROC_ICONS[name] || '🔹';
+}
+
+// 기본 공정 순서 템플릿 (id 기반, 목공 2번 포함)
+const DEFAULT_PROC_TEMPLATE = [
+  { name:'현장답사'    },
+  { name:'철거'       },
+  { name:'샷시'       },
+  { name:'전기배선'    },
+  { name:'욕실 도막방수'},
+  { name:'목공'       },
+  { name:'가스관 철거' },
+  { name:'목공'       },   // 2회차 — 같은 name, 다른 id
+  { name:'타일'       },
+  { name:'필름'       },
+  { name:'욕실설비'   },
+  { name:'천정돔'     },
+  { name:'폐기물 반출' },
+  { name:'바닥'       },
+  { name:'도배'       },
+  { name:'가구'       },
+  { name:'상판시공'   },
+  { name:'조명마감'   },
+  { name:'중문'       },
+  { name:'실리콘마감' },
+  { name:'공사잔마감' },
+  { name:'A/S'        },
+];
+
+// 공정 생성 시 초기값으로 사용할 기본 체크리스트 (이후 완전 자유 수정 가능)
+const DEFAULT_TASKS = {
+  '현장답사':     ['현장 규모 및 상태 파악','고객 요구사항 청취','공사 범위 확정','견적 기초 자료 수집'],
+  '철거':         ['철거 범위 최종 확인','보양 작업 완료','폐기물 처리 확인','구조 이상 유무 점검'],
+  '샷시':         ['창호 사이즈 재확인','시공 순서 협의','단열 처리 확인','마감 실리콘 확인'],
+  '전기배선':     ['스위치 위치 최종 확정','콘센트 수량 체크','조명 타공 위치 검토','에어컨 배관 위치 확인'],
+  '욕실 도막방수':['방수 범위 확인','기존 방수층 상태 점검','도막 두께 기준 확인','양생 시간 준수'],
+  '목공':         ['합판 두께 및 자재 확인','천장 높이 재확인','문틀 사이즈 체크','붙박이 위치 도면 확인'],
+  '가스관 철거':  ['가스 차단 확인','배관 철거 범위 확정','안전 조치 완료','잔여 배관 마감 확인'],
+  '타일':         ['타일 패턴 확인','줄눈 색상 확인','단차 체크','배수 기울기 확인'],
+  '필름':         ['필름 색상 최종 확정','필름 면적 계산','시공 전 표면 이물질 제거','모서리 마감 확인'],
+  '욕실설비':     ['도기 사이즈 확인','급배수 위치 확인','세면대·변기·샤워기 위치 확정','실리콘 마감 확인'],
+  '천정돔':       ['돔 사이즈 확인','설치 위치 확정','방수 처리 확인','고정 상태 점검'],
+  '폐기물 반출':  ['폐기물 분리수거 확인','반출 차량 예약','허가 서류 확인','반출 후 현장 청소'],
+  '바닥':         ['바닥재 색상 최종 확정','문틈 간격 확인','기존 바닥 평탄 작업 완료','걸레받이 색상 확인'],
+  '도배':         ['도배지 종류 최종 확정','초배 작업 완료 확인','천장 vs 벽 작업 순서','콘센트 구멍 위치 확인'],
+  '가구':         ['도면대로 사이즈 확인','손잡이 색상 확정','내부 선반 위치 확인','설치 후 수평 체크'],
+  '조명':         ['조명 위치 최종 확정','스위치 연결 확인','LED 색온도 확인','설치 후 전체 점등 테스트'],
+  '실리콘마감':   ['마감 부위 전체 확인','색상 일치 여부 체크','욕실·주방 방수 실리콘 확인','건조 후 상태 점검'],
+  '공사잔마감':   ['전체 하자 항목 리스트','도어 개폐 확인','조명 점등 테스트','최종 청소 상태 확인'],
+  'A/S':          ['하자 항목 리스트 작성','보수 일정 협의','자재 수급 확인','완료 후 고객 확인'],
 };
 
 // ── 상태 변수 ──
-let _curSite   = '';                  // 현재 열린 현장명
-let _procCache = {};                  // { 공정명: { status, startDate, endDate, tasks: { id: taskObj } } }
-let _openStep  = '';                  // 현재 펼쳐진 공정 패널
+let _curSite  = '';
+let _phCache  = {};   // { phaseId: { id, name, status, startDate, endDate, tasks: { taskId: {id,text,isDone,order} } } }
+let _openPhId = '';   // 현재 열린 패널 phaseId
+let _dragSrc  = null; // 드래그 중인 taskId
 
 // ═══════════════════════════════
 //  태스크 유틸
 // ═══════════════════════════════
 
-// Firebase tasks 맵에 base 업무 자동 초기화 (없는 것만 추가)
-function initBaseTasks(tasksMap, stepName) {
-  const result = tasksMap ? JSON.parse(JSON.stringify(tasksMap)) : {};
-  const templates = BASE_TASKS_TEMPLATE[stepName] || [];
-  templates.forEach((text, i) => {
-    const bid = 'base_' + i;
-    if (!result[bid]) {
-      result[bid] = {
-        id: bid, text, isDone: false,
-        type: 'base', createdAt: Date.now(), updatedAt: Date.now()
-      };
-    }
+// tasks 맵 → order 기준 정렬 배열
+function tasksToArr(tasksMap) {
+  if (!tasksMap) return [];
+  return Object.values(tasksMap).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+// 새 현장 공정 생성 시 초기 tasks 만들기 (이후 완전 자유 편집)
+function makeInitTasks(phaseName) {
+  const defaults = DEFAULT_TASKS[phaseName] || [];
+  const result = {};
+  defaults.forEach((text, i) => {
+    const tid = 'task_' + Date.now() + '_' + i;
+    result[tid] = { id: tid, text, isDone: false, order: i * 10 };
   });
   return result;
 }
 
-// tasks 맵 → 정렬된 배열 (base 먼저 → custom 오래된순)
-function tasksToArr(tasksMap) {
-  if (!tasksMap) return [];
-  return Object.values(tasksMap).sort((a, b) => {
-    if (a.type === 'base' && b.type !== 'base') return -1;
-    if (b.type === 'base' && a.type !== 'base') return  1;
-    return (a.createdAt || 0) - (b.createdAt || 0);
-  });
-}
-
 // ═══════════════════════════════
-//  현장 상세 열기 (진입점)
+//  현장 상세 열기
 // ═══════════════════════════════
 function openDetail(site) {
   _curSite  = site;
-  _openStep = '';
+  _openPhId = '';
 
-  const s = entries.filter(e => e.site === site);
-  const rev  = s.filter(e => e.type === 'revenue').reduce((a, e) => a + (e.amount || 0), 0);
-  const cost = s.filter(e => e.type === 'cost').reduce((a, e) => a + (e.amount || 0), 0);
-  const as   = s.filter(e => e.type === 'as').reduce((a, e) => a + (e.amount || 0), 0);
-  const profit = rev - cost - as;
+  const s      = entries.filter(e => e.site === site);
+  const rev    = s.filter(e => e.type==='revenue').reduce((a,e)=>a+(e.amount||0),0);
+  const cost   = s.filter(e => e.type==='cost').reduce((a,e)=>a+(e.amount||0),0);
+  const asAmt  = s.filter(e => e.type==='as').reduce((a,e)=>a+(e.amount||0),0);
+  const profit = rev - cost - asAmt;
 
   db.ref('procData/' + encKey(site)).once('value').then(snap => {
     const raw = snap.val() || {};
-    // 각 공정마다 base tasks 자동 초기화
-    PROC_STEPS.forEach(step => {
-      if (!raw[step]) raw[step] = { status: 'wait', startDate: '', endDate: '', tasks: {} };
-      raw[step].tasks = initBaseTasks(raw[step].tasks, step);
-    });
-    _procCache = raw;
+    _phCache = {};
 
-    // base tasks가 DB에 없던 것들 → 한 번에 저장
-    const updates = {};
-    PROC_STEPS.forEach(step => {
-      Object.values(_procCache[step].tasks).forEach(t => {
-        updates['procData/' + encKey(site) + '/' + step + '/tasks/' + t.id] = t;
+    // raw가 phases 배열인지 단계 맵인지 처리
+    if (Array.isArray(raw.phases)) {
+      // 새 구조: { phases: [...] }
+      raw.phases.forEach(ph => { _phCache[ph.id] = ph; });
+    } else {
+      // 이전 호환: { 공정명: { status, tasks, ... } }
+      Object.entries(raw).forEach(([key, val]) => {
+        if (key === 'phases') return;
+        if (typeof val !== 'object') return;
+        const ph = {
+          id: key,
+          name: val.name || key,
+          status: val.status || 'wait',
+          startDate: val.startDate || '',
+          endDate: val.endDate || '',
+          tasks: {}
+        };
+        // 이전 tasks 변환 (type 필드 제거, order 추가)
+        if (val.tasks) {
+          Object.entries(val.tasks).forEach(([tid, t], i) => {
+            ph.tasks[tid] = {
+              id:     tid,
+              text:   t.text || '',
+              isDone: t.isDone || false,
+              order:  t.order ?? (i * 10)
+            };
+          });
+        }
+        _phCache[key] = ph;
       });
+    }
+
+    // 새로 생성된 공정에 DEFAULT_TASKS 초기화 (tasks가 비어있을 때만)
+    Object.values(_phCache).forEach(ph => {
+      if (!ph.tasks || Object.keys(ph.tasks).length === 0) {
+        ph.tasks = makeInitTasks(ph.name);
+        // DB에 초기 tasks 저장
+        const taskUpdates = {};
+        Object.values(ph.tasks).forEach(t => {
+          taskUpdates[`procData/${encKey(site)}/${ph.id}/tasks/${t.id}`] = t;
+        });
+        db.ref().update(taskUpdates).catch(()=>{});
+      }
     });
-    db.ref().update(updates).catch(() => {});
 
-    // 진행중 공정 → 기본으로 열기
-    const activeStep = PROC_STEPS.find(st => (_procCache[st]?.status || 'wait') === 'active') || '';
-    _openStep = activeStep;
+    // 진행중 공정 기본으로 열기
+    const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
+    _openPhId = activePh ? activePh.id : '';
 
-    renderDetailModal(site, rev, cost, as, profit, s);
+    renderDetailModal(site, rev, cost, asAmt, profit, s);
   }).catch(() => {
-    // 실패해도 base tasks로 초기화해서 보여줌
-    _procCache = {};
-    PROC_STEPS.forEach(step => {
-      _procCache[step] = { status: 'wait', startDate: '', endDate: '', tasks: initBaseTasks({}, step) };
-    });
-    renderDetailModal(site, rev, cost, as, profit, s);
+    _phCache = {};
+    renderDetailModal(site, rev, cost, asAmt, profit, s);
   });
 }
 
 // ── 모달 렌더 ──
-function renderDetailModal(site, rev, cost, as, profit, s) {
+function renderDetailModal(site, rev, cost, asAmt, profit, s) {
   document.getElementById('dm-title').textContent = site;
   document.getElementById('dm-body').innerHTML = `
-    <!-- 요약 -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
       <div class="card-sm" style="text-align:center;">
         <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div>
@@ -1149,11 +1225,7 @@ function renderDetailModal(site, rev, cost, as, profit, s) {
         <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmtW(profit)}</div>
       </div>
     </div>
-
-    <!-- 오늘의 공정 -->
     <div id="today-proc-wrap">${buildTodayProcHtml()}</div>
-
-    <!-- 공정 타임라인 -->
     <div class="proc-section">
       <div class="proc-section-title">
         <span>📋 공정 타임라인</span>
@@ -1162,18 +1234,12 @@ function renderDetailModal(site, rev, cost, as, profit, s) {
       ${buildTimelineHtml()}
       <div id="step-panels">${buildAllPanelsHtml()}</div>
     </div>
-
-    <!-- 거래 내역 -->
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">
-      상세 내역 (${s.length}건)
-    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">상세 내역 (${s.length}건)</div>
     ${s.map(e => {
       const tl = {revenue:'매출',cost:'매입',as:'AS'}[e.type]||e.type;
       return `<div class="entry-row">
         <div class="entry-left">
-          <div class="e-info">
-            <span class="e-type ${e.type}">${tl}</span>${e.process||''}${e.process&&e.item?' · ':''}${e.item||''}
-          </div>
+          <div class="e-info"><span class="e-type ${e.type}">${tl}</span>${e.process||''}${e.process&&e.item?' · ':''}${e.item||''}</div>
           ${e.writer?`<div class="e-writer">👤 ${e.writer}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
@@ -1191,25 +1257,27 @@ function renderDetailModal(site, rev, cost, as, profit, s) {
 //  타임라인 HTML
 // ═══════════════════════════════
 function buildTimelineHtml() {
-  let html = '<div class="timeline-wrap"><div class="timeline-row">';
-  PROC_STEPS.forEach((step, i) => {
-    const pd     = _procCache[step] || {};
-    const status = pd.status || 'wait';
-    const tasks  = tasksToArr(pd.tasks);
-    const done   = tasks.filter(t => t.isDone).length;
-    const total  = tasks.length;
-    const icon   = PROC_ICONS[step];
-    const dateLbl = status === 'done'   && pd.endDate   ? pd.endDate.slice(5)   :
-                    status === 'active' && pd.startDate ? pd.startDate.slice(5) : '';
+  const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
+  if (!phases.length) return '<div style="color:var(--dim);font-size:12px;padding:8px 0;">공정 없음 — 공정 수정에서 추가하세요</div>';
 
-    html += `<div class="tl-node-wrap" onclick="toggleStepPanel('${step}')">
-      <div class="tl-circle ${status}">${status === 'done' ? '✓' : icon}</div>
-      <div class="tl-label ${status}">${step}</div>
+  let html = '<div class="timeline-wrap"><div class="timeline-row">';
+  phases.forEach((ph, i) => {
+    const status = ph.status || 'wait';
+    const tasks  = tasksToArr(ph.tasks);
+    const done   = tasks.filter(t=>t.isDone).length;
+    const total  = tasks.length;
+    const icon   = getProcIcon(ph.name);
+    const dateLbl = status==='done' && ph.endDate   ? ph.endDate.slice(5)   :
+                    status==='active' && ph.startDate ? ph.startDate.slice(5) : '';
+    const safeId = ph.id.replace(/'/g,"\\'");
+
+    html += `<div class="tl-node-wrap" onclick="toggleStepPanel('${safeId}')">
+      <div class="tl-circle ${status}">${status==='done'?'✓':icon}</div>
+      <div class="tl-label ${status}">${ph.name}</div>
       <div class="tl-date">${status!=='wait' ? done+'/'+total : dateLbl||'&nbsp;'}</div>
     </div>`;
-
-    if (i < PROC_STEPS.length - 1) {
-      const lc = status === 'done' ? 'done' : status === 'active' ? 'half' : 'wait';
+    if (i < phases.length - 1) {
+      const lc = status==='done' ? 'done' : status==='active' ? 'half' : 'wait';
       html += `<div class="tl-line ${lc}"></div>`;
     }
   });
@@ -1221,59 +1289,62 @@ function buildTimelineHtml() {
 //  공정 패널 HTML
 // ═══════════════════════════════
 function buildAllPanelsHtml() {
-  return PROC_STEPS.map(step => buildStepPanelHtml(step)).join('');
+  return Object.values(_phCache)
+    .sort((a,b)=>(a.order??0)-(b.order??0))
+    .map(ph => buildStepPanelHtml(ph)).join('');
 }
 
-function buildStepPanelHtml(step) {
-  const pd     = _procCache[step] || {};
-  const status = pd.status || 'wait';
-  const tasks  = tasksToArr(pd.tasks);
-  const done   = tasks.filter(t => t.isDone).length;
-  const isOpen = _openStep === step;
+function buildStepPanelHtml(ph) {
+  const status = ph.status || 'wait';
+  const tasks  = tasksToArr(ph.tasks);
+  const done   = tasks.filter(t=>t.isDone).length;
+  const isOpen = _openPhId === ph.id;
+  const sLbl   = { wait:'대기', active:'진행중', done:'완료' }[status];
+  const sColor = { wait:'var(--dim)', active:'var(--accent)', done:'var(--green)' }[status];
+  const safeId = ph.id.replace(/'/g,"\\'");
 
-  const statusLbl   = { wait:'대기', active:'진행중', done:'완료' }[status];
-  const statusColor = { wait:'var(--dim)', active:'var(--accent)', done:'var(--green)' }[status];
-
-  const taskRows = tasks.map(t => buildTaskRowHtml(step, t)).join('');
-
-  return `<div class="step-panel-wrap" id="spw-${step}">
-    <!-- 헤더 -->
-    <div class="step-panel-hdr" onclick="toggleStepPanel('${step}')">
+  return `<div class="step-panel-wrap" id="spw-${ph.id}">
+    <div class="step-panel-hdr" onclick="toggleStepPanel('${safeId}')">
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;">${PROC_ICONS[step]}</span>
-        <span style="font-size:13px;font-weight:700;">${step}</span>
-        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${statusColor}1a;color:${statusColor};">${statusLbl}</span>
+        <span style="font-size:16px;">${getProcIcon(ph.name)}</span>
+        <span style="font-size:13px;font-weight:700;">${ph.name}</span>
+        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${sColor}1a;color:${sColor};">${sLbl}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <span class="spanel-count" style="font-size:11px;color:var(--muted);">${done}/${tasks.length}</span>
+        <span class="spanel-count" style="font-size:11px;color:var(--muted);">${done}/${total}</span>
         <span class="spanel-arrow" style="font-size:11px;color:var(--dim);">${isOpen?'▲':'▼'}</span>
       </div>
     </div>
-    <!-- 패널 본체 -->
-    <div class="task-panel${isOpen?' open':''}" id="tp-${step}">
-      <div class="task-list" id="tl-${step}">${taskRows}</div>
+    <div class="task-panel${isOpen?' open':''}" id="tp-${ph.id}">
+      <div class="task-list" id="tl-${ph.id}" ondragover="event.preventDefault()" ondrop="onTaskDrop(event,'${safeId}')">
+        ${tasks.map(t => buildTaskRowHtml(ph.id, t)).join('')}
+      </div>
       <div class="task-add-row">
-        <input class="task-add-inp" id="ta-${step}"
-          placeholder="업무 추가 (Enter로 등록)..."
-          onkeydown="if(event.key==='Enter'){event.preventDefault();addTask('${step}');}">
-        <button class="task-add-btn" onclick="addTask('${step}')">+ 추가</button>
+        <input class="task-add-inp" id="ta-${ph.id}" placeholder="업무 추가 (Enter로 등록)..."
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addTask('${safeId}');}">
+        <button class="task-add-btn" onclick="addTask('${safeId}')">+ 추가</button>
       </div>
     </div>
   </div>`;
 }
 
-function buildTaskRowHtml(step, t) {
+function buildTaskRowHtml(phId, t) {
   const cbCls  = t.isDone ? ' done' : '';
   const txtCls = t.isDone ? ' done' : '';
-  const safeStep = step.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const safeId   = t.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  return `<div class="task-item" id="ti-${step}-${t.id}">
-    <div class="task-cb${cbCls}" onclick="toggleTask('${safeStep}','${safeId}',this)"></div>
-    <div class="task-text${txtCls}" id="tt-${step}-${t.id}">${escHtml(t.text)}</div>
-    <span class="task-type-badge task-type-${t.type}">${t.type==='base'?'기본':'추가'}</span>
-    ${t.type==='custom'
-      ? `<button class="task-del-btn" onclick="deleteTask('${safeStep}','${safeId}')" title="삭제">✕</button>`
-      : `<span style="display:inline-block;width:22px;"></span>`}
+  const safe   = s => String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return `<div class="task-item" id="ti-${phId}-${t.id}" draggable="true"
+    ondragstart="onTaskDragStart(event,'${safe(phId)}','${safe(t.id)}')"
+    ondragover="event.preventDefault();event.currentTarget.classList.add('drag-over')"
+    ondragleave="event.currentTarget.classList.remove('drag-over')"
+    ondrop="event.stopPropagation();onTaskDropOnRow(event,'${safe(phId)}','${safe(t.id)}')">
+    <div class="drag-handle" title="드래그로 순서 변경">⠿</div>
+    <div class="task-cb${cbCls}" onclick="toggleTask('${safe(phId)}','${safe(t.id)}',this)"></div>
+    <div class="task-text${txtCls}" id="tt-${phId}-${t.id}"
+      contenteditable="true" spellcheck="false"
+      onblur="saveTaskText('${safe(phId)}','${safe(t.id)}',this)"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+    >${escHtml(t.text)}</div>
+    <button class="task-del-btn" onclick="deleteTask('${safe(phId)}','${safe(t.id)}')" title="삭제">✕</button>
   </div>`;
 }
 
@@ -1285,45 +1356,40 @@ function escHtml(s) {
 //  오늘의 공정
 // ═══════════════════════════════
 function buildTodayProcHtml() {
-  const activeStep = PROC_STEPS.find(st => (_procCache[st]?.status||'wait') === 'active');
-  if (!activeStep) return '';
-
-  const tasks     = tasksToArr(_procCache[activeStep]?.tasks);
+  const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
+  if (!activePh) return '';
+  const tasks     = tasksToArr(activePh.tasks);
   const remaining = tasks.filter(t => !t.isDone);
-  const total     = tasks.length;
-  const doneCount = total - remaining.length;
+  const doneCount = tasks.length - remaining.length;
   const preview   = remaining.slice(0, 5);
   const moreCount = remaining.length > 5 ? remaining.length - 5 : 0;
-
-  const checkRows = preview.map(t => {
-    const safeStep = activeStep.replace(/'/g,"\\'");
-    const safeId   = t.id.replace(/'/g,"\\'");
-    return `<div class="check-item" onclick="toggleTaskToday('${safeStep}','${safeId}',this)">
-      <div class="check-box"></div>
-      <div class="check-text">${escHtml(t.text)}${t.type==='custom'?' ✏️':''}</div>
-    </div>`;
-  }).join('');
+  const safe = s => String(s).replace(/'/g,"\\'");
 
   return `<div class="today-proc" style="margin-bottom:14px;">
     <div class="today-proc-label">📅 오늘의 공정</div>
-    <div class="today-proc-name">${PROC_ICONS[activeStep]} ${activeStep} 공정</div>
+    <div class="today-proc-name">${getProcIcon(activePh.name)} ${activePh.name} 공정</div>
     <div class="todo-count">✅ ${doneCount}완료 &nbsp;·&nbsp; ⏳ ${remaining.length}개 남음</div>
-    <div class="checklist">${checkRows}</div>
-    ${moreCount>0?`<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:8px;">+${moreCount}개 더 · 공정 패널에서 확인</div>`:''}
-    ${remaining.length===0?`<div style="font-size:13px;color:rgba(255,255,255,.8);font-weight:700;margin-top:4px;">🎉 모든 업무 완료!</div>`:''}
+    <div class="checklist">
+      ${preview.map(t => `<div class="check-item" onclick="toggleTaskToday('${safe(activePh.id)}','${safe(t.id)}',this)">
+        <div class="check-box"></div>
+        <div class="check-text">${escHtml(t.text)}</div>
+      </div>`).join('')}
+    </div>
+    ${moreCount > 0 ? `<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:8px;">+${moreCount}개 더 · 공정 패널에서 확인</div>` : ''}
+    ${remaining.length === 0 ? `<div style="font-size:13px;color:rgba(255,255,255,.85);font-weight:700;margin-top:4px;">🎉 모든 업무 완료!</div>` : ''}
   </div>`;
 }
 
 // ═══════════════════════════════
 //  패널 토글
 // ═══════════════════════════════
-function toggleStepPanel(step) {
-  _openStep = _openStep === step ? '' : step;
-  PROC_STEPS.forEach(s => {
-    const panel = document.getElementById('tp-' + s);
-    const wrap  = document.getElementById('spw-' + s);
+function toggleStepPanel(phId) {
+  _openPhId = _openPhId === phId ? '' : phId;
+  Object.keys(_phCache).forEach(id => {
+    const panel = document.getElementById('tp-' + id);
+    const wrap  = document.getElementById('spw-' + id);
     if (!panel || !wrap) return;
-    const isOpen = _openStep === s;
+    const isOpen = _openPhId === id;
     panel.classList.toggle('open', isOpen);
     const arrow = wrap.querySelector('.spanel-arrow');
     if (arrow) arrow.textContent = isOpen ? '▲' : '▼';
@@ -1331,130 +1397,173 @@ function toggleStepPanel(step) {
 }
 
 // ═══════════════════════════════
-//  태스크 체크 — 자동저장
+//  태스크 체크 토글 — 자동저장
 // ═══════════════════════════════
-async function toggleTask(step, taskId, cbEl) {
-  const tasks = _procCache[step]?.tasks;
-  if (!tasks || !tasks[taskId]) return;
-
+async function toggleTask(phId, taskId, cbEl) {
+  const tasks = _phCache[phId]?.tasks;
+  if (!tasks?.[taskId]) return;
   const newDone = !tasks[taskId].isDone;
-  tasks[taskId].isDone     = newDone;
-  tasks[taskId].updatedAt  = Date.now();
-
-  // UI 즉시 반영
+  tasks[taskId].isDone = newDone;
   cbEl.classList.toggle('done', newDone);
-  const txtEl = document.getElementById('tt-' + step + '-' + taskId);
+  const txtEl = document.getElementById('tt-' + phId + '-' + taskId);
   if (txtEl) txtEl.classList.toggle('done', newDone);
-
-  // 헤더 카운터 업데이트
-  _refreshPanelHeader(step);
-  // 오늘의 공정 업데이트
+  _refreshPanelHeader(phId);
   _refreshTodayProc();
-
-  // Firebase 저장
   try {
-    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).update({
-      isDone: newDone, updatedAt: Date.now()
-    });
-  } catch(e) { toast('저장 실패 — 네트워크 확인'); }
+    await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}/isDone`).set(newDone);
+  } catch(e) { toast('저장 실패'); }
 }
 
-// 오늘의 공정에서 체크
-async function toggleTaskToday(step, taskId, el) {
-  const tasks = _procCache[step]?.tasks;
-  if (!tasks || !tasks[taskId]) return;
-
-  tasks[taskId].isDone    = true;
-  tasks[taskId].updatedAt = Date.now();
-
-  // 오늘의 공정 체크 UI 애니메이션
+async function toggleTaskToday(phId, taskId, el) {
+  const tasks = _phCache[phId]?.tasks;
+  if (!tasks?.[taskId]) return;
+  tasks[taskId].isDone = true;
   const box = el.querySelector('.check-box');
   const txt = el.querySelector('.check-text');
   if (box) box.classList.add('on');
   if (txt) txt.classList.add('on');
-
-  // 패널 목록도 sync
-  const cbEl = document.querySelector(`#ti-${step}-${taskId} .task-cb`);
+  const cbEl = document.querySelector(`#ti-${phId}-${taskId} .task-cb`);
   if (cbEl) cbEl.classList.add('done');
-  const txtEl = document.getElementById(`tt-${step}-${taskId}`);
+  const txtEl = document.getElementById(`tt-${phId}-${taskId}`);
   if (txtEl) txtEl.classList.add('done');
-
-  _refreshPanelHeader(step);
-
-  // 300ms 후 오늘의 공정 카드 재렌더
+  _refreshPanelHeader(phId);
   setTimeout(_refreshTodayProc, 350);
-
   try {
-    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).update({
-      isDone: true, updatedAt: Date.now()
-    });
+    await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}/isDone`).set(true);
   } catch(e) { toast('저장 실패'); }
 }
 
 // ═══════════════════════════════
-//  커스텀 태스크 추가
+//  태스크 텍스트 인라인 편집
 // ═══════════════════════════════
-async function addTask(step) {
-  const inp  = document.getElementById('ta-' + step);
+async function saveTaskText(phId, taskId, el) {
+  const tasks = _phCache[phId]?.tasks;
+  if (!tasks?.[taskId]) return;
+  const newText = el.innerText.trim();
+  if (!newText) { el.innerText = tasks[taskId].text; return; } // 빈 값이면 원복
+  if (newText === tasks[taskId].text) return; // 변경 없으면 스킵
+  tasks[taskId].text = newText;
+  try {
+    await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}/text`).set(newText);
+  } catch(e) { toast('저장 실패'); }
+}
+
+// ═══════════════════════════════
+//  태스크 추가
+// ═══════════════════════════════
+async function addTask(phId) {
+  const inp  = document.getElementById('ta-' + phId);
   const text = inp?.value?.trim();
   if (!text) { toast('⚠️ 업무 내용을 입력하세요'); inp?.focus(); return; }
 
-  const taskId  = 'custom_' + Date.now();
-  const newTask = {
-    id: taskId, text, isDone: false,
-    type: 'custom', createdAt: Date.now(), updatedAt: Date.now()
-  };
+  const ph    = _phCache[phId];
+  if (!ph) return;
+  if (!ph.tasks) ph.tasks = {};
 
-  if (!_procCache[step])        _procCache[step]        = { status:'wait', tasks:{} };
-  if (!_procCache[step].tasks)  _procCache[step].tasks  = {};
-  _procCache[step].tasks[taskId] = newTask;
-
+  const taskId = 'task_' + Date.now();
+  const maxOrder = Object.values(ph.tasks).reduce((m,t)=>Math.max(m,t.order??0), 0);
+  const newTask = { id:taskId, text, isDone:false, order: maxOrder + 10 };
+  ph.tasks[taskId] = newTask;
   inp.value = '';
 
-  // 패널에 즉시 추가
-  const listEl = document.getElementById('tl-' + step);
-  if (listEl) listEl.insertAdjacentHTML('beforeend', buildTaskRowHtml(step, newTask));
-  _refreshPanelHeader(step);
+  const listEl = document.getElementById('tl-' + phId);
+  if (listEl) listEl.insertAdjacentHTML('beforeend', buildTaskRowHtml(phId, newTask));
+  _refreshPanelHeader(phId);
 
   try {
-    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).set(newTask);
+    await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}`).set(newTask);
     toast('✅ 업무 추가됨');
   } catch(e) { toast('저장 실패'); }
 }
 
 // ═══════════════════════════════
-//  커스텀 태스크 삭제
+//  태스크 삭제
 // ═══════════════════════════════
-async function deleteTask(step, taskId) {
-  const tasks = _procCache[step]?.tasks;
-  if (!tasks || !tasks[taskId]) return;
-  if (tasks[taskId].type === 'base') {
-    toast('⚠️ 기본 업무는 삭제할 수 없습니다');
-    return;
-  }
+async function deleteTask(phId, taskId) {
+  const ph = _phCache[phId];
+  if (!ph?.tasks?.[taskId]) return;
   if (!confirm('이 업무를 삭제하시겠습니까?')) return;
 
-  delete _procCache[step].tasks[taskId];
-
-  // UI에서 즉시 제거
-  const rowEl = document.getElementById('ti-' + step + '-' + taskId);
+  delete ph.tasks[taskId];
+  const rowEl = document.getElementById('ti-' + phId + '-' + taskId);
   if (rowEl) rowEl.remove();
-  _refreshPanelHeader(step);
+  _refreshPanelHeader(phId);
   _refreshTodayProc();
 
   try {
-    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).remove();
+    await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}`).remove();
     toast('🗑 삭제됨');
   } catch(e) { toast('삭제 실패'); }
 }
 
 // ═══════════════════════════════
+//  드래그 & 드롭 순서 변경
+// ═══════════════════════════════
+function onTaskDragStart(e, phId, taskId) {
+  _dragSrc = { phId, taskId };
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '.4';
+}
+
+function onTaskDropOnRow(e, phId, targetTaskId) {
+  e.currentTarget.classList.remove('drag-over');
+  if (!_dragSrc || _dragSrc.taskId === targetTaskId) return;
+  if (_dragSrc.phId !== phId) return; // 공정 간 이동은 미지원
+
+  const tasks  = _phCache[phId]?.tasks;
+  if (!tasks) return;
+  const arr    = tasksToArr(tasks);
+  const srcIdx = arr.findIndex(t => t.id === _dragSrc.taskId);
+  const tgtIdx = arr.findIndex(t => t.id === targetTaskId);
+  if (srcIdx < 0 || tgtIdx < 0) return;
+
+  // 순서 재계산
+  arr.splice(tgtIdx, 0, arr.splice(srcIdx, 1)[0]);
+  arr.forEach((t, i) => { t.order = i * 10; });
+
+  // UI 즉시 반영
+  const listEl = document.getElementById('tl-' + phId);
+  if (listEl) listEl.innerHTML = arr.map(t => buildTaskRowHtml(phId, t)).join('');
+
+  // Firebase 일괄 저장
+  const updates = {};
+  arr.forEach(t => {
+    updates[`procData/${encKey(_curSite)}/${phId}/tasks/${t.id}/order`] = t.order;
+  });
+  db.ref().update(updates).catch(() => toast('순서 저장 실패'));
+
+  // 드래그된 항목 opacity 복원
+  const srcEl = document.getElementById('ti-' + phId + '-' + _dragSrc.taskId);
+  if (srcEl) srcEl.style.opacity = '1';
+  _dragSrc = null;
+}
+
+function onTaskDrop(e, phId) {
+  // 리스트 빈 영역에 드롭 → 맨 끝으로
+  e.currentTarget.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  if (!_dragSrc || _dragSrc.phId !== phId) return;
+  const tasks = _phCache[phId]?.tasks;
+  if (!tasks?.[_dragSrc.taskId]) return;
+  const arr = tasksToArr(tasks);
+  const srcIdx = arr.findIndex(t => t.id === _dragSrc.taskId);
+  if (srcIdx < 0) return;
+  arr.push(arr.splice(srcIdx, 1)[0]);
+  arr.forEach((t, i) => { t.order = i * 10; });
+  const listEl = document.getElementById('tl-' + phId);
+  if (listEl) listEl.innerHTML = arr.map(t => buildTaskRowHtml(phId, t)).join('');
+  const updates = {};
+  arr.forEach(t => { updates[`procData/${encKey(_curSite)}/${phId}/tasks/${t.id}/order`] = t.order; });
+  db.ref().update(updates).catch(() => {});
+  _dragSrc = null;
+}
+
+// ═══════════════════════════════
 //  내부 UI 갱신 헬퍼
 // ═══════════════════════════════
-function _refreshPanelHeader(step) {
-  const wrap = document.getElementById('spw-' + step);
+function _refreshPanelHeader(phId) {
+  const wrap = document.getElementById('spw-' + phId);
   if (!wrap) return;
-  const tasks = tasksToArr(_procCache[step]?.tasks);
+  const tasks = tasksToArr(_phCache[phId]?.tasks);
   const done  = tasks.filter(t => t.isDone).length;
   const countEl = wrap.querySelector('.spanel-count');
   if (countEl) countEl.textContent = done + '/' + tasks.length;
@@ -1469,81 +1578,72 @@ function _refreshTodayProc() {
 //  공정 상태 편집 모달
 // ═══════════════════════════════
 function openProcEdit() {
-  const body = document.getElementById('proc-edit-body');
-  body.innerHTML = PROC_STEPS.map((step, i) => {
-    const pd        = _procCache[step] || {};
-    const status    = pd.status    || 'wait';
-    const startDate = pd.startDate || '';
-    const endDate   = pd.endDate   || '';
+  const body   = document.getElementById('proc-edit-body');
+  const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
+  body.innerHTML = phases.map((ph, i) => {
+    const status    = ph.status    || 'wait';
+    const startDate = ph.startDate || '';
+    const endDate   = ph.endDate   || '';
     return `<div class="prow">
       <div class="prow-num">${i+1}</div>
-      <div class="prow-name">${PROC_ICONS[step]} ${step}</div>
-      <select class="prow-sel" id="ps-${i}" onchange="onProcStatusChange(${i})">
+      <div class="prow-name">${getProcIcon(ph.name)} ${ph.name}</div>
+      <select class="prow-sel" id="ps-${ph.id}" onchange="onProcStatusChange('${ph.id}')">
         <option value="wait"   ${status==='wait'  ?'selected':''}>대기</option>
         <option value="active" ${status==='active'?'selected':''}>진행중</option>
         <option value="done"   ${status==='done'  ?'selected':''}>완료</option>
       </select>
-      <input class="prow-date" id="pd-s-${i}" type="date" value="${startDate}" placeholder="시작일" title="시작일">
-      <input class="prow-date" id="pd-e-${i}" type="date" value="${endDate}"   placeholder="완료일" title="완료일"
+      <input class="prow-date" id="pd-s-${ph.id}" type="date" value="${startDate}" placeholder="시작일" title="시작일">
+      <input class="prow-date" id="pd-e-${ph.id}" type="date" value="${endDate}"   placeholder="완료일" title="완료일"
              style="${status!=='done'?'opacity:.4':''}">
     </div>`;
   }).join('');
   document.getElementById('proc-edit-modal').classList.add('on');
 }
 
-function onProcStatusChange(i) {
-  const sel      = document.getElementById('ps-' + i);
-  const startInp = document.getElementById('pd-s-' + i);
-  const endInp   = document.getElementById('pd-e-' + i);
+function onProcStatusChange(phId) {
+  const sel      = document.getElementById('ps-' + phId);
+  const startInp = document.getElementById('pd-s-' + phId);
+  const endInp   = document.getElementById('pd-e-' + phId);
   const status   = sel.value;
-
-  if (status === 'active') {
-    if (!startInp.value) startInp.value = today();
-    endInp.style.opacity = '.4';
-  }
-  if (status === 'done') {
+  if (status === 'active') { if (!startInp.value) startInp.value = today(); endInp.style.opacity = '.4'; }
+  if (status === 'done')   {
     if (!startInp.value) startInp.value = today();
     if (!endInp.value)   endInp.value   = today();
     endInp.style.opacity = '1';
     // 다음 공정 자동 활성화
-    const nextSel   = document.getElementById('ps-' + (i + 1));
-    const nextStart = document.getElementById('pd-s-' + (i + 1));
-    if (nextSel && nextSel.value === 'wait') {
-      nextSel.value = 'active';
-      if (nextStart && !nextStart.value) nextStart.value = today();
+    const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
+    const idx    = phases.findIndex(ph => ph.id === phId);
+    if (idx >= 0 && idx + 1 < phases.length) {
+      const nextPh  = phases[idx + 1];
+      const nextSel = document.getElementById('ps-' + nextPh.id);
+      if (nextSel && nextSel.value === 'wait') {
+        nextSel.value = 'active';
+        const nextStart = document.getElementById('pd-s-' + nextPh.id);
+        if (nextStart && !nextStart.value) nextStart.value = today();
+      }
     }
   }
-  if (status === 'wait') {
-    endInp.style.opacity = '.4';
-  }
+  if (status === 'wait') endInp.style.opacity = '.4';
 }
 
 async function saveProcEdit() {
-  // 상태만 업데이트 (tasks는 건드리지 않음)
   const updates = {};
-  PROC_STEPS.forEach((step, i) => {
-    const status    = document.getElementById('ps-' + i)?.value    || 'wait';
-    const startDate = document.getElementById('pd-s-' + i)?.value  || '';
-    const endDate   = document.getElementById('pd-e-' + i)?.value  || '';
-
-    // 캐시 업데이트
-    if (!_procCache[step]) _procCache[step] = {};
-    _procCache[step].status    = status;
-    _procCache[step].startDate = startDate;
-    _procCache[step].endDate   = endDate;
-
-    // Firebase 업데이트 (tasks 경로는 건드리지 않음)
-    const base = `procData/${encKey(_curSite)}/${step}`;
+  Object.values(_phCache).forEach(ph => {
+    const status    = document.getElementById('ps-' + ph.id)?.value    || ph.status    || 'wait';
+    const startDate = document.getElementById('pd-s-' + ph.id)?.value  || ph.startDate || '';
+    const endDate   = document.getElementById('pd-e-' + ph.id)?.value  || ph.endDate   || '';
+    ph.status    = status;
+    ph.startDate = startDate;
+    ph.endDate   = endDate;
+    const base = `procData/${encKey(_curSite)}/${ph.id}`;
     updates[base + '/status']    = status;
     updates[base + '/startDate'] = startDate;
     updates[base + '/endDate']   = endDate;
   });
-
   try {
     await db.ref().update(updates);
     toast('✅ 공정 저장됨!');
     closeProcEdit();
-    // 모달 새로고침 (tasks 유지한 채로)
     openDetail(_curSite);
   } catch(e) { toast('저장 실패'); }
 }
@@ -1558,8 +1658,11 @@ async function delEntry(id) {
     await db.ref('entries/' + id).remove();
     toast('🗑 삭제됨');
     document.getElementById('detail-modal').classList.remove('on');
-  } catch (e) { toast('삭제 실패'); }
+  } catch(e) { toast('삭제 실패'); }
 }
+
+
+
 
 
 // ═══════════════════════════════
