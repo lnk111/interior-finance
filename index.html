@@ -1162,24 +1162,44 @@ function openDetail(site) {
   const forceTimer = setTimeout(function() {
     if (done) return;
     done = true;
-    console.warn('[openDetail] Firebase 응답 없음 → 기본 공정으로 대체');
-    _useDefaultPhCache();
-    _finishDetailRender(sEntries, rev, cost, asAmt, profit);
+    console.warn('[openDetail] 타임아웃 → 기본 공정으로 강제 렌더');
+    try {
+      _useDefaultPhCache();
+      _finishDetailRender(sEntries, rev, cost, asAmt, profit);
+    } catch(e) {
+      console.error('[forceTimer] 렌더 에러:', e);
+      var body = document.getElementById('dm-body');
+      if (body) body.innerHTML = '<div style="padding:20px;color:red;">공정 표시 오류: ' + e.message + '</div>';
+    }
   }, 3000);
 
   db.ref(path).once('value').then(function(snap) {
     if (done) return;
     done = true;
     clearTimeout(forceTimer);
-    _parsePhCache(snap.val() || {}, path);
-    _finishDetailRender(sEntries, rev, cost, asAmt, profit);
+    try {
+      _parsePhCache(snap.val() || {}, path);
+      _finishDetailRender(sEntries, rev, cost, asAmt, profit);
+    } catch(e) {
+      console.error('[then] 렌더 에러:', e);
+      _useDefaultPhCache();
+      try { _finishDetailRender(sEntries, rev, cost, asAmt, profit); } catch(e2) {
+        var body = document.getElementById('dm-body');
+        if (body) body.innerHTML = '<div style="padding:20px;color:red;">공정 표시 오류: ' + e2.message + '</div>';
+      }
+    }
   }).catch(function(err) {
     if (done) return;
     done = true;
     clearTimeout(forceTimer);
     console.error('[openDetail] Firebase 실패:', err);
-    _useDefaultPhCache();
-    _finishDetailRender(sEntries, rev, cost, asAmt, profit);
+    try {
+      _useDefaultPhCache();
+      _finishDetailRender(sEntries, rev, cost, asAmt, profit);
+    } catch(e) {
+      var body = document.getElementById('dm-body');
+      if (body) body.innerHTML = '<div style="padding:20px;color:red;">공정 표시 오류: ' + e.message + '</div>';
+    }
   });
 }
 
