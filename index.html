@@ -1578,25 +1578,39 @@ function _refreshTodayProc() {
 //  공정 상태 편집 모달
 // ═══════════════════════════════
 function openProcEdit() {
+  // _phCache가 비어있으면 DEFAULT_PROC_TEMPLATE으로 초기화해서 보여줌
+  if (Object.keys(_phCache).length === 0) {
+    DEFAULT_PROC_TEMPLATE.forEach((tmpl, i) => {
+      const id = 'ph_' + Date.now() + '_' + i;
+      _phCache[id] = { id, name: tmpl.name, status:'wait', startDate:'', endDate:'', tasks:{}, order: i * 10 };
+    });
+  }
+
   const body   = document.getElementById('proc-edit-body');
   const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
-  body.innerHTML = phases.map((ph, i) => {
-    const status    = ph.status    || 'wait';
-    const startDate = ph.startDate || '';
-    const endDate   = ph.endDate   || '';
-    return `<div class="prow">
-      <div class="prow-num">${i+1}</div>
-      <div class="prow-name">${getProcIcon(ph.name)} ${ph.name}</div>
-      <select class="prow-sel" id="ps-${ph.id}" onchange="onProcStatusChange('${ph.id}')">
-        <option value="wait"   ${status==='wait'  ?'selected':''}>대기</option>
-        <option value="active" ${status==='active'?'selected':''}>진행중</option>
-        <option value="done"   ${status==='done'  ?'selected':''}>완료</option>
-      </select>
-      <input class="prow-date" id="pd-s-${ph.id}" type="date" value="${startDate}" placeholder="시작일" title="시작일">
-      <input class="prow-date" id="pd-e-${ph.id}" type="date" value="${endDate}"   placeholder="완료일" title="완료일"
-             style="${status!=='done'?'opacity:.4':''}">
-    </div>`;
-  }).join('');
+
+  body.innerHTML = `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--s3);border-radius:8px;">
+      💡 공정 목록이 자동으로 불러와졌어요. 상태를 설정하고 저장하면 적용됩니다.
+    </div>
+    ${phases.map((ph, i) => {
+      const status    = ph.status    || 'wait';
+      const startDate = ph.startDate || '';
+      const endDate   = ph.endDate   || '';
+      return `<div class="prow">
+        <div class="prow-num">${i+1}</div>
+        <div class="prow-name">${getProcIcon(ph.name)} ${ph.name}</div>
+        <select class="prow-sel" id="ps-${ph.id}" onchange="onProcStatusChange('${ph.id}')">
+          <option value="wait"   ${status==='wait'  ?'selected':''}>대기</option>
+          <option value="active" ${status==='active'?'selected':''}>진행중</option>
+          <option value="done"   ${status==='done'  ?'selected':''}>완료</option>
+        </select>
+        <input class="prow-date" id="pd-s-${ph.id}" type="date" value="${startDate}" placeholder="시작일" title="시작일">
+        <input class="prow-date" id="pd-e-${ph.id}" type="date" value="${endDate}"   placeholder="완료일" title="완료일"
+               style="${status!=='done'?'opacity:.4':''}">
+      </div>`;
+    }).join('')}`;
+
   document.getElementById('proc-edit-modal').classList.add('on');
 }
 
