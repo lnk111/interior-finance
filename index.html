@@ -1177,9 +1177,9 @@ function openDetail(site) {
 
 function _skeletonHtml(rev, cost, asAmt, profit) {
   return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
-    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
-    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
-    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
+    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
+    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
+    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
     +'</div>'
     +'<div style="padding:32px 0;text-align:center;">'
     +'<div style="font-size:24px;margin-bottom:8px;">🔄</div>'
@@ -1266,9 +1266,9 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
 
   document.getElementById('dm-body').innerHTML =
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
-      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
-      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
-      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
     +'</div>'
     +'<div class="proc-section">'
       +'<div class="proc-section-title">'
