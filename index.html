@@ -790,6 +790,10 @@ function goPage(name) {
   if (role === 'staff' && (name === 'home' || name === 'settings')) {
     toast('⚠️ 접근 권한이 없습니다'); return;
   }
+  // 페이지 이동 시 site-drop 리스너 완전 제거
+  document.removeEventListener('click', closeSiteDropOutside);
+  closeSiteDrop();
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('on'));
   const pg = document.getElementById('pg-' + name);
@@ -1871,6 +1875,8 @@ function openSiteDrop() {
 
 function closeSiteDropOutside(e) {
   const wrap = document.getElementById('site-selector');
+  // sites 페이지가 활성화되어 있으면 즉시 종료 (리스너 재등록 안 함)
+  if (document.getElementById('pg-sites')?.classList.contains('on')) return;
   if (wrap && !wrap.contains(e.target)) {
     closeSiteDrop();
   } else {
