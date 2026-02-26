@@ -1587,10 +1587,13 @@ function _refreshTodayProc() { /* 오늘의 공정 제거됨 */ }
 //  공정 상태 편집 모달
 // ═══════════════════════════════
 function openProcEdit() {
-  // _phCache가 비어있으면 DEFAULT_PROC_TEMPLATE으로 초기화해서 보여줌
-  if (Object.keys(_phCache).length === 0) {
+  const wasEmpty = Object.keys(_phCache).length === 0;
+
+  // _phCache가 비어있으면 DEFAULT_PROC_TEMPLATE으로 초기화 (이름 기반 고정 ID 사용)
+  if (wasEmpty) {
     DEFAULT_PROC_TEMPLATE.forEach((tmpl, i) => {
-      const id = 'ph_' + Date.now() + '_' + i;
+      // 이름+순서로 안정적인 ID 생성 (재실행해도 동일한 ID)
+      const id = 'ph_' + i + '_' + tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
       _phCache[id] = { id, name: tmpl.name, status:'wait', startDate:'', endDate:'', tasks:{}, order: i * 10 };
     });
   }
@@ -1599,9 +1602,9 @@ function openProcEdit() {
   const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
 
   body.innerHTML = `
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--s3);border-radius:8px;">
+    ${wasEmpty ? `<div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--s3);border-radius:8px;">
       💡 공정 목록이 자동으로 불러와졌어요. 상태를 설정하고 저장하면 적용됩니다.
-    </div>
+    </div>` : ''}
     ${phases.map((ph, i) => {
       const status    = ph.status    || 'wait';
       const startDate = ph.startDate || '';
@@ -1656,13 +1659,11 @@ async function saveProcEdit() {
     const startDate = document.getElementById('pd-s-' + ph.id)?.value || ph.startDate || '';
     const endDate   = document.getElementById('pd-e-' + ph.id)?.value || ph.endDate   || '';
 
-    // 캐시 업데이트
     ph.status    = status;
     ph.startDate = startDate;
     ph.endDate   = endDate;
 
-    // ★ name, order, status, startDate, endDate 전부 저장 (name 누락이 핵심 버그)
-    const base = `procData/${encKey(_curSite)}/${ph.id}`;
+    const base = 'procData/' + encKey(_curSite) + '/' + ph.id;
     updates[base + '/id']        = ph.id;
     updates[base + '/name']      = ph.name;
     updates[base + '/order']     = ph.order ?? 0;
@@ -1671,42 +1672,18 @@ async function saveProcEdit() {
     updates[base + '/endDate']   = endDate;
   });
 
-  console.log('[saveProcEdit] 저장 경로:', `procData/${encKey(_curSite)}`);
+  console.log('[saveProcEdit] 저장 경로: procData/' + encKey(_curSite));
   console.log('[saveProcEdit] 저장 데이터:', JSON.stringify(updates, null, 2));
 
   try {
     await db.ref().update(updates);
     toast('✅ 공정 저장됨!');
     closeProcEdit();
-    // 현장 상세가 열려있으면 즉시 갱신 (모달 닫지 않고 타임라인만 새로고침)
-    _refreshDetailTimeline();
+    // 저장 후 현장 상세를 Firebase에서 다시 읽어서 확실하게 갱신
+    openDetail(_curSite);
   } catch(e) {
     console.error('[saveProcEdit] 저장 실패:', e);
     toast('❌ 저장 실패 — 네트워크를 확인해주세요');
-  }
-}
-
-// 상세 모달 타임라인/패널만 즉시 갱신 (모달 재오픈 없이)
-function _refreshDetailTimeline() {
-  const tlWrap = document.querySelector('.proc-section');
-  if (!tlWrap) return; // 상세 모달이 열려있지 않으면 스킵
-
-  // 타임라인 노드 재렌더
-  const tlEl = tlWrap.querySelector('.timeline-wrap');
-  if (tlEl) tlEl.outerHTML = buildTimelineHtml();
-
-  // 공정 패널 전체 재렌더
-  const panelEl = document.getElementById('step-panels');
-  if (panelEl) panelEl.innerHTML = buildAllPanelsHtml();
-
-  // 오늘의 공정 재렌더
-
-  // 진행중 공정 패널 자동 열기
-  const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
-  if (activePh) {
-    _openPhId = activePh.id;
-    const panel = document.getElementById('tp-' + activePh.id);
-    if (panel) panel.classList.add('open');
   }
 }
 
