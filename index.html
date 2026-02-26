@@ -103,8 +103,10 @@ option{background:#fff;}
 
 /* ── 이익률 ── */
 .margin-card{margin-bottom:12px;}
-.progress-wrap{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;}
-.progress-bar{height:100%;border-radius:2px;transition:width .5s;}
+.progress-wrap{height:10px;background:var(--s3);border-radius:6px;overflow:visible;position:relative;}
+.progress-bar{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1);position:relative;}
+.goal-marker{position:absolute;top:-4px;width:3px;height:18px;background:#64748b;border-radius:2px;z-index:2;transform:translateX(-50%);}
+.goal-marker::after{content:'목표 25%';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#64748b;white-space:nowrap;letter-spacing:.2px;}
 
 /* ── TOP3 ── */
 .top3-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);}
@@ -255,6 +257,96 @@ option{background:#fff;}
 /* ── 빈 상태 ── */
 .empty{text-align:center;padding:40px 20px;color:var(--dim);}
 .empty-ico{font-size:36px;margin-bottom:10px;}
+
+/* ── 공정 타임라인 ── */
+.proc-section{margin-bottom:16px;}
+.proc-section-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.proc-edit-btn{font-size:11px;font-weight:700;color:var(--accent);background:rgba(26,86,219,.08);border:none;border-radius:6px;padding:3px 9px;cursor:pointer;font-family:'Pretendard',sans-serif;}
+.timeline-wrap{overflow-x:auto;padding-bottom:8px;margin:0 -4px;}
+.timeline-wrap::-webkit-scrollbar{height:3px;}
+.timeline-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.timeline-row{display:flex;align-items:flex-start;gap:0;min-width:max-content;padding:4px 4px 0;}
+.tl-node{display:flex;flex-direction:column;align-items:center;width:58px;flex-shrink:0;}
+.tl-circle{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;position:relative;z-index:1;cursor:pointer;transition:all .2s;border:2px solid transparent;flex-shrink:0;}
+.tl-circle.done{background:var(--green);border-color:var(--green);}
+.tl-circle.active{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px rgba(26,86,219,.15);}
+.tl-circle.wait{background:#fff;border-color:var(--border2);}
+.tl-label{font-size:9px;font-weight:700;margin-top:5px;text-align:center;line-height:1.3;}
+.tl-label.done{color:var(--green);}
+.tl-label.active{color:var(--accent);}
+.tl-label.wait{color:var(--dim);}
+.tl-date{font-size:8px;color:var(--dim);margin-top:2px;text-align:center;white-space:nowrap;}
+.tl-line{width:24px;height:2px;margin-top:16px;flex-shrink:0;}
+.tl-line.done{background:var(--green);}
+.tl-line.half{background:linear-gradient(90deg,var(--green) 50%,var(--border) 50%);}
+.tl-line.wait{background:var(--border);}
+/* 오늘의 공정 */
+.today-proc{background:linear-gradient(135deg,#1a56db 0%,#1e40af 100%);border-radius:var(--r);padding:16px;margin-bottom:14px;}
+.today-proc-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);letter-spacing:.5px;margin-bottom:4px;}
+.today-proc-name{font-size:20px;font-weight:800;color:#fff;margin-bottom:14px;}
+.checklist{display:flex;flex-direction:column;gap:8px;}
+.check-item{display:flex;align-items:center;gap:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.check-box{width:22px;height:22px;border-radius:6px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;}
+.check-box.on{background:#fff;border-color:#fff;}
+.check-box.on::after{content:'✓';font-size:13px;font-weight:800;color:var(--accent);}
+.check-text{font-size:13px;font-weight:600;color:rgba(255,255,255,.9);transition:all .18s;}
+.check-text.on{text-decoration:line-through;color:rgba(255,255,255,.4);}
+/* 공정 편집 바텀시트 */
+#proc-edit-modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);flex-direction:column;justify-content:flex-end;}
+#proc-edit-modal.on{display:flex;}
+.proc-edit-sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 44px;max-height:88vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(26,86,219,.18);}
+.prow{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--border);}
+.prow:last-child{border:none;}
+.prow-num{width:22px;height:22px;border-radius:50%;background:var(--s3);font-size:10px;font-weight:700;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.prow-name{font-size:13px;font-weight:700;flex:1;}
+.prow-sel{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:5px 6px;font-size:11px;font-weight:600;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;-webkit-appearance:none;}
+.prow-sel:focus{border-color:var(--accent);}
+.prow-date{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:5px 6px;font-size:11px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;width:108px;}
+.prow-date:focus{border-color:var(--accent);}
+
+/* ── 공정 패널 ── */
+.step-panel-wrap{margin-bottom:6px;border-radius:10px;overflow:hidden;border:1px solid var(--border);}
+.step-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--s3);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.step-panel-hdr:active{background:var(--s2);}
+
+/* ── 태스크 패널 ── */
+.task-panel{display:none;background:#fff;}
+.task-panel.open{display:block;}
+.task-list{}
+.task-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--border);background:#fff;}
+.task-item:last-child{border-bottom:none;}
+
+/* 체크박스 */
+.task-cb{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;}
+.task-cb.done{background:var(--green);border-color:var(--green);}
+.task-cb.done::after{content:'✓';font-size:12px;font-weight:800;color:#fff;}
+.task-text{flex:1;font-size:13px;font-weight:600;color:var(--text);line-height:1.4;transition:color .18s;}
+.task-text.done{text-decoration:line-through;color:var(--dim);}
+
+/* 뱃지 */
+.task-type-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0;}
+.task-type-base{background:rgba(26,86,219,.1);color:var(--accent);}
+.task-type-custom{background:rgba(5,150,105,.1);color:var(--green);}
+
+/* 삭제 버튼 */
+.task-del-btn{background:none;border:none;font-size:16px;color:var(--dim);cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1;}
+.task-del-btn:active{color:var(--red);}
+
+/* 업무 추가 행 */
+.task-add-row{display:flex;gap:8px;padding:10px 12px;background:var(--s2);border-top:1px solid var(--border);}
+.task-add-inp{flex:1;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:9px 10px;font-size:13px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;}
+.task-add-inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.1);}
+.task-add-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;white-space:nowrap;}
+.task-add-btn:active{background:var(--accent2);}
+
+/* 타임라인 노드 */
+.tl-node-wrap{display:flex;flex-direction:column;align-items:center;width:58px;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.tl-node-wrap .tl-circle{transition:transform .15s;}
+.tl-node-wrap:active .tl-circle{transform:scale(.88);}
+
+/* 오늘의 공정 */
+.todo-count{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:#fff;margin-bottom:12px;}
+
 </style>
 </head>
 <body>
@@ -310,9 +402,18 @@ option{background:#fff;}
     <div class="card margin-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <div style="font-size:12px;color:var(--muted);font-weight:600;">이익률</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;" id="k-margin">-</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:10px;color:var(--muted);background:var(--s3);padding:2px 7px;border-radius:4px;">목표 25%</span>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;" id="k-margin">-</div>
+        </div>
       </div>
-      <div class="progress-wrap"><div class="progress-bar" id="k-bar" style="width:0;background:var(--green);"></div></div>
+      <div style="margin-bottom:8px;padding-top:14px;">
+        <div class="progress-wrap">
+          <div class="progress-bar" id="k-bar" style="width:0;background:var(--green);"></div>
+          <div class="goal-marker" style="left:25%;"></div>
+        </div>
+      </div>
+      <div id="k-margin-msg" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
     </div>
     <div class="card">
       <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">현장 순이익 TOP 3</div>
@@ -502,6 +603,20 @@ option{background:#fff;}
       <button onclick="document.getElementById('detail-modal').classList.remove('on')" style="background:var(--s2);border:none;color:var(--muted);width:28px;height:28px;border-radius:8px;font-size:15px;cursor:pointer;">✕</button>
     </div>
     <div id="dm-body"></div>
+  </div>
+</div>
+
+<!-- 공정 편집 바텀시트 -->
+<div id="proc-edit-modal" onclick="if(event.target===this)closeProcEdit()">
+  <div class="proc-edit-sheet">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:17px;font-weight:800;">⚙️ 공정 관리</div>
+      <button onclick="closeProcEdit()" style="background:var(--s2);border:none;color:var(--muted);width:28px;height:28px;border-radius:8px;font-size:15px;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">각 공정의 상태와 날짜를 설정하세요. 완료 처리하면 다음 공정이 자동 활성화됩니다.</div>
+    <div id="proc-edit-body"></div>
+    <button onclick="saveProcEdit()" style="width:100%;margin-top:16px;padding:15px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;box-shadow:0 4px 14px rgba(26,86,219,.3);">💾 저장</button>
   </div>
 </div>
 
@@ -769,14 +884,31 @@ function renderDash() {
   set('k-rev-cnt',  data.filter(e => e.type === 'revenue').length + '건');
   set('k-cost-cnt', data.filter(e => e.type === 'cost').length + '건');
 
+  const GOAL = 25; // 목표 이익률 25%
   const col = v => v >= 0 ? 'var(--green)' : 'var(--red)';
-  const mCol = margin >= 20 ? 'var(--green)' : margin >= 10 ? 'var(--accent)' : 'var(--red)';
+  const mCol = margin >= GOAL ? 'var(--green)' : margin >= GOAL * 0.6 ? 'var(--orange)' : 'var(--red)';
   document.getElementById('k-profit').style.color = col(profit);
   document.getElementById('k-op').style.color = '#fff'; // op-card 파란 배경
   document.getElementById('k-margin').style.color = mCol;
 
   const bar = document.getElementById('k-bar');
   if (bar) { bar.style.width = Math.min(Math.max(margin, 0), 100) + '%'; bar.style.background = mCol; }
+
+  // 목표 대비 메시지
+  const msgEl = document.getElementById('k-margin-msg');
+  if (msgEl) {
+    const diff = (margin - GOAL).toFixed(1);
+    if (margin >= GOAL) {
+      msgEl.textContent = `✅ 목표 초과 +${diff}%p — 우수`;
+      msgEl.style.color = 'var(--green)';
+    } else if (margin >= GOAL * 0.6) {
+      msgEl.textContent = `⚠️ 목표까지 ${Math.abs(diff)}%p 부족 — 주의`;
+      msgEl.style.color = 'var(--orange)';
+    } else {
+      msgEl.textContent = `🔴 목표까지 ${Math.abs(diff)}%p 부족 — 위험`;
+      msgEl.style.color = 'var(--red)';
+    }
+  }
 
   // TOP3
   const sm = {};
@@ -859,7 +991,7 @@ function renderSites() {
         </div>
         <div>
           <div class="site-profit" style="color:${p>=0?'var(--green)':'var(--red)'}">${p>=0?'+':''}${fmtW(p)}</div>
-          <div style="font-size:10px;color:${parseFloat(pct)>=20?'var(--green)':parseFloat(pct)>=10?'var(--accent)':'var(--red)'};text-align:right;margin-top:2px;">이익률 ${pct}%</div>
+          <div style="font-size:10px;color:${parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)'};text-align:right;margin-top:2px;">이익률 ${pct}% ${parseFloat(pct)>=25?'✅':parseFloat(pct)>=15?'⚠️':'🔴'}</div>
         </div>
       </div>
       <div class="site-grid">
@@ -867,11 +999,14 @@ function renderSites() {
         <div><div class="sc-label">매입</div><div class="sc-val" style="color:var(--red)">${fmtW(c)}</div></div>
         <div><div class="sc-label">AS</div><div class="sc-val" style="color:var(--orange)">${fmtW(a)}</div></div>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <div style="font-size:10px;color:var(--muted);">진행률</div>
-        <div style="font-size:10px;color:var(--muted);">${prog}%</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-top:2px;">
+        <div style="font-size:10px;color:var(--muted);">이익률 달성</div>
+        <div style="font-size:10px;color:var(--muted);">목표 <b style="color:var(--text);">25%</b></div>
       </div>
-      <div class="progress-wrap"><div class="progress-bar" style="width:${prog}%;background:${parseFloat(prog)>=80?'var(--green)':'var(--accent)'}"></div></div>
+      <div class="progress-wrap" style="overflow:visible;">
+        <div class="progress-bar" style="width:${Math.min(parseFloat(pct),100)}%;background:${parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)'}"></div>
+        <div class="goal-marker" style="left:25%;"></div>
+      </div>
       ${role === 'boss' ? `<div style="text-align:right;margin-top:8px;"><button onclick="event.stopPropagation();openSiteModal('${safeN}')" style="background:var(--s2);border:none;color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">수정</button></div>` : ''}
     </div>`;
   }).join('');
@@ -887,36 +1022,534 @@ function setSiteFilter(f, el) {
 // ═══════════════════════════════
 //  현장 상세 모달
 // ═══════════════════════════════
+// ═══════════════════════════════
+//  공정 데이터 상수
+// ═══════════════════════════════
+// ═══════════════════════════════
+//  공정 상수 & 기본 업무 템플릿
+// ═══════════════════════════════
+const PROC_STEPS = ['철거','샷시','전기','목공','타일','필름','도배','바닥','가구','마감','AS'];
+const PROC_ICONS = {
+  '철거':'🔨','샷시':'🪟','전기':'⚡','목공':'🪚','타일':'🟦',
+  '필름':'🎞','도배':'🎨','바닥':'🟫','가구':'🛋','마감':'✨','AS':'🔧'
+};
+
+// 공정별 기본(base) 업무 — 삭제 불가, 현장별 isDone만 저장
+const BASE_TASKS_TEMPLATE = {
+  '철거': ['철거 범위 최종 확인','보양 작업 완료','폐기물 처리 확인','구조 이상 유무 점검'],
+  '샷시': ['창호 사이즈 재확인','시공 순서 협의','단열 처리 확인','마감 실리콘 확인'],
+  '전기': ['스위치 위치 최종 확정','콘센트 수량 체크','조명 타공 위치 검토','에어컨 배관 위치 확인'],
+  '목공': ['합판 두께 및 자재 확인','천장 높이 재확인','문틀 사이즈 체크','붙박이 위치 도면 확인'],
+  '타일': ['타일 패턴 확인','줄눈 색상 확인','단차 체크','배수 기울기 확인'],
+  '필름': ['필름 색상 최종 확정','필름 면적 계산','시공 전 표면 이물질 제거','모서리 마감 확인'],
+  '도배': ['도배지 종류 최종 확정','초배 작업 완료 확인','천장 vs 벽 작업 순서','콘센트 구멍 위치 확인'],
+  '바닥': ['바닥재 색상 최종 확정','문틈 간격 확인','기존 바닥 평탄 작업 완료','걸레받이 색상 확인'],
+  '가구': ['도면대로 사이즈 확인','손잡이 색상 확정','내부 선반 위치 확인','설치 후 수평 체크'],
+  '마감': ['전체 하자 점검','도어 개폐 확인','조명 전체 점등 테스트','청소 상태 확인'],
+  'AS':  ['하자 항목 리스트 작성','보수 일정 협의','자재 수급 확인','완료 후 고객 확인']
+};
+
+// ── 상태 변수 ──
+let _curSite   = '';                  // 현재 열린 현장명
+let _procCache = {};                  // { 공정명: { status, startDate, endDate, tasks: { id: taskObj } } }
+let _openStep  = '';                  // 현재 펼쳐진 공정 패널
+
+// ═══════════════════════════════
+//  태스크 유틸
+// ═══════════════════════════════
+
+// Firebase tasks 맵에 base 업무 자동 초기화 (없는 것만 추가)
+function initBaseTasks(tasksMap, stepName) {
+  const result = tasksMap ? JSON.parse(JSON.stringify(tasksMap)) : {};
+  const templates = BASE_TASKS_TEMPLATE[stepName] || [];
+  templates.forEach((text, i) => {
+    const bid = 'base_' + i;
+    if (!result[bid]) {
+      result[bid] = {
+        id: bid, text, isDone: false,
+        type: 'base', createdAt: Date.now(), updatedAt: Date.now()
+      };
+    }
+  });
+  return result;
+}
+
+// tasks 맵 → 정렬된 배열 (base 먼저 → custom 오래된순)
+function tasksToArr(tasksMap) {
+  if (!tasksMap) return [];
+  return Object.values(tasksMap).sort((a, b) => {
+    if (a.type === 'base' && b.type !== 'base') return -1;
+    if (b.type === 'base' && a.type !== 'base') return  1;
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  });
+}
+
+// ═══════════════════════════════
+//  현장 상세 열기 (진입점)
+// ═══════════════════════════════
 function openDetail(site) {
+  _curSite  = site;
+  _openStep = '';
+
   const s = entries.filter(e => e.site === site);
-  const r = s.filter(e => e.type === 'revenue').reduce((a, e) => a + (e.amount || 0), 0);
-  const c = s.filter(e => e.type === 'cost').reduce((a, e) => a + (e.amount || 0), 0);
-  const a = s.filter(e => e.type === 'as').reduce((a, e) => a + (e.amount || 0), 0);
-  const p = r - c - a;
+  const rev  = s.filter(e => e.type === 'revenue').reduce((a, e) => a + (e.amount || 0), 0);
+  const cost = s.filter(e => e.type === 'cost').reduce((a, e) => a + (e.amount || 0), 0);
+  const as   = s.filter(e => e.type === 'as').reduce((a, e) => a + (e.amount || 0), 0);
+  const profit = rev - cost - as;
+
+  db.ref('procData/' + encKey(site)).once('value').then(snap => {
+    const raw = snap.val() || {};
+    // 각 공정마다 base tasks 자동 초기화
+    PROC_STEPS.forEach(step => {
+      if (!raw[step]) raw[step] = { status: 'wait', startDate: '', endDate: '', tasks: {} };
+      raw[step].tasks = initBaseTasks(raw[step].tasks, step);
+    });
+    _procCache = raw;
+
+    // base tasks가 DB에 없던 것들 → 한 번에 저장
+    const updates = {};
+    PROC_STEPS.forEach(step => {
+      Object.values(_procCache[step].tasks).forEach(t => {
+        updates['procData/' + encKey(site) + '/' + step + '/tasks/' + t.id] = t;
+      });
+    });
+    db.ref().update(updates).catch(() => {});
+
+    // 진행중 공정 → 기본으로 열기
+    const activeStep = PROC_STEPS.find(st => (_procCache[st]?.status || 'wait') === 'active') || '';
+    _openStep = activeStep;
+
+    renderDetailModal(site, rev, cost, as, profit, s);
+  }).catch(() => {
+    // 실패해도 base tasks로 초기화해서 보여줌
+    _procCache = {};
+    PROC_STEPS.forEach(step => {
+      _procCache[step] = { status: 'wait', startDate: '', endDate: '', tasks: initBaseTasks({}, step) };
+    });
+    renderDetailModal(site, rev, cost, as, profit, s);
+  });
+}
+
+// ── 모달 렌더 ──
+function renderDetailModal(site, rev, cost, as, profit, s) {
   document.getElementById('dm-title').textContent = site;
   document.getElementById('dm-body').innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
-      <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">${fmtW(r)}</div></div>
-      <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">${fmtW(c)}</div></div>
-      <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${p>=0?'var(--green)':'var(--red)'};">${p>=0?'+':''}${fmtW(p)}</div></div>
+    <!-- 요약 -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <div class="card-sm" style="text-align:center;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">${fmtW(rev)}</div>
+      </div>
+      <div class="card-sm" style="text-align:center;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">${fmtW(cost)}</div>
+      </div>
+      <div class="card-sm" style="text-align:center;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmtW(profit)}</div>
+      </div>
     </div>
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">상세 내역 (${s.length}건)</div>
+
+    <!-- 오늘의 공정 -->
+    <div id="today-proc-wrap">${buildTodayProcHtml()}</div>
+
+    <!-- 공정 타임라인 -->
+    <div class="proc-section">
+      <div class="proc-section-title">
+        <span>📋 공정 타임라인</span>
+        <button class="proc-edit-btn" onclick="openProcEdit()">⚙️ 공정 수정</button>
+      </div>
+      ${buildTimelineHtml()}
+      <div id="step-panels">${buildAllPanelsHtml()}</div>
+    </div>
+
+    <!-- 거래 내역 -->
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">
+      상세 내역 (${s.length}건)
+    </div>
     ${s.map(e => {
-      const tl = {revenue:'매출',cost:'매입',as:'AS'}[e.type] || e.type;
-      const safeId = e.id;
+      const tl = {revenue:'매출',cost:'매입',as:'AS'}[e.type]||e.type;
       return `<div class="entry-row">
         <div class="entry-left">
-          <div class="e-info"><span class="e-type ${e.type}">${tl}</span>${e.process||''}${e.process&&e.item?' · ':''}${e.item||''}</div>
-          ${e.writer ? `<div class="e-writer">👤 ${e.writer}</div>` : ''}
+          <div class="e-info">
+            <span class="e-type ${e.type}">${tl}</span>${e.process||''}${e.process&&e.item?' · ':''}${e.item||''}
+          </div>
+          ${e.writer?`<div class="e-writer">👤 ${e.writer}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div class="e-amount ${e.type}">${fmtFull(e.amount||0)}</div>
           <div class="e-date">${e.date||''}</div>
-          ${role==='boss' ? `<button class="del-btn" onclick="delEntry(${safeId})">삭제</button>` : ''}
+          ${role==='boss'?`<button class="del-btn" onclick="delEntry(${e.id})">삭제</button>`:''}
         </div>
       </div>`;
     }).join('')}`;
+
   document.getElementById('detail-modal').classList.add('on');
+}
+
+// ═══════════════════════════════
+//  타임라인 HTML
+// ═══════════════════════════════
+function buildTimelineHtml() {
+  let html = '<div class="timeline-wrap"><div class="timeline-row">';
+  PROC_STEPS.forEach((step, i) => {
+    const pd     = _procCache[step] || {};
+    const status = pd.status || 'wait';
+    const tasks  = tasksToArr(pd.tasks);
+    const done   = tasks.filter(t => t.isDone).length;
+    const total  = tasks.length;
+    const icon   = PROC_ICONS[step];
+    const dateLbl = status === 'done'   && pd.endDate   ? pd.endDate.slice(5)   :
+                    status === 'active' && pd.startDate ? pd.startDate.slice(5) : '';
+
+    html += `<div class="tl-node-wrap" onclick="toggleStepPanel('${step}')">
+      <div class="tl-circle ${status}">${status === 'done' ? '✓' : icon}</div>
+      <div class="tl-label ${status}">${step}</div>
+      <div class="tl-date">${status!=='wait' ? done+'/'+total : dateLbl||'&nbsp;'}</div>
+    </div>`;
+
+    if (i < PROC_STEPS.length - 1) {
+      const lc = status === 'done' ? 'done' : status === 'active' ? 'half' : 'wait';
+      html += `<div class="tl-line ${lc}"></div>`;
+    }
+  });
+  html += '</div></div>';
+  return html;
+}
+
+// ═══════════════════════════════
+//  공정 패널 HTML
+// ═══════════════════════════════
+function buildAllPanelsHtml() {
+  return PROC_STEPS.map(step => buildStepPanelHtml(step)).join('');
+}
+
+function buildStepPanelHtml(step) {
+  const pd     = _procCache[step] || {};
+  const status = pd.status || 'wait';
+  const tasks  = tasksToArr(pd.tasks);
+  const done   = tasks.filter(t => t.isDone).length;
+  const isOpen = _openStep === step;
+
+  const statusLbl   = { wait:'대기', active:'진행중', done:'완료' }[status];
+  const statusColor = { wait:'var(--dim)', active:'var(--accent)', done:'var(--green)' }[status];
+
+  const taskRows = tasks.map(t => buildTaskRowHtml(step, t)).join('');
+
+  return `<div class="step-panel-wrap" id="spw-${step}">
+    <!-- 헤더 -->
+    <div class="step-panel-hdr" onclick="toggleStepPanel('${step}')">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">${PROC_ICONS[step]}</span>
+        <span style="font-size:13px;font-weight:700;">${step}</span>
+        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${statusColor}1a;color:${statusColor};">${statusLbl}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="spanel-count" style="font-size:11px;color:var(--muted);">${done}/${tasks.length}</span>
+        <span class="spanel-arrow" style="font-size:11px;color:var(--dim);">${isOpen?'▲':'▼'}</span>
+      </div>
+    </div>
+    <!-- 패널 본체 -->
+    <div class="task-panel${isOpen?' open':''}" id="tp-${step}">
+      <div class="task-list" id="tl-${step}">${taskRows}</div>
+      <div class="task-add-row">
+        <input class="task-add-inp" id="ta-${step}"
+          placeholder="업무 추가 (Enter로 등록)..."
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addTask('${step}');}">
+        <button class="task-add-btn" onclick="addTask('${step}')">+ 추가</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildTaskRowHtml(step, t) {
+  const cbCls  = t.isDone ? ' done' : '';
+  const txtCls = t.isDone ? ' done' : '';
+  const safeStep = step.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeId   = t.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return `<div class="task-item" id="ti-${step}-${t.id}">
+    <div class="task-cb${cbCls}" onclick="toggleTask('${safeStep}','${safeId}',this)"></div>
+    <div class="task-text${txtCls}" id="tt-${step}-${t.id}">${escHtml(t.text)}</div>
+    <span class="task-type-badge task-type-${t.type}">${t.type==='base'?'기본':'추가'}</span>
+    ${t.type==='custom'
+      ? `<button class="task-del-btn" onclick="deleteTask('${safeStep}','${safeId}')" title="삭제">✕</button>`
+      : `<span style="display:inline-block;width:22px;"></span>`}
+  </div>`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════
+//  오늘의 공정
+// ═══════════════════════════════
+function buildTodayProcHtml() {
+  const activeStep = PROC_STEPS.find(st => (_procCache[st]?.status||'wait') === 'active');
+  if (!activeStep) return '';
+
+  const tasks     = tasksToArr(_procCache[activeStep]?.tasks);
+  const remaining = tasks.filter(t => !t.isDone);
+  const total     = tasks.length;
+  const doneCount = total - remaining.length;
+  const preview   = remaining.slice(0, 5);
+  const moreCount = remaining.length > 5 ? remaining.length - 5 : 0;
+
+  const checkRows = preview.map(t => {
+    const safeStep = activeStep.replace(/'/g,"\\'");
+    const safeId   = t.id.replace(/'/g,"\\'");
+    return `<div class="check-item" onclick="toggleTaskToday('${safeStep}','${safeId}',this)">
+      <div class="check-box"></div>
+      <div class="check-text">${escHtml(t.text)}${t.type==='custom'?' ✏️':''}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="today-proc" style="margin-bottom:14px;">
+    <div class="today-proc-label">📅 오늘의 공정</div>
+    <div class="today-proc-name">${PROC_ICONS[activeStep]} ${activeStep} 공정</div>
+    <div class="todo-count">✅ ${doneCount}완료 &nbsp;·&nbsp; ⏳ ${remaining.length}개 남음</div>
+    <div class="checklist">${checkRows}</div>
+    ${moreCount>0?`<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:8px;">+${moreCount}개 더 · 공정 패널에서 확인</div>`:''}
+    ${remaining.length===0?`<div style="font-size:13px;color:rgba(255,255,255,.8);font-weight:700;margin-top:4px;">🎉 모든 업무 완료!</div>`:''}
+  </div>`;
+}
+
+// ═══════════════════════════════
+//  패널 토글
+// ═══════════════════════════════
+function toggleStepPanel(step) {
+  _openStep = _openStep === step ? '' : step;
+  PROC_STEPS.forEach(s => {
+    const panel = document.getElementById('tp-' + s);
+    const wrap  = document.getElementById('spw-' + s);
+    if (!panel || !wrap) return;
+    const isOpen = _openStep === s;
+    panel.classList.toggle('open', isOpen);
+    const arrow = wrap.querySelector('.spanel-arrow');
+    if (arrow) arrow.textContent = isOpen ? '▲' : '▼';
+  });
+}
+
+// ═══════════════════════════════
+//  태스크 체크 — 자동저장
+// ═══════════════════════════════
+async function toggleTask(step, taskId, cbEl) {
+  const tasks = _procCache[step]?.tasks;
+  if (!tasks || !tasks[taskId]) return;
+
+  const newDone = !tasks[taskId].isDone;
+  tasks[taskId].isDone     = newDone;
+  tasks[taskId].updatedAt  = Date.now();
+
+  // UI 즉시 반영
+  cbEl.classList.toggle('done', newDone);
+  const txtEl = document.getElementById('tt-' + step + '-' + taskId);
+  if (txtEl) txtEl.classList.toggle('done', newDone);
+
+  // 헤더 카운터 업데이트
+  _refreshPanelHeader(step);
+  // 오늘의 공정 업데이트
+  _refreshTodayProc();
+
+  // Firebase 저장
+  try {
+    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).update({
+      isDone: newDone, updatedAt: Date.now()
+    });
+  } catch(e) { toast('저장 실패 — 네트워크 확인'); }
+}
+
+// 오늘의 공정에서 체크
+async function toggleTaskToday(step, taskId, el) {
+  const tasks = _procCache[step]?.tasks;
+  if (!tasks || !tasks[taskId]) return;
+
+  tasks[taskId].isDone    = true;
+  tasks[taskId].updatedAt = Date.now();
+
+  // 오늘의 공정 체크 UI 애니메이션
+  const box = el.querySelector('.check-box');
+  const txt = el.querySelector('.check-text');
+  if (box) box.classList.add('on');
+  if (txt) txt.classList.add('on');
+
+  // 패널 목록도 sync
+  const cbEl = document.querySelector(`#ti-${step}-${taskId} .task-cb`);
+  if (cbEl) cbEl.classList.add('done');
+  const txtEl = document.getElementById(`tt-${step}-${taskId}`);
+  if (txtEl) txtEl.classList.add('done');
+
+  _refreshPanelHeader(step);
+
+  // 300ms 후 오늘의 공정 카드 재렌더
+  setTimeout(_refreshTodayProc, 350);
+
+  try {
+    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).update({
+      isDone: true, updatedAt: Date.now()
+    });
+  } catch(e) { toast('저장 실패'); }
+}
+
+// ═══════════════════════════════
+//  커스텀 태스크 추가
+// ═══════════════════════════════
+async function addTask(step) {
+  const inp  = document.getElementById('ta-' + step);
+  const text = inp?.value?.trim();
+  if (!text) { toast('⚠️ 업무 내용을 입력하세요'); inp?.focus(); return; }
+
+  const taskId  = 'custom_' + Date.now();
+  const newTask = {
+    id: taskId, text, isDone: false,
+    type: 'custom', createdAt: Date.now(), updatedAt: Date.now()
+  };
+
+  if (!_procCache[step])        _procCache[step]        = { status:'wait', tasks:{} };
+  if (!_procCache[step].tasks)  _procCache[step].tasks  = {};
+  _procCache[step].tasks[taskId] = newTask;
+
+  inp.value = '';
+
+  // 패널에 즉시 추가
+  const listEl = document.getElementById('tl-' + step);
+  if (listEl) listEl.insertAdjacentHTML('beforeend', buildTaskRowHtml(step, newTask));
+  _refreshPanelHeader(step);
+
+  try {
+    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).set(newTask);
+    toast('✅ 업무 추가됨');
+  } catch(e) { toast('저장 실패'); }
+}
+
+// ═══════════════════════════════
+//  커스텀 태스크 삭제
+// ═══════════════════════════════
+async function deleteTask(step, taskId) {
+  const tasks = _procCache[step]?.tasks;
+  if (!tasks || !tasks[taskId]) return;
+  if (tasks[taskId].type === 'base') {
+    toast('⚠️ 기본 업무는 삭제할 수 없습니다');
+    return;
+  }
+  if (!confirm('이 업무를 삭제하시겠습니까?')) return;
+
+  delete _procCache[step].tasks[taskId];
+
+  // UI에서 즉시 제거
+  const rowEl = document.getElementById('ti-' + step + '-' + taskId);
+  if (rowEl) rowEl.remove();
+  _refreshPanelHeader(step);
+  _refreshTodayProc();
+
+  try {
+    await db.ref(`procData/${encKey(_curSite)}/${step}/tasks/${taskId}`).remove();
+    toast('🗑 삭제됨');
+  } catch(e) { toast('삭제 실패'); }
+}
+
+// ═══════════════════════════════
+//  내부 UI 갱신 헬퍼
+// ═══════════════════════════════
+function _refreshPanelHeader(step) {
+  const wrap = document.getElementById('spw-' + step);
+  if (!wrap) return;
+  const tasks = tasksToArr(_procCache[step]?.tasks);
+  const done  = tasks.filter(t => t.isDone).length;
+  const countEl = wrap.querySelector('.spanel-count');
+  if (countEl) countEl.textContent = done + '/' + tasks.length;
+}
+
+function _refreshTodayProc() {
+  const el = document.getElementById('today-proc-wrap');
+  if (el) el.innerHTML = buildTodayProcHtml();
+}
+
+// ═══════════════════════════════
+//  공정 상태 편집 모달
+// ═══════════════════════════════
+function openProcEdit() {
+  const body = document.getElementById('proc-edit-body');
+  body.innerHTML = PROC_STEPS.map((step, i) => {
+    const pd        = _procCache[step] || {};
+    const status    = pd.status    || 'wait';
+    const startDate = pd.startDate || '';
+    const endDate   = pd.endDate   || '';
+    return `<div class="prow">
+      <div class="prow-num">${i+1}</div>
+      <div class="prow-name">${PROC_ICONS[step]} ${step}</div>
+      <select class="prow-sel" id="ps-${i}" onchange="onProcStatusChange(${i})">
+        <option value="wait"   ${status==='wait'  ?'selected':''}>대기</option>
+        <option value="active" ${status==='active'?'selected':''}>진행중</option>
+        <option value="done"   ${status==='done'  ?'selected':''}>완료</option>
+      </select>
+      <input class="prow-date" id="pd-s-${i}" type="date" value="${startDate}" placeholder="시작일" title="시작일">
+      <input class="prow-date" id="pd-e-${i}" type="date" value="${endDate}"   placeholder="완료일" title="완료일"
+             style="${status!=='done'?'opacity:.4':''}">
+    </div>`;
+  }).join('');
+  document.getElementById('proc-edit-modal').classList.add('on');
+}
+
+function onProcStatusChange(i) {
+  const sel      = document.getElementById('ps-' + i);
+  const startInp = document.getElementById('pd-s-' + i);
+  const endInp   = document.getElementById('pd-e-' + i);
+  const status   = sel.value;
+
+  if (status === 'active') {
+    if (!startInp.value) startInp.value = today();
+    endInp.style.opacity = '.4';
+  }
+  if (status === 'done') {
+    if (!startInp.value) startInp.value = today();
+    if (!endInp.value)   endInp.value   = today();
+    endInp.style.opacity = '1';
+    // 다음 공정 자동 활성화
+    const nextSel   = document.getElementById('ps-' + (i + 1));
+    const nextStart = document.getElementById('pd-s-' + (i + 1));
+    if (nextSel && nextSel.value === 'wait') {
+      nextSel.value = 'active';
+      if (nextStart && !nextStart.value) nextStart.value = today();
+    }
+  }
+  if (status === 'wait') {
+    endInp.style.opacity = '.4';
+  }
+}
+
+async function saveProcEdit() {
+  // 상태만 업데이트 (tasks는 건드리지 않음)
+  const updates = {};
+  PROC_STEPS.forEach((step, i) => {
+    const status    = document.getElementById('ps-' + i)?.value    || 'wait';
+    const startDate = document.getElementById('pd-s-' + i)?.value  || '';
+    const endDate   = document.getElementById('pd-e-' + i)?.value  || '';
+
+    // 캐시 업데이트
+    if (!_procCache[step]) _procCache[step] = {};
+    _procCache[step].status    = status;
+    _procCache[step].startDate = startDate;
+    _procCache[step].endDate   = endDate;
+
+    // Firebase 업데이트 (tasks 경로는 건드리지 않음)
+    const base = `procData/${encKey(_curSite)}/${step}`;
+    updates[base + '/status']    = status;
+    updates[base + '/startDate'] = startDate;
+    updates[base + '/endDate']   = endDate;
+  });
+
+  try {
+    await db.ref().update(updates);
+    toast('✅ 공정 저장됨!');
+    closeProcEdit();
+    // 모달 새로고침 (tasks 유지한 채로)
+    openDetail(_curSite);
+  } catch(e) { toast('저장 실패'); }
+}
+
+function closeProcEdit() {
+  document.getElementById('proc-edit-modal').classList.remove('on');
 }
 
 async function delEntry(id) {
@@ -927,6 +1560,7 @@ async function delEntry(id) {
     document.getElementById('detail-modal').classList.remove('on');
   } catch (e) { toast('삭제 실패'); }
 }
+
 
 // ═══════════════════════════════
 //  현장 등록 모달
