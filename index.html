@@ -1004,7 +1004,6 @@ function renderSites() {
     const pctIcon  = parseFloat(pct)>=25?'✅':parseFloat(pct)>=15?'⚠️':'🔴';
     const esc = site.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     return '<div class="site-card" data-site="'+esc+'">'
-      +'<div style="pointer-events:none;">'
       +'<div class="site-card-top">'
       +'<div>'
       +(ym||sl ? '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+(ym?'<span class="site-ym">'+ym+'</span>':'')+(sl?'<span class="badge '+sc+'">'+sl+'</span>':'')+'</div>' : '')
@@ -1024,12 +1023,11 @@ function renderSites() {
       +'<div style="font-size:10px;color:var(--muted);">이익률 달성</div>'
       +'<div style="font-size:10px;color:var(--muted);">목표 <b style="color:var(--text);">25%</b></div>'
       +'</div>'
-      +'<div style="height:10px;background:var(--s3);border-radius:6px;overflow:hidden;position:relative;">'
+      +'<div style="height:10px;background:var(--s3);border-radius:6px;overflow:hidden;position:relative;pointer-events:none;">'
       +'<div style="height:100%;width:'+barW+'%;background:'+barBg+';border-radius:6px;transition:width .6s;"></div>'
       +'<div style="position:absolute;top:0;bottom:0;left:25%;width:2px;background:rgba(100,116,139,.4);"></div>'
       +'</div>'
-      +'<div style="text-align:right;margin-top:3px;"><span style="font-size:9px;color:#94a3b8;">목표 25%</span></div>'
-      +'</div>'
+      +'<div style="text-align:right;margin-top:3px;pointer-events:none;"><span style="font-size:9px;color:#94a3b8;">목표 25%</span></div>'
       +(role==='boss' ? '<div style="text-align:right;margin-top:6px;"><button class="site-edit-btn" data-site="'+esc+'" style="background:var(--s2);border:none;color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">수정</button></div>' : '')
       +'</div>';
   }).join('');
