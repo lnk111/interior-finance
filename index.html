@@ -1241,7 +1241,6 @@ function renderDetailModal(site, rev, cost, asAmt, profit, s) {
         <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmtW(profit)}</div>
       </div>
     </div>
-    <div id="today-proc-wrap">${buildTodayProcHtml()}</div>
     <div class="proc-section">
       <div class="proc-section-title">
         <span>📋 공정 타임라인</span>
@@ -1424,7 +1423,6 @@ async function toggleTask(phId, taskId, cbEl) {
   const txtEl = document.getElementById('tt-' + phId + '-' + taskId);
   if (txtEl) txtEl.classList.toggle('done', newDone);
   _refreshPanelHeader(phId);
-  _refreshTodayProc();
   try {
     await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}/isDone`).set(newDone);
   } catch(e) { toast('저장 실패'); }
@@ -1443,7 +1441,6 @@ async function toggleTaskToday(phId, taskId, el) {
   const txtEl = document.getElementById(`tt-${phId}-${taskId}`);
   if (txtEl) txtEl.classList.add('done');
   _refreshPanelHeader(phId);
-  setTimeout(_refreshTodayProc, 350);
   try {
     await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}/isDone`).set(true);
   } catch(e) { toast('저장 실패'); }
@@ -1504,7 +1501,6 @@ async function deleteTask(phId, taskId) {
   const rowEl = document.getElementById('ti-' + phId + '-' + taskId);
   if (rowEl) rowEl.remove();
   _refreshPanelHeader(phId);
-  _refreshTodayProc();
 
   try {
     await db.ref(`procData/${encKey(_curSite)}/${phId}/tasks/${taskId}`).remove();
@@ -1585,10 +1581,7 @@ function _refreshPanelHeader(phId) {
   if (countEl) countEl.textContent = done + '/' + tasks.length;
 }
 
-function _refreshTodayProc() {
-  const el = document.getElementById('today-proc-wrap');
-  if (el) el.innerHTML = buildTodayProcHtml();
-}
+function _refreshTodayProc() { /* 오늘의 공정 제거됨 */ }
 
 // ═══════════════════════════════
 //  공정 상태 편집 모달
@@ -1707,7 +1700,6 @@ function _refreshDetailTimeline() {
   if (panelEl) panelEl.innerHTML = buildAllPanelsHtml();
 
   // 오늘의 공정 재렌더
-  _refreshTodayProc();
 
   // 진행중 공정 패널 자동 열기
   const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
