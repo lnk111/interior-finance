@@ -969,14 +969,11 @@ const S_CLASS = { consult:'b-consult', contract:'b-contract', active:'b-active',
 
 function renderSites() {
   const search = (document.getElementById('site-search')?.value || '').toLowerCase();
-
   let allSites = [...new Set(entries.map(e => e.site).filter(Boolean))];
   Object.values(siteCache).forEach(info => { if (info?.name && !allSites.includes(info.name)) allSites.push(info.name); });
-
   if (search) allSites = allSites.filter(s => s.toLowerCase().includes(search));
   if (siteFilter !== 'all') allSites = allSites.filter(s => (siteCache[encKey(s)]?.status || '') === siteFilter);
-
-  allSites.sort((a, b) => {
+  allSites.sort((a,b) => {
     const ia = siteCache[encKey(a)], ib = siteCache[encKey(b)];
     return ((ib?.year||'')+(ib?.month||'')).localeCompare((ia?.year||'')+(ia?.month||''));
   });
@@ -984,10 +981,11 @@ function renderSites() {
   const cont = document.getElementById('sites-body');
   if (!allSites.length) {
     cont.innerHTML = '<div class="empty"><div class="empty-ico">🏗️</div><div>현장 데이터가 없습니다</div></div>';
+    cont.onclick = null;
     return;
   }
 
-  cont.innerHTML = allSites.map(site => {
+  const rows = allSites.map(site => {
     const info = siteCache[encKey(site)] || {};
     const s = entries.filter(e => e.site === site);
     const r = s.filter(e => e.type==='revenue').reduce((a,e)=>a+(e.amount||0),0);
@@ -1002,49 +1000,35 @@ function renderSites() {
     const barBg = parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)';
     const pctColor = parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)';
     const pctIcon  = parseFloat(pct)>=25?'✅':parseFloat(pct)>=15?'⚠️':'🔴';
-    const esc = site.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    return '<div class="site-card" data-site="'+esc+'">'
+    const safeN = site.replace(/'/g, "\\'");
+    return '<div class="site-card" onclick="openDetail(\'' + safeN + '\')">'
       +'<div class="site-card-top">'
-      +'<div>'
-      +(ym||sl ? '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+(ym?'<span class="site-ym">'+ym+'</span>':'')+(sl?'<span class="badge '+sc+'">'+sl+'</span>':'')+'</div>' : '')
-      +'<div class="site-name">'+site+'</div>'
-      +'</div>'
-      +'<div>'
-      +'<div class="site-profit" style="color:'+(p>=0?'var(--green)':'var(--red)')+'">'+( p>=0?'+':'')+fmtW(p)+'</div>'
-      +'<div style="font-size:10px;color:'+pctColor+';text-align:right;margin-top:2px;">이익률 '+pct+'% '+pctIcon+'</div>'
-      +'</div>'
+        +'<div>'
+          +(ym||sl?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+(ym?'<span class="site-ym">'+ym+'</span>':'')+(sl?'<span class="badge '+sc+'">'+sl+'</span>':'')+'</div>':'')
+          +'<div class="site-name">'+site+'</div>'
+        +'</div>'
+        +'<div style="text-align:right;">'
+          +'<div class="site-profit" style="color:'+(p>=0?'var(--green)':'var(--red)')+'">'+( p>=0?'+':'')+fmtW(p)+'</div>'
+          +'<div style="font-size:10px;color:'+pctColor+';margin-top:2px;">이익률 '+pct+'% '+pctIcon+'</div>'
+        +'</div>'
       +'</div>'
       +'<div class="site-grid">'
-      +'<div><div class="sc-label">매출</div><div class="sc-val" style="color:var(--green)">'+fmtW(r)+'</div></div>'
-      +'<div><div class="sc-label">매입</div><div class="sc-val" style="color:var(--red)">'+fmtW(c)+'</div></div>'
-      +'<div><div class="sc-label">AS</div><div class="sc-val" style="color:var(--orange)">'+fmtW(a)+'</div></div>'
+        +'<div><div class="sc-label">매출</div><div class="sc-val" style="color:var(--green)">'+fmtW(r)+'</div></div>'
+        +'<div><div class="sc-label">매입</div><div class="sc-val" style="color:var(--red)">'+fmtW(c)+'</div></div>'
+        +'<div><div class="sc-label">AS</div><div class="sc-val" style="color:var(--orange)">'+fmtW(a)+'</div></div>'
       +'</div>'
-      +'<div style="display:flex;justify-content:space-between;margin-bottom:5px;padding-top:2px;">'
-      +'<div style="font-size:10px;color:var(--muted);">이익률 달성</div>'
-      +'<div style="font-size:10px;color:var(--muted);">목표 <b style="color:var(--text);">25%</b></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;padding-top:6px;">'
+        +'<div style="font-size:10px;color:var(--muted);">이익률 달성</div>'
+        +'<div style="font-size:10px;color:var(--muted);">목표 <b style="color:var(--text);">25%</b></div>'
       +'</div>'
-      +'<div style="height:10px;background:var(--s3);border-radius:6px;overflow:hidden;position:relative;pointer-events:none;">'
-      +'<div style="height:100%;width:'+barW+'%;background:'+barBg+';border-radius:6px;transition:width .6s;"></div>'
-      +'<div style="position:absolute;top:0;bottom:0;left:25%;width:2px;background:rgba(100,116,139,.4);"></div>'
+      +'<div style="height:8px;background:var(--s3);border-radius:4px;overflow:hidden;">'
+        +'<div style="height:100%;width:'+barW+'%;background:'+barBg+';border-radius:4px;transition:width .5s;"></div>'
       +'</div>'
-      +'<div style="text-align:right;margin-top:3px;pointer-events:none;"><span style="font-size:9px;color:#94a3b8;">목표 25%</span></div>'
-      +(role==='boss' ? '<div style="text-align:right;margin-top:6px;"><button class="site-edit-btn" data-site="'+esc+'" style="background:var(--s2);border:none;color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">수정</button></div>' : '')
+      +(role==='boss'?'<div style="text-align:right;margin-top:8px;"><button onclick="event.stopPropagation();openSiteModal(\'' + safeN + '\')" style="background:var(--s2);border:none;color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">수정</button></div>':'')
       +'</div>';
-  }).join('');
-
-  // 이벤트 위임 — 카드 클릭과 수정 버튼을 단 하나의 핸들러로 처리
-  cont.onclick = function(e) {
-    const editBtn = e.target.closest('.site-edit-btn');
-    if (editBtn) {
-      e.stopPropagation();
-      openSiteModal(editBtn.dataset.site);
-      return;
-    }
-    const card = e.target.closest('.site-card');
-    if (card && card.dataset.site) {
-      openDetail(card.dataset.site);
-    }
-  };
+  });
+  cont.innerHTML = rows.join('');
+  cont.onclick = null;
 }
 
 function setSiteFilter(f, el) {
@@ -1156,148 +1140,151 @@ function makeInitTasks(phaseName) {
 //  현장 상세 열기
 // ═══════════════════════════════
 function openDetail(site) {
+  console.log('[openDetail] called:', site);
   _curSite  = site;
   _openPhId = '';
 
-  const s      = entries.filter(e => e.site === site);
-  const rev    = s.filter(e => e.type==='revenue').reduce((a,e)=>a+(e.amount||0),0);
-  const cost   = s.filter(e => e.type==='cost').reduce((a,e)=>a+(e.amount||0),0);
-  const asAmt  = s.filter(e => e.type==='as').reduce((a,e)=>a+(e.amount||0),0);
+  const sEntries = entries.filter(e => e.site === site);
+  const rev    = sEntries.filter(e => e.type==='revenue').reduce((a,e)=>a+(e.amount||0),0);
+  const cost   = sEntries.filter(e => e.type==='cost').reduce((a,e)=>a+(e.amount||0),0);
+  const asAmt  = sEntries.filter(e => e.type==='as').reduce((a,e)=>a+(e.amount||0),0);
   const profit = rev - cost - asAmt;
 
+  // ① 즉시 모달 열기 (Firebase 기다리지 않음)
+  document.getElementById('dm-title').textContent = site;
+  document.getElementById('dm-body').innerHTML = _skeletonHtml(rev, cost, asAmt, profit);
+  document.getElementById('detail-modal').classList.add('on');
+
+  // ② Firebase 읽기 (2초 타임아웃 경고)
   const path = 'procData/' + encKey(site);
-  console.log('[openDetail] 읽기 경로:', path);
+  let warnTimer = setTimeout(function() {
+    const w = document.getElementById('proc-load-msg');
+    if (w) w.innerHTML = '⚠️ 로딩이 지연되고 있어요…';
+  }, 2000);
 
-  db.ref(path).once('value').then(snap => {
-    const raw = snap.val() || {};
-    console.log('[openDetail] Firebase 응답 RAW:', JSON.stringify(raw, null, 2));
-
-    _phCache = {};
-
-    if (Array.isArray(raw.phases)) {
-      raw.phases.forEach(ph => {
-        if (ph && ph.id) _phCache[ph.id] = ph;
-      });
-    } else {
-      Object.entries(raw).forEach(([key, val]) => {
-        if (!val || typeof val !== 'object') return;
-        if (key === 'phases') return;
-        const ph = {
-          id:        val.id        || key,
-          name:      val.name      || key,
-          status:    val.status    || 'wait',
-          startDate: val.startDate || '',
-          endDate:   val.endDate   || '',
-          order:     val.order     ?? 9999,
-          tasks:     {}
-        };
-        if (val.tasks && typeof val.tasks === 'object') {
-          Object.entries(val.tasks).forEach(([tid, t], i) => {
-            if (!t || typeof t !== 'object') return;
-            ph.tasks[tid] = {
-              id:     t.id     || tid,
-              text:   t.text   || '',
-              isDone: t.isDone || false,
-              order:  t.order  ?? (i * 10)
-            };
-          });
-        }
-        _phCache[key] = ph;
-      });
-    }
-
-    // ★ 핵심: Firebase 데이터가 없으면 DEFAULT_PROC_TEMPLATE으로 즉시 채우고 DB에도 저장
-    if (Object.keys(_phCache).length === 0) {
-      console.log('[openDetail] 공정 데이터 없음 → 기본 공정 자동 생성');
-      const initUpdates = {};
-      DEFAULT_PROC_TEMPLATE.forEach((tmpl, i) => {
-        const id = 'ph_' + i + '_' + tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
-        const tasks = makeInitTasks(tmpl.name);
-        _phCache[id] = { id, name: tmpl.name, status:'wait', startDate:'', endDate:'', tasks, order: i * 10 };
-        // DB에 저장
-        initUpdates[path + '/' + id + '/id']        = id;
-        initUpdates[path + '/' + id + '/name']      = tmpl.name;
-        initUpdates[path + '/' + id + '/order']     = i * 10;
-        initUpdates[path + '/' + id + '/status']    = 'wait';
-        initUpdates[path + '/' + id + '/startDate'] = '';
-        initUpdates[path + '/' + id + '/endDate']   = '';
-        Object.values(tasks).forEach(t => {
-          initUpdates[path + '/' + id + '/tasks/' + t.id] = t;
-        });
-      });
-      db.ref().update(initUpdates).catch(()=>{});
-    } else {
-      // tasks 비어있는 공정에만 DEFAULT_TASKS 초기값 투입
-      const taskUpdates = {};
-      Object.values(_phCache).forEach(ph => {
-        if (!ph.tasks || Object.keys(ph.tasks).length === 0) {
-          ph.tasks = makeInitTasks(ph.name);
-          Object.values(ph.tasks).forEach(t => {
-            taskUpdates[path + '/' + ph.id + '/tasks/' + t.id] = t;
-          });
-        }
-      });
-      if (Object.keys(taskUpdates).length > 0) db.ref().update(taskUpdates).catch(()=>{});
-    }
-
-    const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
-    _openPhId = activePh ? activePh.id : '';
-
-    renderDetailModal(site, rev, cost, asAmt, profit, s);
-  }).catch(err => {
-    console.error('[openDetail] Firebase 읽기 실패 → 기본 공정으로 대체:', err);
-    // 읽기 실패해도 기본 공정 표시
-    _phCache = {};
-    DEFAULT_PROC_TEMPLATE.forEach((tmpl, i) => {
-      const id = 'ph_' + i + '_' + tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
-      _phCache[id] = { id, name: tmpl.name, status:'wait', startDate:'', endDate:'', tasks: makeInitTasks(tmpl.name), order: i * 10 };
-    });
-    renderDetailModal(site, rev, cost, asAmt, profit, s);
+  db.ref(path).once('value').then(function(snap) {
+    clearTimeout(warnTimer);
+    _parsePhCache(snap.val() || {}, path);
+    _finishDetailRender(sEntries, rev, cost, asAmt, profit);
+  }).catch(function(err) {
+    clearTimeout(warnTimer);
+    console.error('[openDetail] Firebase 실패:', err);
+    toast('❌ 데이터 로딩 실패 — 네트워크를 확인해주세요');
+    _useDefaultPhCache();
+    _finishDetailRender(sEntries, rev, cost, asAmt, profit);
   });
 }
 
-// ── 모달 렌더 ──
-function renderDetailModal(site, rev, cost, asAmt, profit, s) {
-  document.getElementById('dm-title').textContent = site;
-  document.getElementById('dm-body').innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
-      <div class="card-sm" style="text-align:center;">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">${fmtW(rev)}</div>
-      </div>
-      <div class="card-sm" style="text-align:center;">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">${fmtW(cost)}</div>
-      </div>
-      <div class="card-sm" style="text-align:center;">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmtW(profit)}</div>
-      </div>
-    </div>
-    <div class="proc-section">
-      <div class="proc-section-title">
-        <span>📋 공정 타임라인</span>
-        <button class="proc-edit-btn" onclick="openProcEdit()">⚙️ 공정 수정</button>
-      </div>
-      ${buildTimelineHtml()}
-      <div id="step-panels">${buildAllPanelsHtml()}</div>
-    </div>
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">상세 내역 (${s.length}건)</div>
-    ${s.map(e => {
-      const tl = {revenue:'매출',cost:'매입',as:'AS'}[e.type]||e.type;
-      return `<div class="entry-row">
-        <div class="entry-left">
-          <div class="e-info"><span class="e-type ${e.type}">${tl}</span>${e.process||''}${e.process&&e.item?' · ':''}${e.item||''}</div>
-          ${e.writer?`<div class="e-writer">👤 ${e.writer}</div>`:''}
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div class="e-amount ${e.type}">${fmtFull(e.amount||0)}</div>
-          <div class="e-date">${e.date||''}</div>
-          ${role==='boss'?`<button class="del-btn" onclick="delEntry(${e.id})">삭제</button>`:''}
-        </div>
-      </div>`;
-    }).join('')}`;
+function _skeletonHtml(rev, cost, asAmt, profit) {
+  return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
+    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
+    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
+    +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
+    +'</div>'
+    +'<div style="padding:32px 0;text-align:center;">'
+    +'<div style="font-size:24px;margin-bottom:8px;">🔄</div>'
+    +'<div id="proc-load-msg" style="font-size:13px;color:var(--muted);font-weight:600;">공정 데이터 불러오는 중…</div>'
+    +'</div>';
+}
 
+function _parsePhCache(raw, path) {
+  _phCache = {};
+  if (Array.isArray(raw.phases)) {
+    raw.phases.forEach(function(ph) { if (ph && ph.id) _phCache[ph.id] = ph; });
+  } else {
+    Object.entries(raw).forEach(function([key, val]) {
+      if (!val || typeof val !== 'object' || key === 'phases') return;
+      var ph = {
+        id: val.id||key, name: val.name||key, status: val.status||'wait',
+        startDate: val.startDate||'', endDate: val.endDate||'',
+        order: val.order != null ? val.order : 9999, tasks: {}
+      };
+      if (val.tasks && typeof val.tasks === 'object') {
+        Object.entries(val.tasks).forEach(function([tid, t], i) {
+          if (!t || typeof t !== 'object') return;
+          ph.tasks[tid] = { id: t.id||tid, text: t.text||'', isDone: !!t.isDone, order: t.order != null ? t.order : i*10 };
+        });
+      }
+      _phCache[key] = ph;
+    });
+  }
+
+  if (Object.keys(_phCache).length === 0) {
+    // 공정 없으면 기본 생성 + DB 저장
+    var initUpdates = {};
+    DEFAULT_PROC_TEMPLATE.forEach(function(tmpl, i) {
+      var id = 'ph_'+i+'_'+tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g,'');
+      var tasks = makeInitTasks(tmpl.name);
+      _phCache[id] = { id:id, name:tmpl.name, status:'wait', startDate:'', endDate:'', tasks:tasks, order:i*10 };
+      initUpdates[path+'/'+id+'/id']        = id;
+      initUpdates[path+'/'+id+'/name']      = tmpl.name;
+      initUpdates[path+'/'+id+'/order']     = i*10;
+      initUpdates[path+'/'+id+'/status']    = 'wait';
+      initUpdates[path+'/'+id+'/startDate'] = '';
+      initUpdates[path+'/'+id+'/endDate']   = '';
+      Object.values(tasks).forEach(function(t) { initUpdates[path+'/'+id+'/tasks/'+t.id] = t; });
+    });
+    db.ref().update(initUpdates).catch(function(){});
+  } else {
+    var taskUpdates = {};
+    Object.values(_phCache).forEach(function(ph) {
+      if (!ph.tasks || Object.keys(ph.tasks).length === 0) {
+        ph.tasks = makeInitTasks(ph.name);
+        Object.values(ph.tasks).forEach(function(t) { taskUpdates[path+'/'+ph.id+'/tasks/'+t.id] = t; });
+      }
+    });
+    if (Object.keys(taskUpdates).length > 0) db.ref().update(taskUpdates).catch(function(){});
+  }
+}
+
+function _useDefaultPhCache() {
+  _phCache = {};
+  DEFAULT_PROC_TEMPLATE.forEach(function(tmpl, i) {
+    var id = 'ph_'+i+'_'+tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g,'');
+    _phCache[id] = { id:id, name:tmpl.name, status:'wait', startDate:'', endDate:'', tasks:makeInitTasks(tmpl.name), order:i*10 };
+  });
+}
+
+function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
+  var activePh = Object.values(_phCache).find(function(ph) { return ph.status==='active'; });
+  _openPhId = activePh ? activePh.id : '';
+
+  var entryRows = sEntries.map(function(e) {
+    var tl = {revenue:'매출',cost:'매입',as:'AS'}[e.type]||e.type;
+    return '<div class="entry-row">'
+      +'<div class="entry-left">'
+        +'<div class="e-info"><span class="e-type '+e.type+'">'+tl+'</span>'+(e.process||'')+(e.process&&e.item?' · ':'')+(e.item||'')+'</div>'
+        +(e.writer?'<div class="e-writer">👤 '+e.writer+'</div>':'')
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+        +'<div class="e-amount '+e.type+'">'+fmtFull(e.amount||0)+'</div>'
+        +'<div class="e-date">'+(e.date||'')+'</div>'
+        +(role==='boss'?'<button class="del-btn" onclick="delEntry('+e.id+')">삭제</button>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  document.getElementById('dm-body').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
+    +'</div>'
+    +'<div class="proc-section">'
+      +'<div class="proc-section-title">'
+        +'<span>📋 공정 타임라인</span>'
+        +'<button class="proc-edit-btn" onclick="openProcEdit()">⚙️ 공정 수정</button>'
+      +'</div>'
+      +buildTimelineHtml()
+      +'<div id="step-panels">'+buildAllPanelsHtml()+'</div>'
+    +'</div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">상세 내역 ('+sEntries.length+'건)</div>'
+    +entryRows;
+}
+
+function renderDetailModal(site, rev, cost, asAmt, profit, s) {
+  // 하위호환 래퍼
+  _finishDetailRender(s, rev, cost, asAmt, profit);
   document.getElementById('detail-modal').classList.add('on');
 }
 
