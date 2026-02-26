@@ -1361,6 +1361,7 @@ function buildStepPanelHtml(ph) {
   const status = ph.status || 'wait';
   const tasks  = tasksToArr(ph.tasks);
   const done   = tasks.filter(t=>t.isDone).length;
+  const total  = tasks.length;
   const isOpen = _openPhId === ph.id;
   const sLbl   = { wait:'대기', active:'진행중', done:'완료' }[status];
   const sColor = { wait:'var(--dim)', active:'var(--accent)', done:'var(--green)' }[status];
