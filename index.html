@@ -970,7 +970,6 @@ const S_CLASS = { consult:'b-consult', contract:'b-contract', active:'b-active',
 function renderSites() {
   const search = (document.getElementById('site-search')?.value || '').toLowerCase();
 
-  // entries + siteCache 합집합
   let allSites = [...new Set(entries.map(e => e.site).filter(Boolean))];
   Object.values(siteCache).forEach(info => { if (info?.name && !allSites.includes(info.name)) allSites.push(info.name); });
 
@@ -979,7 +978,7 @@ function renderSites() {
 
   allSites.sort((a, b) => {
     const ia = siteCache[encKey(a)], ib = siteCache[encKey(b)];
-    return ((ib?.year || '') + (ib?.month || '')).localeCompare((ia?.year || '') + (ia?.month || ''));
+    return ((ib?.year||'')+(ib?.month||'')).localeCompare((ia?.year||'')+(ia?.month||''));
   });
 
   const cont = document.getElementById('sites-body');
@@ -991,46 +990,63 @@ function renderSites() {
   cont.innerHTML = allSites.map(site => {
     const info = siteCache[encKey(site)] || {};
     const s = entries.filter(e => e.site === site);
-    const r = s.filter(e => e.type === 'revenue').reduce((a, e) => a + (e.amount || 0), 0);
-    const c = s.filter(e => e.type === 'cost').reduce((a, e) => a + (e.amount || 0), 0);
-    const a = s.filter(e => e.type === 'as').reduce((a, e) => a + (e.amount || 0), 0);
+    const r = s.filter(e => e.type==='revenue').reduce((a,e)=>a+(e.amount||0),0);
+    const c = s.filter(e => e.type==='cost').reduce((a,e)=>a+(e.amount||0),0);
+    const a = s.filter(e => e.type==='as').reduce((a,e)=>a+(e.amount||0),0);
     const p = r - c - a;
-    const pct = r > 0 ? (p / r * 100).toFixed(1) : '0.0';
-    const prog = r > 0 ? Math.min(c / r * 100, 100).toFixed(0) : 0;
-    const ym = info.year && info.month ? String(info.year).slice(2) + '/' + info.month : '';
-    const sl = info.status ? (S_LABEL[info.status] || '') : '';
-    const sc = info.status ? (S_CLASS[info.status] || '') : '';
-    const safeN = site.replace(/'/g, "\\'");
-    return `<div class="site-card" onclick="openDetail('${safeN}')">
-      <div class="site-card-top">
-        <div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            ${ym ? `<span class="site-ym">${ym}</span>` : ''}
-            ${sl ? `<span class="badge ${sc}">${sl}</span>` : ''}
-          </div>
-          <div class="site-name">${site}</div>
-        </div>
-        <div>
-          <div class="site-profit" style="color:${p>=0?'var(--green)':'var(--red)'}">${p>=0?'+':''}${fmtW(p)}</div>
-          <div style="font-size:10px;color:${parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)'};text-align:right;margin-top:2px;">이익률 ${pct}% ${parseFloat(pct)>=25?'✅':parseFloat(pct)>=15?'⚠️':'🔴'}</div>
-        </div>
-      </div>
-      <div class="site-grid">
-        <div><div class="sc-label">매출</div><div class="sc-val" style="color:var(--green)">${fmtW(r)}</div></div>
-        <div><div class="sc-label">매입</div><div class="sc-val" style="color:var(--red)">${fmtW(c)}</div></div>
-        <div><div class="sc-label">AS</div><div class="sc-val" style="color:var(--orange)">${fmtW(a)}</div></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-top:2px;">
-        <div style="font-size:10px;color:var(--muted);">이익률 달성</div>
-        <div style="font-size:10px;color:var(--muted);">목표 <b style="color:var(--text);">25%</b></div>
-      </div>
-      <div class="progress-wrap" style="overflow:visible;">
-        <div class="progress-bar" style="width:${Math.min(parseFloat(pct),100)}%;background:${parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)'}"></div>
-        <div class="goal-marker" style="left:25%;"></div>
-      </div>
-      ${role === 'boss' ? `<div style="text-align:right;margin-top:8px;"><button onclick="event.stopPropagation();openSiteModal('${safeN}')" style="background:var(--s2);border:none;color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">수정</button></div>` : ''}
-    </div>`;
+    const pct = r > 0 ? (p/r*100).toFixed(1) : '0.0';
+    const ym  = info.year && info.month ? String(info.year).slice(2)+'/'+info.month : '';
+    const sl  = info.status ? (S_LABEL[info.status]||'') : '';
+    const sc  = info.status ? (S_CLASS[info.status]||'') : '';
+    const barW  = Math.min(parseFloat(pct),100);
+    const barBg = parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)';
+    const pctColor = parseFloat(pct)>=25?'var(--green)':parseFloat(pct)>=15?'var(--orange)':'var(--red)';
+    const pctIcon  = parseFloat(pct)>=25?'✅':parseFloat(pct)>=15?'⚠️':'🔴';
+    const esc = site.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<div class="site-card" data-site="'+esc+'">'
+      +'<div style="pointer-events:none;">'
+      +'<div class="site-card-top">'
+      +'<div>'
+      +(ym||sl ? '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+(ym?'<span class="site-ym">'+ym+'</span>':'')+(sl?'<span class="badge '+sc+'">'+sl+'</span>':'')+'</div>' : '')
+      +'<div class="site-name">'+site+'</div>'
+      +'</div>'
+      +'<div>'
+      +'<div class="site-profit" style="color:'+(p>=0?'var(--green)':'var(--red)')+'">'+( p>=0?'+':'')+fmtW(p)+'</div>'
+      +'<div style="font-size:10px;color:'+pctColor+';text-align:right;margin-top:2px;">이익률 '+pct+'% '+pctIcon+'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="site-grid">'
+      +'<div><div class="sc-label">매출</div><div class="sc-val" style="color:var(--green)">'+fmtW(r)+'</div></div>'
+      +'<div><div class="sc-label">매입</div><div class="sc-val" style="color:var(--red)">'+fmtW(c)+'</div></div>'
+      +'<div><div class="sc-label">AS</div><div class="sc-val" style="color:var(--orange)">'+fmtW(a)+'</div></div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:5px;padding-top:2px;">'
+      +'<div style="font-size:10px;color:var(--muted);">이익률 달성</div>'
+      +'<div style="font-size:10px;color:var(--muted);">목표 <b style="color:var(--text);">25%</b></div>'
+      +'</div>'
+      +'<div style="height:10px;background:var(--s3);border-radius:6px;overflow:hidden;position:relative;">'
+      +'<div style="height:100%;width:'+barW+'%;background:'+barBg+';border-radius:6px;transition:width .6s;"></div>'
+      +'<div style="position:absolute;top:0;bottom:0;left:25%;width:2px;background:rgba(100,116,139,.4);"></div>'
+      +'</div>'
+      +'<div style="text-align:right;margin-top:3px;"><span style="font-size:9px;color:#94a3b8;">목표 25%</span></div>'
+      +'</div>'
+      +(role==='boss' ? '<div style="text-align:right;margin-top:6px;"><button class="site-edit-btn" data-site="'+esc+'" style="background:var(--s2);border:none;color:var(--muted);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">수정</button></div>' : '')
+      +'</div>';
   }).join('');
+
+  // 이벤트 위임 — 카드 클릭과 수정 버튼을 단 하나의 핸들러로 처리
+  cont.onclick = function(e) {
+    const editBtn = e.target.closest('.site-edit-btn');
+    if (editBtn) {
+      e.stopPropagation();
+      openSiteModal(editBtn.dataset.site);
+      return;
+    }
+    const card = e.target.closest('.site-card');
+    if (card && card.dataset.site) {
+      openDetail(card.dataset.site);
+    }
+  };
 }
 
 function setSiteFilter(f, el) {
