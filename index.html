@@ -1157,27 +1157,22 @@ function openDetail(site) {
     _phCache = {};
 
     if (Array.isArray(raw.phases)) {
-      // phases 배열 구조
       raw.phases.forEach(ph => {
         if (ph && ph.id) _phCache[ph.id] = ph;
       });
     } else {
-      // 플랫 맵 구조: { phaseId: { id, name, status, ... } }
       Object.entries(raw).forEach(([key, val]) => {
         if (!val || typeof val !== 'object') return;
         if (key === 'phases') return;
-
         const ph = {
           id:        val.id        || key,
-          name:      val.name      || key,   // ★ name 필드 우선 사용
+          name:      val.name      || key,
           status:    val.status    || 'wait',
           startDate: val.startDate || '',
           endDate:   val.endDate   || '',
           order:     val.order     ?? 9999,
           tasks:     {}
         };
-
-        // tasks 파싱 (type 필드 무시, order 보장)
         if (val.tasks && typeof val.tasks === 'object') {
           Object.entries(val.tasks).forEach(([tid, t], i) => {
             if (!t || typeof t !== 'object') return;
@@ -1193,32 +1188,52 @@ function openDetail(site) {
       });
     }
 
-    console.log('[openDetail] _phCache 파싱 결과:', JSON.stringify(
-      Object.values(_phCache).map(p => ({ id:p.id, name:p.name, status:p.status, order:p.order, taskCount:Object.keys(p.tasks||{}).length }))
-    , null, 2));
-
-    // tasks 비어있는 공정에 DEFAULT_TASKS 초기값 1회 투입
-    const taskUpdates = {};
-    Object.values(_phCache).forEach(ph => {
-      if (!ph.tasks || Object.keys(ph.tasks).length === 0) {
-        ph.tasks = makeInitTasks(ph.name);
-        Object.values(ph.tasks).forEach(t => {
-          taskUpdates[`${path}/${ph.id}/tasks/${t.id}`] = t;
+    // ★ 핵심: Firebase 데이터가 없으면 DEFAULT_PROC_TEMPLATE으로 즉시 채우고 DB에도 저장
+    if (Object.keys(_phCache).length === 0) {
+      console.log('[openDetail] 공정 데이터 없음 → 기본 공정 자동 생성');
+      const initUpdates = {};
+      DEFAULT_PROC_TEMPLATE.forEach((tmpl, i) => {
+        const id = 'ph_' + i + '_' + tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
+        const tasks = makeInitTasks(tmpl.name);
+        _phCache[id] = { id, name: tmpl.name, status:'wait', startDate:'', endDate:'', tasks, order: i * 10 };
+        // DB에 저장
+        initUpdates[path + '/' + id + '/id']        = id;
+        initUpdates[path + '/' + id + '/name']      = tmpl.name;
+        initUpdates[path + '/' + id + '/order']     = i * 10;
+        initUpdates[path + '/' + id + '/status']    = 'wait';
+        initUpdates[path + '/' + id + '/startDate'] = '';
+        initUpdates[path + '/' + id + '/endDate']   = '';
+        Object.values(tasks).forEach(t => {
+          initUpdates[path + '/' + id + '/tasks/' + t.id] = t;
         });
-      }
-    });
-    if (Object.keys(taskUpdates).length > 0) {
-      db.ref().update(taskUpdates).catch(()=>{});
+      });
+      db.ref().update(initUpdates).catch(()=>{});
+    } else {
+      // tasks 비어있는 공정에만 DEFAULT_TASKS 초기값 투입
+      const taskUpdates = {};
+      Object.values(_phCache).forEach(ph => {
+        if (!ph.tasks || Object.keys(ph.tasks).length === 0) {
+          ph.tasks = makeInitTasks(ph.name);
+          Object.values(ph.tasks).forEach(t => {
+            taskUpdates[path + '/' + ph.id + '/tasks/' + t.id] = t;
+          });
+        }
+      });
+      if (Object.keys(taskUpdates).length > 0) db.ref().update(taskUpdates).catch(()=>{});
     }
 
-    // 진행중 공정 기본으로 열기
     const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
     _openPhId = activePh ? activePh.id : '';
 
     renderDetailModal(site, rev, cost, asAmt, profit, s);
   }).catch(err => {
-    console.error('[openDetail] Firebase 읽기 실패:', err);
+    console.error('[openDetail] Firebase 읽기 실패 → 기본 공정으로 대체:', err);
+    // 읽기 실패해도 기본 공정 표시
     _phCache = {};
+    DEFAULT_PROC_TEMPLATE.forEach((tmpl, i) => {
+      const id = 'ph_' + i + '_' + tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
+      _phCache[id] = { id, name: tmpl.name, status:'wait', startDate:'', endDate:'', tasks: makeInitTasks(tmpl.name), order: i * 10 };
+    });
     renderDetailModal(site, rev, cost, asAmt, profit, s);
   });
 }
@@ -1273,7 +1288,7 @@ function renderDetailModal(site, rev, cost, asAmt, profit, s) {
 // ═══════════════════════════════
 function buildTimelineHtml() {
   const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
-  if (!phases.length) return '<div style="color:var(--dim);font-size:12px;padding:8px 0;">공정 없음 — 공정 수정에서 추가하세요</div>';
+  if (!phases.length) return ''; // 절대 도달 안 함 (openDetail에서 항상 채워짐)
 
   let html = '<div class="timeline-wrap"><div class="timeline-row">';
   phases.forEach((ph, i) => {
