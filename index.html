@@ -470,6 +470,8 @@ option{background:#fff;}
       <div class="tag" onclick="pickTag('process','주방')">주방</div>
       <div class="tag" onclick="pickCustom('process')">✏️ 직접</div>
     </div>
+    <div class="f-label">메모</div>
+    <textarea class="f-input" id="f-memo" placeholder="자유롭게 입력하세요" rows="2" style="resize:none;line-height:1.5;font-family:inherit;"></textarea>
     <div class="f-label">입력자</div>
     <input class="f-input" id="f-writer" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('writer')">
     <div class="tag-wrap" id="tags-writer" style="display:none;">
@@ -1989,6 +1991,7 @@ async function addEntry() {
   const amount  = parseInt(document.getElementById('f-amount')?.value || '0') || 0;
   const date    = document.getElementById('f-date')?.value || today();
   const process = document.getElementById('f-process')?.value?.trim() || '';
+  const memo    = document.getElementById('f-memo')?.value?.trim() || '';
   const writer  = document.getElementById('f-writer')?.value?.trim() || '';
 
   if (!site)       { toast('⚠️ 현장을 선택해주세요'); return; }
@@ -1999,11 +2002,12 @@ async function addEntry() {
 
   try {
     const id = Date.now();
-    await db.ref('entries/' + id).set({ id, site, process, amount, type: curType, writer, date });
+    await db.ref('entries/' + id).set({ id, site, process, memo, amount, type: curType, writer, date });
     // 초기화
     document.getElementById('f-amount').value = '';
     document.getElementById('f-process').value = '';
     document.getElementById('f-process').readOnly = true;
+    document.getElementById('f-memo').value = '';
     document.getElementById('f-writer').value = '';
     document.getElementById('f-writer').readOnly = true;
     renderSiteSelector(); // 현장 선택 초기화
