@@ -1838,9 +1838,16 @@ function pickTag(type, val) {
 
 function pickCustom(type) {
   const inp = document.getElementById('f-' + type);
-  if (inp) { inp.readOnly = false; inp.value = ''; inp.focus(); }
-  const el = document.getElementById('tags-' + type);
+  const el  = document.getElementById('tags-' + type);
   if (el) el.style.display = 'none';
+  if (!inp) return;
+  inp.readOnly = false;
+  inp.value = '';
+  // 모바일: readOnly 해제 후 즉시 focus + click 으로 키보드 강제 표시
+  inp.focus();
+  inp.click();
+  // iOS Safari 대응 — 짧은 딜레이 후 재시도
+  setTimeout(function() { inp.focus(); }, 50);
 }
 
 // 현장 선택 컴포넌트 - 검색창 + 드롭다운 (최신 등록순)
