@@ -447,7 +447,9 @@ option{background:#fff;}
       <button class="type-btn" id="bt-as" onclick="setType('as')">🔧 AS</button>
     </div>
     <div class="f-label">현장 *</div>
-    <div id="site-selector"></div>
+    <input class="f-input" id="f-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="showSiteTags()">
+    <input type="hidden" id="f-site" value="">
+    <div class="tag-wrap" id="tags-site" style="display:none;"></div>
     <div class="f-label">금액 (원) *</div>
     <input class="f-input" id="f-amount" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()">
     <div class="f-label">날짜</div>
@@ -1861,136 +1863,46 @@ function pickCustom(type) {
 
 // 현장 선택 컴포넌트 - 검색창 + 드롭다운 (최신 등록순)
 function renderSiteSelector() {
-  const wrap = document.getElementById('site-selector');
+  // 태그 방식으로 전환됨 — showSiteTags() 사용
+  showSiteTags();
+}
+
+function showSiteTags() {
+  const wrap = document.getElementById('tags-site');
   if (!wrap) return;
 
-  // siteCache 기반 최신순 전체 목록
   const allList = Object.values(siteCache)
-    .filter(info => info?.name)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-
-  if (!allList.length) {
-    wrap.innerHTML = `
-      <div class="site-empty">
-        <div class="site-empty-txt">등록된 현장이 없습니다.<br>
-          <span style="color:var(--accent);font-weight:700;">현장 탭</span>에서 먼저 추가해주세요.
-        </div>
-        <button onclick="goPage('sites')" style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;">+ 현장 추가하러 가기</button>
-      </div>
-      <input type="hidden" id="f-site" value="">`;
-    return;
-  }
-
-  const curSite = document.getElementById('f-site')?.value || '';
-
-  wrap.innerHTML = `
-    <input type="hidden" id="f-site" value="${curSite}">
-    <div style="position:relative;">
-      <div style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;">🔍</div>
-      <input
-        id="site-search-inp"
-        type="text"
-        class="f-input"
-        style="padding-left:36px;margin-bottom:0;"
-        placeholder="${curSite ? '✅ ' + curSite : '현장명을 눌러 선택하세요'}"
-        autocomplete="off"
-        readonly
-        onfocus="openSiteDrop()"
-      >
-    </div>
-    <div id="site-drop" style="display:none;background:var(--s2);border:1px solid var(--border2);border-radius:var(--r-sm);margin-top:4px;overflow:hidden;margin-bottom:14px;"></div>`;
-}
-
-function openSiteDrop() {
-  // 검색창을 편집 가능하게 + 드롭다운 표시
-  const inp = document.getElementById('site-search-inp');
-  const drop = document.getElementById('site-drop');
-  if (!inp || !drop) return;
-  inp.readOnly = false;
-  inp.placeholder = '현장명 입력...';
-  inp.value = '';
-  inp.oninput = () => filterSiteDrop(inp.value);
-  drop.style.display = 'block';
-  renderSiteDropItems('');
-
-  // 외부 클릭 시 닫기
-  setTimeout(() => {
-    document.addEventListener('click', closeSiteDropOutside, { once: true });
-  }, 100);
-}
-
-function closeSiteDropOutside(e) {
-  const wrap = document.getElementById('site-selector');
-  // sites 페이지가 활성화되어 있으면 즉시 종료 (리스너 재등록 안 함)
-  if (document.getElementById('pg-sites')?.classList.contains('on')) return;
-  if (wrap && !wrap.contains(e.target)) {
-    closeSiteDrop();
-  } else {
-    // 내부 클릭이면 다시 리스너 등록
-    setTimeout(() => {
-      document.addEventListener('click', closeSiteDropOutside, { once: true });
-    }, 100);
-  }
-}
-
-function closeSiteDrop() {
-  const drop = document.getElementById('site-drop');
-  const inp = document.getElementById('site-search-inp');
-  const cur = document.getElementById('f-site')?.value || '';
-  if (drop) drop.style.display = 'none';
-  if (inp) {
-    inp.readOnly = true;
-    inp.value = '';
-    inp.placeholder = cur ? '✅ ' + cur : '현장명을 눌러 선택하세요';
-  }
-}
-
-function filterSiteDrop(q) {
-  renderSiteDropItems(q);
-}
-
-function renderSiteDropItems(q) {
-  const drop = document.getElementById('site-drop');
-  if (!drop) return;
-  const curSite = document.getElementById('f-site')?.value || '';
-  const query = (q || '').toLowerCase().trim();
+    .filter(function(info) { return info && info.name; })
+    .sort(function(a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
 
   const S_SHORT = { consult:'상담중', contract:'계약완료', active:'공사중', settle:'정산중', balance:'잔금대기', done:'마감', as:'AS' };
 
-  const list = Object.values(siteCache)
-    .filter(info => info?.name && (!query || info.name.toLowerCase().includes(query)))
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-
-  if (!list.length) {
-    drop.innerHTML = `<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted);">검색 결과 없음</div>`;
-    return;
+  if (!allList.length) {
+    wrap.innerHTML = '<div style="padding:10px 0;font-size:13px;color:var(--muted);">등록된 현장이 없습니다.</div>';
+  } else {
+    var rows = '';
+    allList.forEach(function(info) {
+      var st = info.status ? (S_SHORT[info.status] || '') : '';
+      var label = st ? (escHtml(info.name) + ' (' + st + ')') : escHtml(info.name);
+      rows += '<div class="tag site-tag" data-name="' + escHtml(info.name) + '" style="font-size:13px;">' + label + '</div>';
+    });
+    wrap.innerHTML = rows;
+    // data-name 방식으로 클릭 이벤트 위임
+    wrap.onclick = function(e) {
+      var t = e.target.closest('.site-tag');
+      if (t) pickSite(t.dataset.name);
+    };
   }
-
-  drop.innerHTML = list.map(info => {
-    const ym = info.year && info.month ? String(info.year).slice(2) + '/' + info.month : '';
-    const st = info.status ? (S_SHORT[info.status] || '') : '';
-    const meta = [ym, st].filter(Boolean).join(' · ');
-    const isOn = curSite === info.name;
-    const safeN = info.name.replace(/'/g, "\\'");
-    return `<div
-      onclick="pickSite('${safeN}')"
-      style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;background:${isOn ? 'rgba(26,86,219,.06)' : '#fff'};"
-      onmousedown="event.preventDefault()"
-    >
-      <div>
-        <div style="font-size:14px;font-weight:600;color:${isOn ? 'var(--accent)' : '#0f172a'};">${info.name}</div>
-        ${meta ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">${meta}</div>` : ''}
-      </div>
-      ${isOn ? `<span style="color:var(--accent);font-size:16px;">✓</span>` : ''}
-    </div>`;
-  }).join('');
+  wrap.style.display = 'flex';
 }
 
 function pickSite(name) {
   const hid = document.getElementById('f-site');
+  const inp = document.getElementById('f-site-inp');
+  const wrap = document.getElementById('tags-site');
   if (hid) hid.value = name;
-  closeSiteDrop();
-  toast('📍 ' + name);
+  if (inp) { inp.value = '✅ ' + name; inp.readOnly = true; }
+  if (wrap) wrap.style.display = 'none';
 }
 
 async function addEntry() {
@@ -2017,7 +1929,13 @@ async function addEntry() {
     document.getElementById('f-memo').value = '';
     document.getElementById('f-writer').value = '';
     document.getElementById('f-writer').readOnly = true;
-    renderSiteSelector(); // 현장 선택 초기화
+    // 현장 선택 초기화
+    const siteInp = document.getElementById('f-site-inp');
+    const siteHid = document.getElementById('f-site');
+    const siteTags = document.getElementById('tags-site');
+    if (siteInp) { siteInp.value = ''; }
+    if (siteHid) { siteHid.value = ''; }
+    if (siteTags) { siteTags.style.display = 'none'; }
     toast('✅ 입력 완료!');
     // 입력 탭 유지 (staff는 home 접근 불가)
     renderSiteSelector();
