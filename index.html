@@ -364,6 +364,21 @@ option{background:#fff;}
 .prow-date{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:5px 6px;font-size:11px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;width:105px;flex-shrink:0;}
 .prow-date:focus{border-color:var(--accent);}
 
+/* ── 노하우 카드 ── */
+.kh-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:box-shadow .15s;}
+.kh-card:active{box-shadow:0 4px 16px rgba(26,86,219,.1);}
+.kh-card-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.kh-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.kh-badge.mistake{background:#fee2e2;color:#dc2626;}
+.kh-badge.tip{background:#fef9c3;color:#ca8a04;}
+.kh-badge.material{background:#e0f2fe;color:#0284c7;}
+.kh-badge.client{background:#dcfce7;color:#16a34a;}
+.kh-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.kh-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;margin-top:10px;}
+.kh-text{font-size:13px;color:#475569;line-height:1.6;}
+.kh-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.kh-meta{font-size:11px;color:var(--muted);}
+.kh-cat-btn.on{background:var(--accent);color:#000;border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -513,6 +528,28 @@ option{background:#fff;}
     <div id="sites-body"></div>
   </div>
 
+  <!-- ⑤ 노하우 -->
+  <div class="page" id="pg-knowhow">
+    <div class="top-bar">
+      <div class="top-bar-title">💡 현장 노하우</div>
+      <button onclick="openKnowhowWrite()" style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;">+ 기록</button>
+    </div>
+    <!-- 검색 -->
+    <div class="search-wrap" style="margin-bottom:12px;">
+      <span class="search-ico">🔍</span>
+      <input class="search-input" id="kh-search" placeholder="제목·내용 검색" oninput="renderKnowhow()">
+    </div>
+    <!-- 카테고리 필터 -->
+    <div class="filter-tabs" id="kh-ftabs" style="margin-bottom:14px;">
+      <div class="ftab on" onclick="setKhFilter('all',this)">전체</div>
+      <div class="ftab" onclick="setKhFilter('mistake',this)">😓 실수</div>
+      <div class="ftab" onclick="setKhFilter('tip',this)">💡 팁</div>
+      <div class="ftab" onclick="setKhFilter('material',this)">🔩 자재</div>
+      <div class="ftab" onclick="setKhFilter('client',this)">🤝 고객</div>
+    </div>
+    <div id="kh-body"></div>
+  </div>
+
   <!-- ④ 설정 -->
   <div class="page" id="pg-settings">
     <div class="top-bar"><div class="top-bar-title">설정</div></div>
@@ -574,6 +611,9 @@ option{background:#fff;}
   <button class="nav-btn" id="nb-sites" onclick="goPage('sites')">
     <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>현장
   </button>
+  <button class="nav-btn" id="nb-knowhow" onclick="goPage('knowhow')">
+    <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 3-1.5 5-4 6.5V18a1 1 0 01-1 1H10a1 1 0 01-1-1v-2.5C6.5 14 5 12 5 9a7 7 0 017-7z"/><line x1="10" y1="22" x2="14" y2="22"/><line x1="9" y1="20" x2="15" y2="20"/></svg>노하우
+  </button>
   <button class="nav-btn" id="nb-settings" onclick="goPage('settings')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>설정
   </button>
@@ -629,6 +669,48 @@ option{background:#fff;}
       <button onclick="document.getElementById('detail-modal').classList.remove('on')" style="background:var(--s2);border:none;color:var(--muted);width:28px;height:28px;border-radius:8px;font-size:15px;cursor:pointer;">✕</button>
     </div>
     <div id="dm-body"></div>
+  </div>
+</div>
+
+<!-- 노하우 작성/수정 모달 -->
+<div class="modal" id="kh-modal" onclick="if(event.target===this)closeKnowhowWrite()">
+  <div class="modal-sheet" style="max-height:90vh;overflow-y:auto;">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="kh-modal-title">💡 노하우 기록</div>
+
+    <div class="f-label">카테고리</div>
+    <div class="tag-wrap" style="display:flex;margin-bottom:12px;">
+      <div class="tag kh-cat-btn on" data-cat="mistake" onclick="pickKhCat(this)">😓 실수</div>
+      <div class="tag kh-cat-btn" data-cat="tip" onclick="pickKhCat(this)">💡 팁</div>
+      <div class="tag kh-cat-btn" data-cat="material" onclick="pickKhCat(this)">🔩 자재</div>
+      <div class="tag kh-cat-btn" data-cat="client" onclick="pickKhCat(this)">🤝 고객</div>
+    </div>
+    <input type="hidden" id="kh-cat" value="mistake">
+
+    <div class="f-label">제목 *</div>
+    <input class="f-input" id="kh-title" placeholder="한 줄로 요약해주세요" type="text">
+
+    <div class="f-label">무엇을 놓쳤나요?</div>
+    <textarea class="f-input" id="kh-problem" placeholder="어떤 상황이었고, 무엇이 문제였나요?" rows="3" style="resize:none;line-height:1.6;font-family:inherit;"></textarea>
+
+    <div class="f-label">어떻게 해결했나요?</div>
+    <textarea class="f-input" id="kh-solution" placeholder="해결 방법과 앞으로의 예방법을 적어주세요" rows="3" style="resize:none;line-height:1.6;font-family:inherit;"></textarea>
+
+    <div class="f-label">현장 (선택)</div>
+    <input class="f-input" id="kh-site" placeholder="관련 현장명" type="text">
+
+    <div class="f-label">작성자</div>
+    <div class="tag-wrap" id="tags-kh-writer" style="display:flex;margin-bottom:8px;">
+      <div class="tag" onclick="document.getElementById('kh-writer').value='김실장'">김실장</div>
+      <div class="tag" onclick="document.getElementById('kh-writer').value='이남경팀장'">이남경팀장</div>
+      <div class="tag" onclick="document.getElementById('kh-writer').value='김덕수대리'">김덕수대리</div>
+    </div>
+    <input class="f-input" id="kh-writer" placeholder="이름 입력" type="text">
+
+    <input type="hidden" id="kh-edit-id" value="">
+    <button class="submit-btn" onclick="saveKnowhow()">✅ 저장</button>
+    <button onclick="closeKnowhowWrite()" style="width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;">취소</button>
+    <button id="kh-del-btn" onclick="var id=document.getElementById('kh-edit-id').value;if(id)deleteKnowhow(id);" style="width:100%;padding:12px;background:none;border:1px solid #fee2e2;border-radius:10px;color:#dc2626;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;display:none;">🗑️ 삭제</button>
   </div>
 </div>
 
@@ -817,6 +899,7 @@ function goPage(name) {
   if (name === 'entry') renderSiteSelector();
   if (name === 'sites') renderSites();
   if (name === 'settings') { loadFC(); updateFCTotal(); }
+  if (name === 'knowhow') renderKnowhow();
 }
 
 // ═══════════════════════════════
@@ -2034,6 +2117,162 @@ function toast(msg) {
   if (!t) return;
   t.textContent = msg; t.classList.add('on');
   setTimeout(() => t.classList.remove('on'), 2500);
+}
+
+// ═══════════════════════════════
+//  노하우 탭
+// ═══════════════════════════════
+let khFilter = 'all';
+const KH_LABEL = { mistake:'😓 실수', tip:'💡 팁', material:'🔩 자재', client:'🤝 고객' };
+
+function setKhFilter(f, el) {
+  khFilter = f;
+  document.querySelectorAll('#kh-ftabs .ftab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  renderKnowhow();
+}
+
+function renderKnowhow() {
+  const q = (document.getElementById('kh-search')?.value || '').toLowerCase().trim();
+  const body = document.getElementById('kh-body');
+  if (!body) return;
+
+  db.ref('knowhow').orderByChild('createdAt').once('value').then(function(snap) {
+    const raw = snap.val() || {};
+    let items = Object.values(raw).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+
+    // 필터
+    if (khFilter !== 'all') items = items.filter(function(it){ return it.cat === khFilter; });
+    // 검색
+    if (q) items = items.filter(function(it){
+      return (it.title||'').toLowerCase().includes(q)
+          || (it.problem||'').toLowerCase().includes(q)
+          || (it.solution||'').toLowerCase().includes(q)
+          || (it.site||'').toLowerCase().includes(q);
+    });
+
+    if (!items.length) {
+      body.innerHTML = '<div class="empty"><div class="empty-ico">💡</div><div>' + (q ? '검색 결과가 없습니다' : '아직 기록이 없어요. 첫 번째 노하우를 남겨보세요!') + '</div></div>';
+      return;
+    }
+
+    body.onclick = function(e) {
+      var card = e.target.closest('.kh-card');
+      if (card && card.dataset.khid) openKnowhowDetail(card.dataset.khid);
+    };
+    body.innerHTML = items.map(function(it) {
+      var badge = KH_LABEL[it.cat] || it.cat || '';
+      var dateStr = it.createdAt ? new Date(it.createdAt).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'}) : '';
+      var safeId = (it.id||'').replace(/'/g,"\'");
+      return '<div class="kh-card" data-khid="' + escHtml(it.id||'') + '">'
+        + '<div class="kh-card-header">'
+          + '<span class="kh-badge ' + (it.cat||'') + '">' + badge + '</span>'
+          + (it.site ? '<span style="font-size:11px;color:var(--muted);">📍 ' + escHtml(it.site) + '</span>' : '')
+        + '</div>'
+        + '<div class="kh-title">' + escHtml(it.title||'') + '</div>'
+        + '<div class="kh-text" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(it.problem||'') + '</div>'
+        + '<div class="kh-footer">'
+          + '<span class="kh-meta">' + (it.writer ? '✍️ ' + escHtml(it.writer) : '') + '</span>'
+          + '<span class="kh-meta">' + dateStr + '</span>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }).catch(function() {
+    body.innerHTML = '<div class="empty"><div>데이터를 불러올 수 없습니다</div></div>';
+  });
+}
+
+function openKnowhowDetail(id) {
+  db.ref('knowhow/' + id).once('value').then(function(snap) {
+    const it = snap.val();
+    if (!it) return;
+    var badge = KH_LABEL[it.cat] || it.cat || '';
+    var dateStr = it.createdAt ? new Date(it.createdAt).toLocaleString('ko-KR') : '';
+    var safeId = (it.id||'').replace(/'/g,"\'");
+    // 모달 재활용해서 상세 보기
+    document.getElementById('kh-modal-title').innerHTML =
+      '<span class="kh-badge ' + (it.cat||'') + '" style="font-size:11px;margin-right:8px;">' + badge + '</span>' + escHtml(it.title||'');
+    document.getElementById('kh-title').value = it.title || '';
+    document.getElementById('kh-cat').value = it.cat || 'mistake';
+    document.getElementById('kh-problem').value = it.problem || '';
+    document.getElementById('kh-solution').value = it.solution || '';
+    document.getElementById('kh-site').value = it.site || '';
+    document.getElementById('kh-writer').value = it.writer || '';
+    document.getElementById('kh-edit-id').value = it.id || '';
+    // 카테고리 버튼 상태
+    document.querySelectorAll('.kh-cat-btn').forEach(function(btn) {
+      btn.classList.toggle('on', btn.dataset.cat === it.cat);
+    });
+    // boss는 삭제 버튼 표시
+    var delBtn = document.getElementById('kh-del-btn');
+    if (delBtn) delBtn.style.display = (role === 'boss') ? 'block' : 'none';
+    document.getElementById('kh-modal').classList.add('on');
+  });
+}
+
+function openKnowhowWrite() {
+  // 초기화
+  document.getElementById('kh-modal-title').textContent = '💡 노하우 기록';
+  document.getElementById('kh-title').value = '';
+  document.getElementById('kh-cat').value = 'mistake';
+  document.getElementById('kh-problem').value = '';
+  document.getElementById('kh-solution').value = '';
+  document.getElementById('kh-site').value = '';
+  document.getElementById('kh-writer').value = '';
+  document.getElementById('kh-edit-id').value = '';
+  document.querySelectorAll('.kh-cat-btn').forEach(function(btn) {
+    btn.classList.toggle('on', btn.dataset.cat === 'mistake');
+  });
+  document.getElementById('kh-modal').classList.add('on');
+}
+
+function closeKnowhowWrite() {
+  document.getElementById('kh-modal').classList.remove('on');
+}
+
+function pickKhCat(el) {
+  document.querySelectorAll('.kh-cat-btn').forEach(function(b){ b.classList.remove('on'); });
+  el.classList.add('on');
+  document.getElementById('kh-cat').value = el.dataset.cat;
+}
+
+async function saveKnowhow() {
+  const title    = (document.getElementById('kh-title')?.value || '').trim();
+  const cat      = document.getElementById('kh-cat')?.value || 'mistake';
+  const problem  = (document.getElementById('kh-problem')?.value || '').trim();
+  const solution = (document.getElementById('kh-solution')?.value || '').trim();
+  const site     = (document.getElementById('kh-site')?.value || '').trim();
+  const writer   = (document.getElementById('kh-writer')?.value || '').trim();
+  const editId   = document.getElementById('kh-edit-id')?.value || '';
+
+  if (!title) { toast('⚠️ 제목을 입력해주세요'); return; }
+  if (!problem && !solution) { toast('⚠️ 내용을 입력해주세요'); return; }
+
+  const id = editId || String(Date.now());
+  const data = { id, cat, title, problem, solution, site, writer, createdAt: editId ? undefined : Date.now() };
+  if (editId) delete data.createdAt; // 수정 시 날짜 유지
+
+  try {
+    if (editId) {
+      await db.ref('knowhow/' + id).update(data);
+    } else {
+      data.createdAt = Date.now();
+      await db.ref('knowhow/' + id).set(data);
+    }
+    closeKnowhowWrite();
+    toast('✅ 저장됐어요!');
+    renderKnowhow();
+  } catch(e) {
+    toast('저장 실패. 네트워크를 확인해주세요.');
+  }
+}
+
+async function deleteKnowhow(id) {
+  if (!confirm('삭제할까요?')) return;
+  await db.ref('knowhow/' + id).remove();
+  closeKnowhowWrite();
+  toast('🗑️ 삭제됐어요');
+  renderKnowhow();
 }
 </script>
 </body>
