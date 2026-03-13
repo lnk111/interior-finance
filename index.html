@@ -364,6 +364,17 @@ option{background:#fff;}
 .prow-date{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:5px 6px;font-size:11px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;width:105px;flex-shrink:0;}
 .prow-date:focus{border-color:var(--accent);}
 
+/* ── 노하우 사진 첨부 ── */
+.img-upload-area{border:2px dashed var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:4px;background:var(--s2);}
+.img-upload-area:active{border-color:var(--accent);}
+.img-upload-area-label{font-size:12px;color:var(--muted);font-weight:600;}
+.img-preview-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.img-preview-item{position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;flex-shrink:0;}
+.img-preview-item img{width:100%;height:100%;object-fit:cover;}
+.img-preview-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.kh-img-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.kh-img-thumb{width:72px;height:72px;border-radius:8px;object-fit:cover;cursor:pointer;border:1.5px solid var(--border);}
+
 /* ── 노하우 카드 ── */
 .kh-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;transition:box-shadow .15s;}
 .kh-card:active{box-shadow:0 4px 16px rgba(26,86,219,.1);}
@@ -692,9 +703,19 @@ option{background:#fff;}
 
     <div class="f-label">무엇을 놓쳤나요?</div>
     <textarea class="f-input" id="kh-problem" placeholder="어떤 상황이었고, 무엇이 문제였나요?" rows="3" style="resize:none;line-height:1.6;font-family:inherit;"></textarea>
+    <div class="img-upload-area" onclick="document.getElementById('kh-imgs-problem').click()">
+      <div class="img-upload-area-label">📷 사진 추가 (최대 3장)</div>
+    </div>
+    <input type="file" id="kh-imgs-problem" accept="image/*" multiple style="display:none" onchange="handleImgUpload(event,'problem')">
+    <div class="img-preview-wrap" id="kh-preview-problem"></div>
 
-    <div class="f-label">어떻게 해결했나요?</div>
+    <div class="f-label" style="margin-top:12px;">어떻게 해결했나요?</div>
     <textarea class="f-input" id="kh-solution" placeholder="해결 방법과 앞으로의 예방법을 적어주세요" rows="3" style="resize:none;line-height:1.6;font-family:inherit;"></textarea>
+    <div class="img-upload-area" onclick="document.getElementById('kh-imgs-solution').click()">
+      <div class="img-upload-area-label">📷 사진 추가 (최대 3장)</div>
+    </div>
+    <input type="file" id="kh-imgs-solution" accept="image/*" multiple style="display:none" onchange="handleImgUpload(event,'solution')">
+    <div class="img-preview-wrap" id="kh-preview-solution"></div>
 
     <div class="f-label">현장 (선택)</div>
     <input class="f-input" id="kh-site" placeholder="관련 현장명" type="text">
@@ -2170,6 +2191,8 @@ function renderKnowhow() {
     }
 
     body.onclick = function(e) {
+      var thumb = e.target.closest('.kh-img-thumb');
+      if (thumb && thumb.dataset.src) { openImgViewer(decodeURIComponent(thumb.dataset.src)); return; }
       var card = e.target.closest('.kh-card');
       if (card && card.dataset.khid) openKnowhowDetail(card.dataset.khid);
     };
@@ -2184,6 +2207,7 @@ function renderKnowhow() {
         + '</div>'
         + '<div class="kh-title">' + escHtml(it.title||'') + '</div>'
         + '<div class="kh-text" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(it.problem||'') + '</div>'
+        + (it.problemImgs && it.problemImgs.length ? '<div class="kh-img-grid">' + it.problemImgs.map(function(u){ return '<img class="kh-img-thumb" data-src="' + encodeURIComponent(u) + '">'; }).join('') + '</div>' : '')
         + '<div class="kh-footer">'
           + '<span class="kh-meta">' + (it.writer ? '✍️ ' + escHtml(it.writer) : '') + '</span>'
           + '<span class="kh-meta">' + dateStr + '</span>'
@@ -2209,6 +2233,8 @@ function openKnowhowDetail(id) {
     document.getElementById('kh-cat').value = it.cat || 'mistake';
     document.getElementById('kh-problem').value = it.problem || '';
     document.getElementById('kh-solution').value = it.solution || '';
+    loadImgPreviews(it.problemImgs  ? it.problemImgs.map(function(u){return{dataUrl:u,name:''};})  : [], 'problem');
+    loadImgPreviews(it.solutionImgs ? it.solutionImgs.map(function(u){return{dataUrl:u,name:''};}) : [], 'solution');
     document.getElementById('kh-site').value = it.site || '';
     document.getElementById('kh-writer').value = it.writer || '';
     document.getElementById('kh-edit-id').value = it.id || '';
@@ -2236,6 +2262,7 @@ function openKnowhowWrite() {
   document.querySelectorAll('.kh-cat-btn').forEach(function(btn) {
     btn.classList.toggle('on', btn.dataset.cat === 'mistake');
   });
+  clearImgPreviews();
   document.getElementById('kh-modal').classList.add('on');
 }
 
@@ -2249,6 +2276,83 @@ function pickKhCat(el) {
   document.getElementById('kh-cat').value = el.dataset.cat;
 }
 
+
+// ═══════════════════════════════
+//  노하우 사진 첨부
+// ═══════════════════════════════
+var _khImgs = { problem: [], solution: [] }; // [{dataUrl, name}]
+
+function handleImgUpload(event, field) {
+  var files = Array.from(event.target.files);
+  var current = _khImgs[field] || [];
+  var remaining = 3 - current.length;
+  if (remaining <= 0) { toast('⚠️ 사진은 최대 3장까지 가능해요'); event.target.value=''; return; }
+  files = files.slice(0, remaining);
+
+  var readers = files.map(function(file) {
+    return new Promise(function(resolve) {
+      // 이미지 리사이즈 (최대 800px, 품질 0.7)
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var max = 800;
+        var w = img.width, h = img.height;
+        if (w > max || h > max) {
+          if (w > h) { h = Math.round(h * max / w); w = max; }
+          else { w = Math.round(w * max / h); h = max; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.7), name: file.name });
+      };
+      img.src = url;
+    });
+  });
+
+  Promise.all(readers).then(function(results) {
+    _khImgs[field] = current.concat(results);
+    renderImgPreviews(field);
+    event.target.value = '';
+  });
+}
+
+function renderImgPreviews(field) {
+  var wrap = document.getElementById('kh-preview-' + field);
+  if (!wrap) return;
+  wrap.innerHTML = _khImgs[field].map(function(img, i) {
+    return '<div class="img-preview-item">'
+      + '<img src="' + img.dataUrl + '">'
+      + '<button class="img-preview-del" data-field="' + field + '" data-idx="' + i + '">✕</button>'
+      + '</div>';
+  }).join('');
+  wrap.onclick = function(e) {
+    var btn = e.target.closest('.img-preview-del');
+    if (btn) removeKhImg(btn.dataset.field, parseInt(btn.dataset.idx));
+  };
+}
+
+function removeKhImg(field, idx) {
+  _khImgs[field].splice(idx, 1);
+  renderImgPreviews(field);
+}
+
+function clearImgPreviews() {
+  _khImgs = { problem: [], solution: [] };
+  renderImgPreviews('problem');
+  renderImgPreviews('solution');
+  var p = document.getElementById('kh-imgs-problem');
+  var s = document.getElementById('kh-imgs-solution');
+  if (p) p.value = '';
+  if (s) s.value = '';
+}
+
+function loadImgPreviews(imgs, field) {
+  _khImgs[field] = imgs || [];
+  renderImgPreviews(field);
+}
+
 async function saveKnowhow() {
   const title    = (document.getElementById('kh-title')?.value || '').trim();
   const cat      = document.getElementById('kh-cat')?.value || 'mistake';
@@ -2257,12 +2361,14 @@ async function saveKnowhow() {
   const site     = (document.getElementById('kh-site')?.value || '').trim();
   const writer   = (document.getElementById('kh-writer')?.value || '').trim();
   const editId   = document.getElementById('kh-edit-id')?.value || '';
+  const problemImgs  = _khImgs.problem.map(function(i){ return i.dataUrl; });
+  const solutionImgs = _khImgs.solution.map(function(i){ return i.dataUrl; });
 
   if (!title) { toast('⚠️ 제목을 입력해주세요'); return; }
   if (!problem && !solution) { toast('⚠️ 내용을 입력해주세요'); return; }
 
   const id = editId || String(Date.now());
-  const data = { id, cat, title, problem, solution, site, writer, createdAt: editId ? undefined : Date.now() };
+  const data = { id, cat, title, problem, solution, problemImgs, solutionImgs, site, writer, createdAt: editId ? undefined : Date.now() };
   if (editId) delete data.createdAt; // 수정 시 날짜 유지
 
   try {
@@ -2273,6 +2379,7 @@ async function saveKnowhow() {
       await db.ref('knowhow/' + id).set(data);
     }
     closeKnowhowWrite();
+    clearImgPreviews();
     toast('✅ 저장됐어요!');
     renderKnowhow();
   } catch(e) {
@@ -2286,6 +2393,18 @@ async function deleteKnowhow(id) {
   closeKnowhowWrite();
   toast('🗑️ 삭제됐어요');
   renderKnowhow();
+}
+
+// ─── 이미지 전체보기 뷰어 ───
+function openImgViewer(src) {
+  var existing = document.getElementById('img-viewer-overlay');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'img-viewer-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.onclick = function(){ overlay.remove(); };
+  overlay.innerHTML = '<img src="' + src + '" style="max-width:95vw;max-height:90vh;border-radius:8px;object-fit:contain;">';
+  document.body.appendChild(overlay);
 }
 </script>
 </body>
