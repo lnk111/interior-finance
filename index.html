@@ -5,11 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="디자인포">
 <meta name="theme-color" content="#1a56db">
 <title>현장 손익 관리</title>
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -53,6 +50,10 @@ body{overscroll-behavior:none;}
 .lock-icon{font-size:48px;margin-bottom:16px;}
 .lock-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;}
 .lock-sub{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.5);background:transparent;transition:background .15s;}
+.pin-dot.on{background:#fff;border-color:#fff;}
+.pin-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-radius:50%;width:68px;height:68px;color:#fff;font-size:22px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;transition:background .12s;}
+.pin-btn:active{background:rgba(255,255,255,.35);}
 
 /* ── 상단바 ── */
 .top-bar{
@@ -401,8 +402,28 @@ option{background:#fff;}
 <div id="lock" style="display:none;">
   <div class="lock-box">
     <div class="lock-icon">🔒</div>
-    <div class="lock-title">접근 제한</div>
-    <div class="lock-sub">올바른 링크로 접속해주세요.<br>담당자에게 문의하세요.</div>
+    <div class="lock-title">디자인포</div>
+    <div class="lock-sub" style="margin-bottom:24px;">PIN 번호 4자리를 입력해주세요</div>
+    <div id="pin-dots" style="display:flex;justify-content:center;gap:14px;margin-bottom:24px;">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+    <div id="pin-error" style="color:#fca5a5;font-size:13px;font-weight:600;margin-bottom:12px;min-height:20px;"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;">
+      <button class="pin-btn" onclick="pinInput('1')">1</button>
+      <button class="pin-btn" onclick="pinInput('2')">2</button>
+      <button class="pin-btn" onclick="pinInput('3')">3</button>
+      <button class="pin-btn" onclick="pinInput('4')">4</button>
+      <button class="pin-btn" onclick="pinInput('5')">5</button>
+      <button class="pin-btn" onclick="pinInput('6')">6</button>
+      <button class="pin-btn" onclick="pinInput('7')">7</button>
+      <button class="pin-btn" onclick="pinInput('8')">8</button>
+      <button class="pin-btn" onclick="pinInput('9')">9</button>
+      <button class="pin-btn" onclick="pinInput('0')" style="grid-column:2;">0</button>
+      <button class="pin-btn" onclick="pinDelete()" style="grid-column:3;font-size:18px;">⌫</button>
+    </div>
   </div>
 </div>
 
@@ -790,20 +811,16 @@ document.addEventListener('DOMContentLoaded', () => {
              || localStorage.getItem('app_role')
              || '';
 
-  if (code === 'boss' || code === 'staff') {
+  if (code === 'boss' || code === 'staff' || localStorage.getItem('app_auth') === 'ok') {
     // 인증 성공 → localStorage 저장
-    localStorage.setItem('app_role', code);
-    role = code;
-    document.getElementById('role-disp').textContent = code === 'boss' ? '대표 (전체)' : '직원';
-
-    if (code === 'staff') {
-      document.getElementById('nb-home').style.display = 'none';
-      document.getElementById('nb-settings').style.display = 'none';
-      goPage('entry');
+    if (code === 'boss' || code === 'staff') {
+      localStorage.setItem('app_role', code);
     }
-    // lock은 display:none(기본)이므로 아무 처리 불필요
+    role = 'boss';
+    localStorage.setItem('app_auth', 'ok');
+    document.getElementById('role-disp').textContent = '대표 (전체)';
   } else {
-    // 인증 실패 → 잠금 표시
+    // 인증 실패 → PIN 잠금 표시
     document.getElementById('lock').style.display = 'flex';
     return;
   }
@@ -2409,16 +2426,41 @@ function openImgViewer(src) {
   overlay.innerHTML = '<img src="' + src + '" style="max-width:95vw;max-height:90vh;border-radius:8px;object-fit:contain;">';
   document.body.appendChild(overlay);
 }
-</script>
-<script>
-// ── PWA Service Worker 등록 ──
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(function(reg) { console.log('SW 등록 완료:', reg.scope); })
-      .catch(function(err) { console.log('SW 등록 실패:', err); });
+// ── PIN 입력 ──
+var _pin = '';
+var _pinCorrect = '1212';
+
+function pinInput(num) {
+  if (_pin.length >= 4) return;
+  _pin += num;
+  updatePinDots();
+  if (_pin.length === 4) {
+    setTimeout(checkPin, 150);
+  }
+}
+
+function pinDelete() {
+  _pin = _pin.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updatePinDots() {
+  var dots = document.querySelectorAll('.pin-dot');
+  dots.forEach(function(dot, i) {
+    dot.classList.toggle('on', i < _pin.length);
   });
 }
+
+function checkPin() {
+  if (_pin === _pinCorrect) {
+    localStorage.setItem('app_auth', 'ok');
+    document.getElementById('lock').style.display = 'none';
+    location.reload();
+  } else {
+    document.getElementById('pin-error').textContent = '❌ PIN이 틀렸어요. 다시 입력해주세요.';
+    _pin = '';
+    updatePinDots();
+  }
+}
 </script>
-</body>
-</html>
