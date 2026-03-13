@@ -794,6 +794,19 @@ document.addEventListener('DOMContentLoaded', () => {
   initFB();
   // 입력탭 기본 타입: 매입
   setType('cost');
+
+  // ── 자가 진단: 정의되지 않은 핵심 함수 체크 ──
+  var _criticalFns = [
+    'goPage','toast','setType','renderDash','renderSites','renderSiteSelector',
+    'addEntry','openSiteModal','closeSiteModal','saveSite',
+    'openDetail','openProcEdit','saveKnowhow','renderKnowhow',
+    'pickSite','showSiteTags','pickTag','pickCustom','showTags',
+    'initFB','startListeners','encKey','escHtml','fmtW','fmtFull','today'
+  ];
+  var _missing = _criticalFns.filter(function(fn) { return typeof window[fn] !== 'function'; });
+  if (_missing.length > 0) {
+    console.error('[앱 오류] 다음 함수가 정의되지 않았습니다:', _missing.join(', '));
+  }
 });
 
 // ═══════════════════════════════
@@ -883,9 +896,9 @@ function goPage(name) {
   if (role === 'staff' && (name === 'home' || name === 'settings')) {
     toast('⚠️ 접근 권한이 없습니다'); return;
   }
-  // 페이지 이동 시 site-drop 리스너 완전 제거
-  document.removeEventListener('click', closeSiteDropOutside);
-  closeSiteDrop();
+  // 페이지 이동 시 현장 태그 닫기
+  var siteTags = document.getElementById('tags-site');
+  if (siteTags) siteTags.style.display = 'none';
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('on'));
