@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="디자인포">
 <meta name="theme-color" content="#1a56db">
 <title>현장 손익 관리</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -2405,6 +2408,16 @@ function openImgViewer(src) {
   overlay.onclick = function(){ overlay.remove(); };
   overlay.innerHTML = '<img src="' + src + '" style="max-width:95vw;max-height:90vh;border-radius:8px;object-fit:contain;">';
   document.body.appendChild(overlay);
+}
+</script>
+<script>
+// ── PWA Service Worker 등록 ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(function(reg) { console.log('SW 등록 완료:', reg.scope); })
+      .catch(function(err) { console.log('SW 등록 실패:', err); });
+  });
 }
 </script>
 </body>
