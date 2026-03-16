@@ -992,7 +992,7 @@ function goPage(name) {
   if (name === 'sites') renderSites();
   if (name === 'settings') { loadFC(); updateFCTotal(); }
   if (name === 'knowhow') renderKnowhow();
-  if (name === 'entry') { renderEntryRecent(); updateAmountDisplay(); }
+  if (name === 'entry') { renderSiteSelector(); renderEntryRecent(); updateAmountDisplay(); }
 }
 
 // ═══════════════════════════════
@@ -1976,6 +1976,8 @@ function pickStatus(btn) {
   document.querySelectorAll('.status-opt').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
   curSiteStatus = btn.dataset.s;
+  var desc = document.getElementById('status-desc');
+  if (desc) desc.textContent = btn.dataset.desc || '';
 }
 
 async function saveSite() {
@@ -2002,6 +2004,16 @@ function setType(t) {
     const btn = document.getElementById('bt-' + tp);
     if (btn) btn.className = 'type-btn' + (tp === t ? ' t-' + tp : '');
   });
+  // 선택된 타입 라벨 업데이트
+  var label = document.getElementById('type-selected-label');
+  if (label) {
+    var map = { cost:'📦 매입 입력 중', revenue:'💰 매출 입력 중', as:'🔧 AS 입력 중' };
+    var colors = { cost:'#fef2f2', revenue:'#f0fdf4', as:'#fef9c3' };
+    var textColors = { cost:'#dc2626', revenue:'#16a34a', as:'#ca8a04' };
+    label.textContent = map[t] || '';
+    label.style.background = colors[t] || 'var(--s2)';
+    label.style.color = textColors[t] || 'var(--muted)';
+  }
 }
 
 function toggleDetail() {
@@ -2042,20 +2054,13 @@ function pickCustom(type) {
 
 // 현장 선택 컴포넌트 - 검색창 + 드롭다운 (최신 등록순)
 function renderSiteSelector() {
-  // 태그 방식으로 전환됨 — showSiteTags() 사용
-  showSiteTags();
-}
-
-function showSiteTags() {
-  const wrap = document.getElementById('tags-site');
+  // 태그 목록 내용만 미리 준비 (펼치지 않음)
+  var wrap = document.getElementById('tags-site');
   if (!wrap) return;
-
-  const allList = Object.values(siteCache)
+  var allList = Object.values(siteCache)
     .filter(function(info) { return info && info.name; })
     .sort(function(a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
-
-  const S_SHORT = { consult:'상담중', contract:'계약완료', active:'공사중', settle:'정산중', balance:'잔금대기', done:'마감', as:'AS' };
-
+  var S_SHORT = { consult:'상담중', contract:'계약완료', active:'공사중', settle:'정산중', balance:'잔금대기', done:'마감', as:'AS' };
   if (!allList.length) {
     wrap.innerHTML = '<div style="padding:10px 0;font-size:13px;color:var(--muted);">등록된 현장이 없습니다.</div>';
   } else {
@@ -2066,13 +2071,20 @@ function showSiteTags() {
       rows += '<div class="tag site-tag" data-name="' + escHtml(info.name) + '" style="font-size:13px;">' + label + '</div>';
     });
     wrap.innerHTML = rows;
-    // data-name 방식으로 클릭 이벤트 위임
     wrap.onclick = function(e) {
       var t = e.target.closest('.site-tag');
       if (t) pickSite(t.dataset.name);
     };
   }
-  wrap.style.display = 'flex';
+  // 펼치지 않음 - 사용자가 input 클릭할 때만 펼침
+  wrap.style.display = 'none';
+}
+
+function showSiteTags() {
+  // 내용 갱신 후 펼침
+  renderSiteSelector();
+  var wrap = document.getElementById('tags-site');
+  if (wrap) wrap.style.display = 'flex';
 }
 
 function pickSite(name) {
@@ -2577,18 +2589,7 @@ function updateAmountDisplay() {
 }
 
 // 입력 탭 선택 타입 라벨 업데이트
-var _origSetType = setType;
-setType = function(t) {
-  _origSetType(t);
-  var label = document.getElementById('type-selected-label');
-  if (!label) return;
-  var map = { cost:'📦 매입 입력 중', revenue:'💰 매출 입력 중', as:'🔧 AS 입력 중' };
-  var colors = { cost:'#fef2f2', revenue:'#f0fdf4', as:'#fef9c3' };
-  var textColors = { cost:'#dc2626', revenue:'#16a34a', as:'#ca8a04' };
-  label.textContent = map[t] || '';
-  label.style.background = colors[t] || 'var(--s2)';
-  label.style.color = textColors[t] || 'var(--muted)';
-};
+// setType 라벨 업데이트는 원본 함수에 통합됨
 
 // 최근 입력 3건 렌더
 function renderEntryRecent() {
@@ -2620,16 +2621,7 @@ function showEntryConfirm(site, type, process, amount) {
   toast(msg);
 }
 
-// pickStatus에 설명 표시 연동
-var _origPickStatus = typeof pickStatus === 'function' ? pickStatus : null;
-
-// 상태 버튼 클릭 시 설명 표시
-document.addEventListener('click', function(e) {
-  var btn = e.target.closest('.status-opt');
-  if (!btn) return;
-  var desc = document.getElementById('status-desc');
-  if (desc) desc.textContent = btn.dataset.desc || '';
-});
+// 상태 버튼 설명은 pickStatus 함수에서 직접 처리
 
 // 노하우 핀 고정
 function renderKnowhowPinned() {
