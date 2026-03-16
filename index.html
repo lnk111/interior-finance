@@ -50,10 +50,6 @@ body{overscroll-behavior:none;}
 .lock-icon{font-size:48px;margin-bottom:16px;}
 .lock-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;}
 .lock-sub{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.5);background:transparent;transition:background .15s;}
-.pin-dot.on{background:#fff;border-color:#fff;}
-.pin-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-radius:50%;width:68px;height:68px;color:#fff;font-size:22px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;transition:background .12s;}
-.pin-btn:active{background:rgba(255,255,255,.35);}
 
 /* ── 상단바 ── */
 .top-bar{
@@ -402,28 +398,8 @@ option{background:#fff;}
 <div id="lock" style="display:none;">
   <div class="lock-box">
     <div class="lock-icon">🔒</div>
-    <div class="lock-title">디자인포</div>
-    <div class="lock-sub" style="margin-bottom:24px;">PIN 번호 4자리를 입력해주세요</div>
-    <div id="pin-dots" style="display:flex;justify-content:center;gap:14px;margin-bottom:24px;">
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-    </div>
-    <div id="pin-error" style="color:#fca5a5;font-size:13px;font-weight:600;margin-bottom:12px;min-height:20px;"></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;">
-      <button class="pin-btn" onclick="pinInput('1')">1</button>
-      <button class="pin-btn" onclick="pinInput('2')">2</button>
-      <button class="pin-btn" onclick="pinInput('3')">3</button>
-      <button class="pin-btn" onclick="pinInput('4')">4</button>
-      <button class="pin-btn" onclick="pinInput('5')">5</button>
-      <button class="pin-btn" onclick="pinInput('6')">6</button>
-      <button class="pin-btn" onclick="pinInput('7')">7</button>
-      <button class="pin-btn" onclick="pinInput('8')">8</button>
-      <button class="pin-btn" onclick="pinInput('9')">9</button>
-      <button class="pin-btn" onclick="pinInput('0')" style="grid-column:2;">0</button>
-      <button class="pin-btn" onclick="pinDelete()" style="grid-column:3;font-size:18px;">⌫</button>
-    </div>
+    <div class="lock-title">접근 제한</div>
+    <div class="lock-sub">올바른 링크로 접속해주세요.<br>담당자에게 문의하세요.</div>
   </div>
 </div>
 
@@ -435,7 +411,7 @@ option{background:#fff;}
   <!-- ① 대시보드 -->
   <div class="page on" id="pg-home">
     <div class="top-bar">
-      <div class="top-bar-title">현장 손익</div>
+      <div class="top-bar-title">손익 현황</div>
       <div id="conn" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
     </div>
     <div class="gf-bar">
@@ -450,21 +426,49 @@ option{background:#fff;}
         <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
       </select>
     </div>
+    <!-- 핵심 3개 크게 -->
     <div class="kpi-grid">
-      <div class="kpi c-green"><div class="kpi-label">총 매출</div><div class="kpi-val" id="k-rev">-</div><div class="kpi-sub" id="k-rev-cnt"></div></div>
-      <div class="kpi c-red"><div class="kpi-label">총 매입</div><div class="kpi-val" id="k-cost">-</div><div class="kpi-sub" id="k-cost-cnt"></div></div>
-      <div class="kpi c-orange"><div class="kpi-label">고정비</div><div class="kpi-val" id="k-fixed">-</div><div class="kpi-sub">월 기준</div></div>
-      <div class="kpi c-purple"><div class="kpi-label">부가세 예정</div><div class="kpi-val" id="k-tax">-</div><div class="kpi-sub">매출×10%</div></div>
+      <div class="kpi c-green">
+        <div class="kpi-label">총 매출</div>
+        <div class="kpi-val" id="k-rev">-</div>
+        <div class="kpi-sub" id="k-rev-cnt">고객에게 받은 금액</div>
+      </div>
+      <div class="kpi c-red">
+        <div class="kpi-label">총 매입</div>
+        <div class="kpi-val" id="k-cost">-</div>
+        <div class="kpi-sub" id="k-cost-cnt">업체에 지급한 금액</div>
+      </div>
     </div>
     <div class="kpi c-blue" style="margin-bottom:10px;">
-      <div class="kpi-label">현장 순이익 합계</div>
+      <div class="kpi-label">현장 순이익</div>
       <div class="kpi-val" id="k-profit" style="font-size:24px;">-</div>
-      <div class="kpi-sub">매출 - 매입 - AS</div>
+      <div class="kpi-sub">매출 − 매입 − AS비용</div>
     </div>
     <div class="op-card">
-      <div class="op-label">최종 영업이익</div>
+      <div class="op-label">🏢 최종 영업이익</div>
       <div class="op-val" id="k-op">-</div>
-      <div class="op-eq">순이익 - 고정비 - 부가세</div>
+      <div class="op-eq">순이익 − 고정비(임대료·급여 등) − 부가세</div>
+    </div>
+    <!-- 상세 지표 접기/펼치기 -->
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleDashDetail()">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);">상세 지표</div>
+        <div id="dash-detail-arrow" style="font-size:11px;color:var(--dim);">▼ 펼치기</div>
+      </div>
+      <div id="dash-detail" style="display:none;margin-top:12px;">
+        <div class="kpi-grid" style="margin-bottom:0;">
+          <div class="kpi c-orange" style="margin-bottom:0;">
+            <div class="kpi-label">고정비</div>
+            <div class="kpi-val" id="k-fixed" style="font-size:16px;">-</div>
+            <div class="kpi-sub">월 임대료·급여 등</div>
+          </div>
+          <div class="kpi c-purple" style="margin-bottom:0;">
+            <div class="kpi-label">부가세 예정</div>
+            <div class="kpi-val" id="k-tax" style="font-size:16px;">-</div>
+            <div class="kpi-sub">매출의 10% 납부 예정</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="card margin-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -482,8 +486,13 @@ option{background:#fff;}
       </div>
       <div id="k-margin-msg" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
     </div>
+    <!-- 오늘의 현황 -->
+    <div class="card" style="margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">📋 현재 현장 현황</div>
+      <div id="dash-site-status"></div>
+    </div>
     <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">현장 순이익 TOP 3</div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🏆 현장 순이익 TOP 3</div>
       <div id="top3"></div>
     </div>
   </div>
@@ -491,17 +500,24 @@ option{background:#fff;}
   <!-- ② 거래 입력 -->
   <div class="page" id="pg-entry">
     <div class="top-bar"><div class="top-bar-title">거래 입력</div></div>
+    <!-- 입력 타입 안내 -->
+    <div id="type-guide" style="background:var(--s2);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.6;">
+      📦 <b>매입</b> = 업체에 돈을 줄 때 &nbsp;|&nbsp; 💰 <b>매출</b> = 고객에게 돈을 받을 때 &nbsp;|&nbsp; 🔧 <b>AS</b> = AS 비용 발생 시
+    </div>
     <div class="type-row">
       <button class="type-btn t-cost" id="bt-cost" onclick="setType('cost')">📦 매입</button>
       <button class="type-btn" id="bt-revenue" onclick="setType('revenue')">💰 매출</button>
       <button class="type-btn" id="bt-as" onclick="setType('as')">🔧 AS</button>
     </div>
+    <!-- 선택된 타입 강조 표시 -->
+    <div id="type-selected-label" style="text-align:center;font-size:13px;font-weight:700;padding:6px;margin-bottom:4px;border-radius:8px;background:var(--s2);color:var(--muted);">📦 매입 입력 중</div>
     <div class="f-label">현장 *</div>
     <input class="f-input" id="f-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="showSiteTags()">
     <input type="hidden" id="f-site" value="">
     <div class="tag-wrap" id="tags-site" style="display:none;"></div>
     <div class="f-label">금액 (원) *</div>
-    <input class="f-input" id="f-amount" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()">
+    <input class="f-input" id="f-amount" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateAmountDisplay()">
+    <div id="amount-display" style="font-size:12px;color:var(--accent);font-weight:700;text-align:right;min-height:18px;margin-bottom:2px;padding-right:2px;"></div>
     <div class="f-label">날짜</div>
     <input class="f-input" id="f-date" type="date">
     <div class="f-label">공정</div>
@@ -538,6 +554,11 @@ option{background:#fff;}
       <div class="tag" onclick="pickCustom('writer')">✏️ 직접</div>
     </div>
     <button class="submit-btn" id="f-submit" onclick="addEntry()">+ 입력 완료</button>
+    <!-- 최근 입력 3건 -->
+    <div style="margin-top:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">📌 최근 입력 내역</div>
+      <div id="entry-recent"></div>
+    </div>
   </div>
 
   <!-- ③ 현장 관리 -->
@@ -572,7 +593,12 @@ option{background:#fff;}
     <!-- 검색 -->
     <div class="search-wrap" style="margin-bottom:12px;">
       <span class="search-ico">🔍</span>
-      <input class="search-input" id="kh-search" placeholder="제목·내용 검색" oninput="renderKnowhow()">
+      <input class="search-input" id="kh-search" placeholder="제목·내용으로 검색" oninput="renderKnowhow()">
+    </div>
+    <!-- 핀 고정 섹션 -->
+    <div id="kh-pinned-wrap" style="display:none;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;">📌 주의사항 (핀 고정)</div>
+      <div id="kh-pinned"></div>
     </div>
     <!-- 카테고리 필터 -->
     <div class="filter-tabs" id="kh-ftabs" style="margin-bottom:14px;">
@@ -638,7 +664,7 @@ option{background:#fff;}
 <!-- 네비 -->
 <nav class="nav">
   <button class="nav-btn on" id="nb-home" onclick="goPage('home')">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>대시보드
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>손익 현황
   </button>
   <button class="nav-btn" id="nb-entry" onclick="goPage('entry')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>입력
@@ -683,14 +709,14 @@ option{background:#fff;}
     </div>
     <div class="f-label">현장 상태 *</div>
     <div class="status-grid">
-      <button class="status-opt on" data-s="consult" onclick="pickStatus(this)">💬 상담중</button>
-      <button class="status-opt" data-s="contract" onclick="pickStatus(this)">📝 계약완료</button>
-      <button class="status-opt" data-s="active" onclick="pickStatus(this)">🔨 공사진행중</button>
-      <button class="status-opt" data-s="settle" onclick="pickStatus(this)">🧾 정산중</button>
-      <button class="status-opt" data-s="balance" onclick="pickStatus(this)">💰 잔금대기</button>
-      <button class="status-opt" data-s="done" onclick="pickStatus(this)">✅ 마감</button>
-      <button class="status-opt" data-s="as" onclick="pickStatus(this)" style="grid-column:1/-1;">🔧 AS관리</button>
-    </div>
+      <button class="status-opt on" data-s="consult" data-desc="고객과 상담 진행 중" onclick="pickStatus(this)">💬 상담중</button>
+      <button class="status-opt" data-s="contract" data-desc="계약 완료, 공사 시작 전" onclick="pickStatus(this)">📝 계약완료</button>
+      <button class="status-opt" data-s="active" data-desc="현재 공사가 진행 중" onclick="pickStatus(this)">🔨 공사진행중</button>
+      <button class="status-opt" data-s="settle" data-desc="공사 완료, 정산 처리 중" onclick="pickStatus(this)">🧾 정산중</button>
+      <button class="status-opt" data-s="balance" data-desc="잔금 입금 대기 중" onclick="pickStatus(this)">💰 잔금대기</button>
+      <button class="status-opt" data-s="done" data-desc="모든 절차 완료" onclick="pickStatus(this)">✅ 마감</button>
+      <button class="status-opt" data-s="as" data-desc="공사 후 AS 진행 중" onclick="pickStatus(this)" style="grid-column:1/-1;">🔧 AS관리</button>
+      <div id="status-desc" style="grid-column:1/-1;font-size:11px;color:var(--accent);font-weight:600;min-height:16px;text-align:center;padding-top:4px;">고객과 상담 진행 중</div>
     <button class="submit-btn" onclick="saveSite()">저장하기</button>
   </div>
 </div>
@@ -753,6 +779,12 @@ option{background:#fff;}
     <input class="f-input" id="kh-writer" placeholder="이름 입력" type="text">
 
     <input type="hidden" id="kh-edit-id" value="">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">
+        <input type="checkbox" id="kh-pinned-chk" style="width:16px;height:16px;accent-color:var(--accent);">
+        📌 주의사항으로 핀 고정 (신입에게 중요)
+      </label>
+    </div>
     <button class="submit-btn" onclick="saveKnowhow()">✅ 저장</button>
     <button onclick="closeKnowhowWrite()" style="width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;">취소</button>
     <button id="kh-del-btn" onclick="var id=document.getElementById('kh-edit-id').value;if(id)deleteKnowhow(id);" style="width:100%;padding:12px;background:none;border:1px solid #fee2e2;border-radius:10px;color:#dc2626;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;display:none;">🗑️ 삭제</button>
@@ -811,16 +843,20 @@ document.addEventListener('DOMContentLoaded', () => {
              || localStorage.getItem('app_role')
              || '';
 
-  if (code === 'boss' || code === 'staff' || localStorage.getItem('app_auth') === 'ok') {
+  if (code === 'boss' || code === 'staff') {
     // 인증 성공 → localStorage 저장
-    if (code === 'boss' || code === 'staff') {
-      localStorage.setItem('app_role', code);
+    localStorage.setItem('app_role', code);
+    role = code;
+    document.getElementById('role-disp').textContent = code === 'boss' ? '대표 (전체)' : '직원';
+
+    if (code === 'staff') {
+      document.getElementById('nb-home').style.display = 'none';
+      document.getElementById('nb-settings').style.display = 'none';
+      goPage('entry');
     }
-    role = 'boss';
-    localStorage.setItem('app_auth', 'ok');
-    document.getElementById('role-disp').textContent = '대표 (전체)';
+    // lock은 display:none(기본)이므로 아무 처리 불필요
   } else {
-    // 인증 실패 → PIN 잠금 표시
+    // 인증 실패 → 잠금 표시
     document.getElementById('lock').style.display = 'flex';
     return;
   }
@@ -842,7 +878,9 @@ document.addEventListener('DOMContentLoaded', () => {
     'addEntry','openSiteModal','closeSiteModal','saveSite',
     'openDetail','openProcEdit','saveKnowhow','renderKnowhow',
     'pickSite','showSiteTags','pickTag','pickCustom','showTags',
-    'initFB','startListeners','encKey','escHtml','fmtW','fmtFull','today'
+    'initFB','startListeners','encKey','escHtml','fmtW','fmtFull','today',
+    'renderEntryRecent','updateAmountDisplay','renderDashSiteStatus','getStatusDesc',
+    'toggleDashDetail','renderKnowhowPinned','showEntryConfirm'
   ];
   var _missing = _criticalFns.filter(function(fn) { return typeof window[fn] !== 'function'; });
   if (_missing.length > 0) {
@@ -954,6 +992,7 @@ function goPage(name) {
   if (name === 'sites') renderSites();
   if (name === 'settings') { loadFC(); updateFCTotal(); }
   if (name === 'knowhow') renderKnowhow();
+  if (name === 'entry') { renderEntryRecent(); updateAmountDisplay(); }
 }
 
 // ═══════════════════════════════
@@ -1079,6 +1118,9 @@ function renderDash() {
     }
   }
 
+  // 현장 현황 렌더
+  renderDashSiteStatus();
+
   // TOP3
   const sm = {};
   data.forEach(e => {
@@ -1152,7 +1194,7 @@ function renderSites() {
     return '<div class="site-card" onclick="openDetail(\'' + safeN + '\')">'
       +'<div class="site-card-top">'
         +'<div>'
-          +(ym||sl?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+(ym?'<span class="site-ym">'+ym+'</span>':'')+(sl?'<span class="badge '+sc+'">'+sl+'</span>':'')+'</div>':'')
+          +(ym||sl?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">'+(ym?'<span class="site-ym">'+ym+'</span>':'')+(sl?'<span class="badge '+sc+'" title="'+getStatusDesc(info.status||'')+'">'+sl+'</span>':'')+'</div>':'')
           +'<div class="site-name">'+site+'</div>'
         +'</div>'
         +'<div style="text-align:right;">'
@@ -2073,7 +2115,8 @@ async function addEntry() {
     if (siteInp) { siteInp.value = ''; }
     if (siteHid) { siteHid.value = ''; }
     if (siteTags) { siteTags.style.display = 'none'; }
-    toast('✅ 입력 완료!');
+    showEntryConfirm(site, curType, process, amount);
+    renderEntryRecent();
     // 입력 탭 유지 (staff는 home 접근 불가)
     renderSiteSelector();
   } catch (e) {
@@ -2187,6 +2230,7 @@ function setKhFilter(f, el) {
 }
 
 function renderKnowhow() {
+  renderKnowhowPinned();
   const q = (document.getElementById('kh-search')?.value || '').toLowerCase().trim();
   const body = document.getElementById('kh-body');
   if (!body) return;
@@ -2258,6 +2302,8 @@ function openKnowhowDetail(id) {
     document.getElementById('kh-site').value = it.site || '';
     document.getElementById('kh-writer').value = it.writer || '';
     document.getElementById('kh-edit-id').value = it.id || '';
+    var pinnedChk = document.getElementById('kh-pinned-chk');
+    if (pinnedChk) pinnedChk.checked = !!it.pinned;
     // 카테고리 버튼 상태
     document.querySelectorAll('.kh-cat-btn').forEach(function(btn) {
       btn.classList.toggle('on', btn.dataset.cat === it.cat);
@@ -2283,6 +2329,8 @@ function openKnowhowWrite() {
     btn.classList.toggle('on', btn.dataset.cat === 'mistake');
   });
   clearImgPreviews();
+  var pinnedChk = document.getElementById('kh-pinned-chk');
+  if (pinnedChk) pinnedChk.checked = false;
   document.getElementById('kh-modal').classList.add('on');
 }
 
@@ -2383,12 +2431,13 @@ async function saveKnowhow() {
   const editId   = document.getElementById('kh-edit-id')?.value || '';
   const problemImgs  = _khImgs.problem.map(function(i){ return i.dataUrl; });
   const solutionImgs = _khImgs.solution.map(function(i){ return i.dataUrl; });
+  const pinned = document.getElementById('kh-pinned-chk')?.checked || false;
 
   if (!title) { toast('⚠️ 제목을 입력해주세요'); return; }
   if (!problem && !solution) { toast('⚠️ 내용을 입력해주세요'); return; }
 
   const id = editId || String(Date.now());
-  const data = { id, cat, title, problem, solution, problemImgs, solutionImgs, site, writer, createdAt: editId ? undefined : Date.now() };
+  const data = { id, cat, title, problem, solution, problemImgs, solutionImgs, pinned, site, writer, createdAt: editId ? undefined : Date.now() };
   if (editId) delete data.createdAt; // 수정 시 날짜 유지
 
   try {
@@ -2426,41 +2475,184 @@ function openImgViewer(src) {
   overlay.innerHTML = '<img src="' + src + '" style="max-width:95vw;max-height:90vh;border-radius:8px;object-fit:contain;">';
   document.body.appendChild(overlay);
 }
-// ── PIN 입력 ──
-var _pin = '';
-var _pinCorrect = '1212';
 
-function pinInput(num) {
-  if (_pin.length >= 4) return;
-  _pin += num;
-  updatePinDots();
-  if (_pin.length === 4) {
-    setTimeout(checkPin, 150);
+// ═══════════════════════════════
+//  UX 개선 함수들
+// ═══════════════════════════════
+
+// 대시보드 상세 지표 접기/펼치기
+function toggleDashDetail() {
+  var el = document.getElementById('dash-detail');
+  var arrow = document.getElementById('dash-detail-arrow');
+  if (!el) return;
+  var isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.textContent = isOpen ? '▼ 펼치기' : '▲ 접기';
+}
+
+// 현장 상태 설명
+function getStatusDesc(s) {
+  var desc = {
+    consult:  '고객과 상담 진행 중',
+    contract: '계약 완료, 공사 시작 전',
+    active:   '현재 공사가 진행 중',
+    settle:   '공사 완료, 정산 처리 중',
+    balance:  '잔금 입금 대기 중',
+    done:     '모든 절차 완료',
+    as:       '공사 후 AS 진행 중'
+  };
+  return desc[s] || '';
+}
+
+// 대시보드 현장 현황 렌더
+function renderDashSiteStatus() {
+  // site-status-link 클릭 → 현장 탭 이동 (이벤트 위임)
+  var statusEl = document.getElementById('dash-site-status');
+  if (statusEl && !statusEl._delegated) {
+    statusEl._delegated = true;
+    statusEl.addEventListener('click', function(e) {
+      if (e.target.closest('.site-status-link')) goPage('sites');
+    });
   }
-}
-
-function pinDelete() {
-  _pin = _pin.slice(0, -1);
-  updatePinDots();
-  document.getElementById('pin-error').textContent = '';
-}
-
-function updatePinDots() {
-  var dots = document.querySelectorAll('.pin-dot');
-  dots.forEach(function(dot, i) {
-    dot.classList.toggle('on', i < _pin.length);
+  var el = document.getElementById('dash-site-status');
+  if (!el) return;
+  var sites = Object.values(siteCache).filter(function(s){ return s && s.name; });
+  if (!sites.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">등록된 현장이 없습니다</div>';
+    return;
+  }
+  // 상태별 카운트
+  var counts = {};
+  var S_SHORT = { consult:'상담중', contract:'계약완료', active:'공사중', settle:'정산중', balance:'잔금대기', done:'마감', as:'AS' };
+  var S_COLOR = { consult:'#64748b', contract:'#3b82f6', active:'#16a34a', settle:'#ca8a04', balance:'#dc2626', done:'#475569', as:'#9333ea' };
+  sites.forEach(function(s) {
+    var st = s.status || 'consult';
+    counts[st] = (counts[st] || 0) + 1;
   });
+  var active = sites.filter(function(s){ return s.status === 'active'; });
+  var balance = sites.filter(function(s){ return s.status === 'balance'; });
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+  Object.entries(counts).forEach(function(entry) {
+    var k = entry[0], v = entry[1];
+    html += '<div style="background:var(--s2);border-radius:8px;padding:8px;text-align:center;">'
+      + '<div style="font-size:10px;color:' + (S_COLOR[k]||'var(--muted)') + ';font-weight:700;margin-bottom:2px;">' + (S_SHORT[k]||k) + '</div>'
+      + '<div style="font-size:18px;font-weight:800;color:var(--text);">' + v + '</div>'
+      + '<div style="font-size:10px;color:var(--muted);">개 현장</div>'
+      + '</div>';
+  });
+  html += '</div>';
+
+  // 공사중 현장 목록
+  if (active.length) {
+    html += '<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">🔨 현재 공사중</div>';
+    active.forEach(function(s) {
+      var ym = s.year && s.month ? s.year + '년 ' + s.month + '월' : '';
+      html += '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:4px;cursor:pointer;" class="site-status-link" style="cursor:pointer;">'
+        + '<div style="font-size:13px;font-weight:600;color:#15803d;">' + escHtml(s.name) + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);">' + ym + '</div>'
+        + '</div>';
+    });
+  }
+  // 잔금 대기
+  if (balance.length) {
+    html += '<div style="font-size:11px;font-weight:700;color:var(--red);margin-top:8px;margin-bottom:6px;">💰 잔금 대기 중</div>';
+    balance.forEach(function(s) {
+      html += '<div style="display:flex;justify-content:space-between;padding:8px 10px;background:#fef2f2;border-radius:8px;margin-bottom:4px;cursor:pointer;" class="site-status-link" style="cursor:pointer;">'
+        + '<div style="font-size:13px;font-weight:600;color:#dc2626;">' + escHtml(s.name) + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);">잔금 확인 필요</div>'
+        + '</div>';
+    });
+  }
+  el.innerHTML = html;
 }
 
-function checkPin() {
-  if (_pin === _pinCorrect) {
-    localStorage.setItem('app_auth', 'ok');
-    document.getElementById('lock').style.display = 'none';
-    location.reload();
-  } else {
-    document.getElementById('pin-error').textContent = '❌ PIN이 틀렸어요. 다시 입력해주세요.';
-    _pin = '';
-    updatePinDots();
+// 금액 실시간 포맷 표시
+function updateAmountDisplay() {
+  var inp = document.getElementById('f-amount');
+  var disp = document.getElementById('amount-display');
+  if (!inp || !disp) return;
+  var v = parseInt(inp.value) || 0;
+  disp.textContent = v > 0 ? fmtFull(v) : '';
+}
+
+// 입력 탭 선택 타입 라벨 업데이트
+var _origSetType = setType;
+setType = function(t) {
+  _origSetType(t);
+  var label = document.getElementById('type-selected-label');
+  if (!label) return;
+  var map = { cost:'📦 매입 입력 중', revenue:'💰 매출 입력 중', as:'🔧 AS 입력 중' };
+  var colors = { cost:'#fef2f2', revenue:'#f0fdf4', as:'#fef9c3' };
+  var textColors = { cost:'#dc2626', revenue:'#16a34a', as:'#ca8a04' };
+  label.textContent = map[t] || '';
+  label.style.background = colors[t] || 'var(--s2)';
+  label.style.color = textColors[t] || 'var(--muted)';
+};
+
+// 최근 입력 3건 렌더
+function renderEntryRecent() {
+  var el = document.getElementById('entry-recent');
+  if (!el) return;
+  var recent = entries.slice(0, 3);
+  if (!recent.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">아직 입력된 내역이 없습니다</div>';
+    return;
   }
+  var typeMap = { revenue:'매출', cost:'매입', as:'AS' };
+  var typeColor = { revenue:'var(--green)', cost:'var(--red)', as:'var(--orange)' };
+  el.innerHTML = recent.map(function(e) {
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--s2);border-radius:8px;margin-bottom:6px;">'
+      + '<div>'
+        + '<span style="font-size:10px;font-weight:700;color:' + (typeColor[e.type]||'var(--muted)') + ';margin-right:6px;">' + (typeMap[e.type]||e.type) + '</span>'
+        + '<span style="font-size:12px;font-weight:600;color:var(--text);">' + escHtml(e.site||'') + '</span>'
+        + (e.process ? '<span style="font-size:11px;color:var(--muted);margin-left:4px;">· ' + escHtml(e.process) + '</span>' : '')
+      + '</div>'
+      + '<div style="font-size:13px;font-weight:700;color:' + (typeColor[e.type]||'var(--text)') + ';">' + fmtW(e.amount||0) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// 입력 완료 후 확인 메시지 상세 표시
+function showEntryConfirm(site, type, process, amount) {
+  var typeMap = { revenue:'매출', cost:'매입', as:'AS' };
+  var msg = '✅ ' + escHtml(site) + ' / ' + (typeMap[type]||type) + (process?' / '+process:'') + ' / ' + fmtFull(amount) + ' 저장됐어요!';
+  toast(msg);
+}
+
+// pickStatus에 설명 표시 연동
+var _origPickStatus = typeof pickStatus === 'function' ? pickStatus : null;
+
+// 상태 버튼 클릭 시 설명 표시
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.status-opt');
+  if (!btn) return;
+  var desc = document.getElementById('status-desc');
+  if (desc) desc.textContent = btn.dataset.desc || '';
+});
+
+// 노하우 핀 고정
+function renderKnowhowPinned() {
+  var wrap = document.getElementById('kh-pinned-wrap');
+  var el = document.getElementById('kh-pinned');
+  if (!wrap || !el) return;
+  db.ref('knowhow').orderByChild('pinned').equalTo(true).once('value').then(function(snap) {
+    var items = [];
+    snap.forEach(function(child) { items.push(child.val()); });
+    if (!items.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    el.innerHTML = items.map(function(it) {
+      return '<div style="background:#fef9c3;border:1.5px solid #fde047;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;" data-khid="' + escHtml(it.id||'') + '">'
+        + '<div style="font-size:13px;font-weight:700;color:#854d0e;">' + escHtml(it.title||'') + '</div>'
+        + '<div style="font-size:12px;color:#78350f;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escHtml(it.problem||'') + '</div>'
+        + '</div>';
+    }).join('');
+    el.onclick = function(e) {
+      var card = e.target.closest('[data-khid]');
+      if (card) openKnowhowDetail(card.dataset.khid);
+    };
+  }).catch(function(){});
 }
 </script>
+</body>
+</html>
