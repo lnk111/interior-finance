@@ -1482,7 +1482,8 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
     var tl = {revenue:'매출',cost:'매입',as:'AS'}[e.type]||e.type;
     return '<div class="entry-row">'
       +'<div class="entry-left">'
-        +'<div class="e-info"><span class="e-type '+e.type+'">'+tl+'</span>'+(e.process||'')+(e.process&&e.item?' · ':'')+(e.item||'')+'</div>'
+        +'<div class="e-info"><span class="e-type '+e.type+'">'+tl+'</span>'+(e.process||'')+'</div>'
+        +(e.memo?'<div style="font-size:11px;color:var(--muted);margin-top:2px;">📝 '+escHtml(e.memo)+'</div>':'')
         +(e.writer?'<div class="e-writer">👤 '+e.writer+'</div>':'')
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;">'
