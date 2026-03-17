@@ -407,9 +407,17 @@ option{background:#fff;}
 
 <!-- 앱 본체 -->
 <div id="app">
-
+  <!-- ⓪ 디자인포 홈 -->
+  <div class="page on" id="pg-designfor">
+    <div class="top-bar">
+      <div class="top-bar-title">🏠 디자인포</div>
+      <div id="conn2" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
+    </div>
+    <div id="df-site-status" style="margin-bottom:16px;"></div>
+    <div id="df-timelines"></div>
+  </div>
   <!-- ① 대시보드 -->
-  <div class="page on" id="pg-home">
+  <div class="page " id="pg-home">
     <div class="top-bar">
       <div class="top-bar-title">손익 현황</div>
       <div id="conn" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
@@ -663,6 +671,9 @@ option{background:#fff;}
 
 <!-- 네비 -->
 <nav class="nav">
+  <button class="nav-btn on" id="nb-designfor" onclick="goPage('designfor')">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>디자인포
+  </button>
   <button class="nav-btn on" id="nb-home" onclick="goPage('home')">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>손익 현황
   </button>
@@ -853,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (code === 'staff') {
       document.getElementById('nb-home').style.display = 'none';
       document.getElementById('nb-settings').style.display = 'none';
-      goPage('entry');
+      goPage('designfor');
     }
     // lock은 display:none(기본)이므로 아무 처리 불필요
   } else {
@@ -989,6 +1000,7 @@ function goPage(name) {
   document.getElementById('app').scrollTop = 0;
 
   if (name === 'home') renderDash();
+  if (name === 'designfor') renderDesignFor();
   if (name === 'entry') renderSiteSelector();
   if (name === 'sites') renderSites();
   if (name === 'settings') { loadFC(); updateFCTotal(); }
@@ -2673,6 +2685,119 @@ function renderKnowhowPinned() {
       if (card) openKnowhowDetail(card.dataset.khid);
     };
   }).catch(function(){});
+}
+// ═══════════════════════════════
+//  디자인포 홈 (직원용)
+// ═══════════════════════════════
+async function renderDesignFor() {
+  const statusEl = document.getElementById('df-site-status');
+  const tlEl     = document.getElementById('df-timelines');
+  if (!statusEl || !tlEl) return;
+
+  const activeSites = Object.values(siteCache).filter(s => s && s.status === 'active');
+  const S_COLOR = { consult:'#64748b', contract:'#3b82f6', active:'#16a34a', settle:'#ca8a04', balance:'#dc2626', done:'#475569', as:'#9333ea' };
+  const S_SHORT = { consult:'상담중', contract:'계약완료', active:'공사중', settle:'정산중', balance:'잔금대기', done:'마감', as:'AS' };
+
+  const counts = {};
+  Object.values(siteCache).filter(s=>s&&s.name).forEach(s => {
+    const st = s.status || 'consult';
+    counts[st] = (counts[st]||0) + 1;
+  });
+
+  let statusHtml = '<div class="card" style="margin-bottom:14px;">';
+  statusHtml += '<div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">📋 현재 현장 현황</div>';
+  statusHtml += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+  Object.entries(counts).forEach(([k,v]) => {
+    statusHtml += `<div style="background:var(--s2);border-radius:8px;padding:8px;text-align:center;">
+      <div style="font-size:10px;color:${S_COLOR[k]||'var(--muted)'};font-weight:700;margin-bottom:2px;">${S_SHORT[k]||k}</div>
+      <div style="font-size:18px;font-weight:800;">${v}</div>
+      <div style="font-size:10px;color:var(--muted);">개 현장</div>
+    </div>`;
+  });
+  statusHtml += '</div>';
+
+  if (activeSites.length) {
+    statusHtml += '<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">🔨 현재 공사중</div>';
+    activeSites.forEach(s => {
+      const ym = s.year && s.month ? s.year+'년 '+s.month+'월' : '';
+      statusHtml += `<div style="display:flex;justify-content:space-between;padding:8px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:4px;">
+        <div style="font-size:13px;font-weight:600;color:#15803d;">${escHtml(s.name)}</div>
+        <div style="font-size:11px;color:var(--muted);">${ym}</div>
+      </div>`;
+    });
+  }
+  statusHtml += '</div>';
+  statusEl.innerHTML = statusHtml;
+
+  if (!activeSites.length) {
+    tlEl.innerHTML = '<div class="empty"><div class="empty-ico">🏗️</div><div>현재 공사중인 현장이 없습니다</div></div>';
+    return;
+  }
+
+  tlEl.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🔨 현장별 공정 현황</div>';
+
+  for (const site of activeSites) {
+    const snap = await db.ref('procData/' + encKey(site.name)).once('value');
+    const raw  = snap.val() || {};
+    const phases = Object.values(raw).sort((a,b)=>(a.order??0)-(b.order??0));
+    const activePh = phases.find(ph => ph.status === 'active');
+
+    let tlHtml = '<div class="card" style="margin-bottom:14px;">';
+    tlHtml += `<div style="font-size:15px;font-weight:800;margin-bottom:12px;">📍 ${escHtml(site.name)}</div>`;
+
+    tlHtml += '<div class="timeline-wrap"><div class="timeline-row">';
+    phases.forEach((ph, i) => {
+      const status = ph.status || 'wait';
+      const icon   = getProcIcon(ph.name);
+      tlHtml += `<div style="display:flex;flex-direction:column;align-items:center;width:58px;flex-shrink:0;">
+        <div class="tl-circle ${status}">${status==='done'?'✓':icon}</div>
+        <div class="tl-label ${status}" style="font-size:9px;font-weight:700;margin-top:5px;text-align:center;">${ph.name}</div>
+      </div>`;
+      if (i < phases.length-1) {
+        const lc = status==='done'?'done':status==='active'?'half':'wait';
+        tlHtml += `<div class="tl-line ${lc}"></div>`;
+      }
+    });
+    tlHtml += '</div></div>';
+
+    if (activePh) {
+      const tasks = Object.values(activePh.tasks||{}).sort((a,b)=>(a.order??0)-(b.order??0));
+      const remaining = tasks.filter(t=>!t.isDone);
+      const doneCount = tasks.length - remaining.length;
+      const safePhId  = activePh.id.replace(/'/g,"\\'");
+      const safeSite  = site.name.replace(/'/g,"\\'");
+
+      tlHtml += `<div style="background:linear-gradient(135deg,#1a56db,#1e40af);border-radius:10px;padding:14px;margin-top:10px;">
+        <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:700;margin-bottom:4px;">📅 진행중 공정</div>
+        <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:8px;">${getProcIcon(activePh.name)} ${activePh.name}</div>
+        <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:#fff;margin-bottom:10px;">
+          ✅ ${doneCount}완료 · ⏳ ${remaining.length}개 남음
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          ${tasks.slice(0,6).map(t => `
+            <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="dfToggleTask('${safeSite}','${safePhId}','${t.id.replace(/'/g,"\\'")}',this)">
+              <div style="width:20px;height:20px;border-radius:5px;border:2px solid rgba(255,255,255,${t.isDone?'1':'.4'});background:${t.isDone?'#fff':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${t.isDone?'<span style="font-size:11px;font-weight:800;color:var(--accent);">✓</span>':''}
+              </div>
+              <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,${t.isDone?'.4':'1'});${t.isDone?'text-decoration:line-through;':''}">${escHtml(t.text)}</div>
+            </div>`).join('')}
+        </div>
+        ${tasks.length > 6 ? `<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:8px;">+${tasks.length-6}개 더</div>` : ''}
+      </div>`;
+    }
+
+    tlHtml += '</div>';
+    tlEl.innerHTML += tlHtml;
+  }
+}
+
+async function dfToggleTask(siteName, phId, taskId, el) {
+  const snap = await db.ref('procData/' + encKey(siteName) + '/' + phId + '/tasks/' + taskId + '/isDone').once('value');
+  const cur  = snap.val() || false;
+  const newVal = !cur;
+  await db.ref('procData/' + encKey(siteName) + '/' + phId + '/tasks/' + taskId + '/isDone').set(newVal);
+  toast(newVal ? '✅ 완료!' : '↩️ 되돌림');
+  renderDesignFor();
 }
 </script>
 </body>
