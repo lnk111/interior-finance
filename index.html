@@ -1506,10 +1506,27 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
         +'<button class="proc-edit-btn" onclick="openProcEdit()">⚙️ 공정 수정</button>'
       +'</div>'
       +buildTimelineHtml()
+      +'<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">'
+        +'<button onclick="toggleAllPanels()" id="toggle-all-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Pretendard,sans-serif;">📂 전체 펼치기</button>'
+      +'</div>'
       +'<div id="step-panels">'+buildAllPanelsHtml()+'</div>'
     +'</div>'
     +'<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">상세 내역 ('+sEntries.length+'건)</div>'
     +entryRows;
+  +entryRows;
+
+  // 타임라인 진행중 공정 센터 스크롤
+  setTimeout(() => {
+    const tlWrap = document.querySelector('#detail-modal .timeline-wrap');
+    const activeNode = document.querySelector('#detail-modal .tl-circle.active');
+    if (tlWrap && activeNode) {
+      const wrapCenter = tlWrap.offsetWidth / 2;
+      const nodeLeft   = activeNode.parentElement.offsetLeft;
+      const nodeWidth  = activeNode.parentElement.offsetWidth;
+      tlWrap.scrollLeft = nodeLeft - wrapCenter + nodeWidth / 2;
+    }
+  }, 150);
+}
 }
 
 function renderDetailModal(site, rev, cost, asAmt, profit, s) {
@@ -1564,7 +1581,9 @@ function buildStepPanelHtml(ph) {
   const tasks  = tasksToArr(ph.tasks);
   const done   = tasks.filter(t=>t.isDone).length;
   const total  = tasks.length;
-  const isOpen = _openPhId === ph.id;
+  // 진행중만 기본 열림, 완료/대기는 기본 닫힘
+  const isOpen = status === 'active';
+  if (isOpen) _openPhId = ph.id;
   const sLbl   = { wait:'대기', active:'진행중', done:'완료' }[status];
   const sColor = { wait:'var(--dim)', active:'var(--accent)', done:'var(--green)' }[status];
   const safeId = ph.id.replace(/'/g,"\\'");
@@ -1660,6 +1679,26 @@ function toggleStepPanel(phId) {
     const arrow = wrap.querySelector('.spanel-arrow');
     if (arrow) arrow.textContent = isOpen ? '▲' : '▼';
   });
+}
+function toggleAllPanels() {
+  const btn = document.getElementById('toggle-all-btn');
+  const allPanels = document.querySelectorAll('.task-panel');
+  const anyOpen = Array.from(allPanels).some(p => p.classList.contains('open'));
+
+  allPanels.forEach(panel => {
+    panel.classList.toggle('open', !anyOpen);
+  });
+  document.querySelectorAll('.spanel-arrow').forEach(arrow => {
+    arrow.textContent = anyOpen ? '▼' : '▲';
+  });
+  if (btn) btn.textContent = anyOpen ? '📂 전체 펼치기' : '📁 전체 접기';
+
+  if (anyOpen) {
+    _openPhId = '';
+  } else {
+    const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
+    _openPhId = phases[phases.length-1]?.id || '';
+  }
 }
 
 // ═══════════════════════════════
