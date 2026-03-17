@@ -2736,8 +2736,14 @@ async function renderDesignFor() {
 
   tlEl.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🔨 현장별 공정 현황</div>';
 
-  for (const site of activeSites) {
-    const snap = await db.ref('procData/' + encKey(site.name)).once('value');
+ // 모든 현장 동시에 읽기 (병렬)
+  const snaps = await Promise.all(
+    activeSites.map(site => db.ref('procData/' + encKey(site.name)).once('value'))
+  );
+
+  for (let i = 0; i < activeSites.length; i++) {
+    const site = activeSites[i];
+    const snap = snaps[i];
     const raw  = snap.val() || {};
     const phases = Object.values(raw).sort((a,b)=>(a.order??0)-(b.order??0));
     const activePh = phases.find(ph => ph.status === 'active');
