@@ -2752,11 +2752,13 @@ async function renderDesignFor() {
     let tlHtml = '<div class="card" style="margin-bottom:14px;">';
     tlHtml += `<div style="font-size:15px;font-weight:800;margin-bottom:12px;">📍 ${escHtml(site.name)}</div>`;
 
-    tlHtml += '<div class="timeline-wrap"><div class="timeline-row">';
+    const siteKeyHtml = encKey(site.name);
+    tlHtml += `<div class="timeline-wrap" id="tlwrap-${siteKeyHtml}"><div class="timeline-row">`;
     phases.forEach((ph, i) => {
       const status = ph.status || 'wait';
       const icon   = getProcIcon(ph.name);
-      tlHtml += `<div style="display:flex;flex-direction:column;align-items:center;width:58px;flex-shrink:0;">
+      const activeId = status === 'active' ? `id="tlnode-active-${siteKeyHtml}"` : '';
+      tlHtml += `<div ${activeId} style="display:flex;flex-direction:column;align-items:center;width:58px;flex-shrink:0;">
         <div class="tl-circle ${status}">${status==='done'?'✓':icon}</div>
         <div class="tl-label ${status}" style="font-size:9px;font-weight:700;margin-top:5px;text-align:center;">${ph.name}</div>
       </div>`;
@@ -2766,6 +2768,19 @@ async function renderDesignFor() {
       }
     });
     tlHtml += '</div></div>';
+
+    // 진행중 공정 자동 스크롤 (렌더 후 실행)
+    const siteKey = encKey(site.name);
+    setTimeout(() => {
+      const tlWrap = document.getElementById('tlwrap-' + siteKey);
+      const activeNode = document.getElementById('tlnode-active-' + siteKey);
+      if (tlWrap && activeNode) {
+        const wrapCenter = tlWrap.offsetWidth / 2;
+        const nodeLeft   = activeNode.offsetLeft;
+        const nodeWidth  = activeNode.offsetWidth;
+        tlWrap.scrollLeft = nodeLeft - wrapCenter + nodeWidth / 2;
+      }
+    }, 100);
 
     if (activePh) {
       const tasks = Object.values(activePh.tasks||{}).sort((a,b)=>(a.order??0)-(b.order??0));
