@@ -1612,7 +1612,6 @@ function buildAllPanelsHtml() {
     .map(ph => buildStepPanelHtml(ph)).join('');
 }
 
-function buildStepPanelHtml(ph) {
   function buildStepPanelHtml(ph) {
   const status = ph.status || 'wait';
   const tasks  = tasksToArr(ph.tasks);
@@ -1670,7 +1669,7 @@ function buildStepPanelHtml(ph) {
     </div>
   </div>`;
 }
-}
+
 
 function buildTaskRowHtml(phId, t) {
   const cbCls  = t.isDone ? ' done' : '';
