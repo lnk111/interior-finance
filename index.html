@@ -1507,9 +1507,9 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
       +'</div>'
       +buildTimelineHtml()
       +'<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">'
-        +'<button onclick="toggleProcList()" id="toggle-proc-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Pretendard,sans-serif;">📁 공정 접기</button>'
+        +'<button onclick="toggleProcList()" id="toggle-proc-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Pretendard,sans-serif;">📂 공정 펼치기</button>'
       +'</div>'
-      +'<div id="step-panels">'+buildAllPanelsHtml()+'</div>'
+      +'<div id="step-panels" style="display:none;">'+buildAllPanelsHtml()+'</div>'
     +'</div>'
     +'<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">상세 내역 ('+sEntries.length+'건)</div>'
     +entryRows;
