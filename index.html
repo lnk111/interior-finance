@@ -1613,23 +1613,45 @@ function buildAllPanelsHtml() {
 }
 
 function buildStepPanelHtml(ph) {
+  function buildStepPanelHtml(ph) {
   const status = ph.status || 'wait';
   const tasks  = tasksToArr(ph.tasks);
   const done   = tasks.filter(t=>t.isDone).length;
   const total  = tasks.length;
-  // 진행중만 기본 열림, 완료/대기는 기본 닫힘
   const isOpen = status === 'active';
   if (isOpen) _openPhId = ph.id;
-  const sLbl   = { wait:'대기', active:'진행중', done:'완료' }[status];
-  const sColor = { wait:'var(--dim)', active:'var(--accent)', done:'var(--green)' }[status];
   const safeId = ph.id.replace(/'/g,"\\'");
 
-  return `<div class="step-panel-wrap" id="spw-${ph.id}">
-    <div class="step-panel-hdr" onclick="toggleStepPanel('${safeId}')">
+  // 상태별 시각적 차별화
+  const styleMap = {
+    active: {
+      bg:     'background:linear-gradient(135deg,rgba(26,86,219,.08),rgba(26,86,219,.04));border:1.5px solid var(--accent);',
+      label:  '진행중',
+      lColor: 'var(--accent)',
+      opacity: '1'
+    },
+    done: {
+      bg:     'background:var(--s2);border:1px solid var(--border);',
+      label:  '완료',
+      lColor: 'var(--green)',
+      opacity: '0.5'
+    },
+    wait: {
+      bg:     'background:#fff;border:1px solid var(--border);',
+      label:  '대기',
+      lColor: 'var(--dim)',
+      opacity: '1'
+    }
+  };
+  const st = styleMap[status] || styleMap.wait;
+
+  return `<div class="step-panel-wrap" id="spw-${ph.id}" style="opacity:${st.opacity};margin-bottom:6px;border-radius:10px;overflow:hidden;${st.bg}">
+    <div class="step-panel-hdr" onclick="toggleStepPanel('${safeId}')" style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:16px;">${getProcIcon(ph.name)}</span>
-        <span style="font-size:13px;font-weight:700;">${ph.name}</span>
-        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${sColor}1a;color:${sColor};">${sLbl}</span>
+        <span style="font-size:13px;font-weight:${status==='active'?'800':'600'};color:${status==='active'?'var(--accent)':'var(--text)'};">${ph.name}</span>
+        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${st.lColor}1a;color:${st.lColor};">${st.label}</span>
+        ${status==='active' ? '<span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 7px;border-radius:10px;font-weight:700;animation:blink 1.5s infinite;">진행중</span>' : ''}
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="spanel-count" style="font-size:11px;color:var(--muted);">${done}/${total}</span>
@@ -1647,6 +1669,7 @@ function buildStepPanelHtml(ph) {
       </div>
     </div>
   </div>`;
+}
 }
 
 function buildTaskRowHtml(phId, t) {
