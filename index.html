@@ -529,268 +529,6 @@ option{background:#fff;}
   </button>
 </nav>
 
-<body>
-<div id="lock" style="display:none;">
-  <div class="lock-box">
-    <div class="lock-icon">🔒</div>
-    <div class="lock-title">접근 제한</div>
-    <div class="lock-sub">올바른 링크로 접속해주세요.<br>담당자에게 문의하세요.</div>
-  </div>
-</div>
-<div id="toast"></div>
-<div id="app">
-
-  <!-- 디자인포 홈 -->
-  <div class="page on" id="pg-designfor">
-    <div class="top-bar">
-      <div class="top-bar-title">🏠 디자인포</div>
-      <div id="conn2" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
-    </div>
-    <div id="df-site-status" style="margin-bottom:16px;"></div>
-    <div id="df-timelines"></div>
-  </div>
-
-  <!-- 손익 현황 -->
-  <div class="page" id="pg-home">
-    <div class="top-bar">
-      <div class="top-bar-title">손익 현황</div>
-      <div id="conn" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
-    </div>
-    <div class="gf-bar">
-      <select class="gf-sel" id="g-year" onchange="renderDash()"><option value="">전체 연도</option></select>
-      <select class="gf-sel" id="g-month" onchange="renderDash()">
-        <option value="">전체 월</option>
-        <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
-        <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
-        <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
-        <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
-      </select>
-    </div>
-    <div class="kpi-grid">
-      <div class="kpi c-green"><div class="kpi-label">총 매출</div><div class="kpi-val" id="k-rev">-</div><div class="kpi-sub" id="k-rev-cnt">고객에게 받은 금액</div></div>
-      <div class="kpi c-red"><div class="kpi-label">총 매입</div><div class="kpi-val" id="k-cost">-</div><div class="kpi-sub" id="k-cost-cnt">업체에 지급한 금액</div></div>
-    </div>
-    <div class="kpi c-blue" style="margin-bottom:10px;"><div class="kpi-label">현장 순이익</div><div class="kpi-val" id="k-profit" style="font-size:24px;">-</div><div class="kpi-sub">매출 − 매입 − AS비용</div></div>
-    <div class="op-card"><div class="op-label">🏢 최종 영업이익</div><div class="op-val" id="k-op">-</div><div class="op-eq">순이익 − 고정비(임대료·급여 등) − 부가세</div></div>
-    <div class="card" style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleDashDetail()">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);">상세 지표</div>
-        <div id="dash-detail-arrow" style="font-size:11px;color:var(--dim);">▼ 펼치기</div>
-      </div>
-      <div id="dash-detail" style="display:none;margin-top:12px;">
-        <div class="kpi-grid" style="margin-bottom:0;">
-          <div class="kpi c-orange" style="margin-bottom:0;"><div class="kpi-label">고정비</div><div class="kpi-val" id="k-fixed" style="font-size:16px;">-</div></div>
-          <div class="kpi c-purple" style="margin-bottom:0;"><div class="kpi-label">부가세 예정</div><div class="kpi-val" id="k-tax" style="font-size:16px;">-</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="card margin-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <div style="font-size:12px;color:var(--muted);font-weight:600;">이익률</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:10px;color:var(--muted);background:var(--s3);padding:2px 7px;border-radius:4px;">목표 25%</span>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;" id="k-margin">-</div>
-        </div>
-      </div>
-      <div style="margin-bottom:8px;padding-top:14px;">
-        <div class="progress-wrap"><div class="progress-bar" id="k-bar" style="width:0;background:var(--green);"></div><div class="goal-marker" style="left:25%;"></div></div>
-      </div>
-      <div id="k-margin-msg" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
-    </div>
-    <div class="card" style="margin-bottom:10px;"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">📋 현재 현장 현황</div><div id="dash-site-status"></div></div>
-    <div class="card"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🏆 현장 순이익 TOP 3</div><div id="top3"></div></div>
-  </div>
-
-  <!-- 거래 입력 -->
-  <div class="page" id="pg-entry">
-    <div class="top-bar"><div class="top-bar-title">거래 입력</div></div>
-
-    <!-- ★ 빠른 업로드 섹션 ★ -->
-    <div class="card" style="margin-bottom:12px;">
-      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px;">⚡ 빠른 기록</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">이체 화면 사진만 찍어도 기록이 남아요</div>
-      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-        <div style="font-size:11px;color:#15803d;font-weight:700;margin-bottom:2px;">자동 설정</div>
-        <div style="font-size:13px;font-weight:700;color:#15803d;" id="qu-site-display">현장을 선택해주세요</div>
-        <div style="font-size:11px;color:#166534;margin-top:1px;" id="qu-meta-display">오늘</div>
-      </div>
-      <div id="qu-upload-area" class="qu-upload-area" onclick="document.getElementById('qu-file-input').click()">
-        <div style="font-size:48px;margin-bottom:10px;">📷</div>
-        <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;">이체 화면 업로드</div>
-        <div style="font-size:13px;color:var(--muted);">카메라 또는 갤러리에서 선택</div>
-      </div>
-      <input type="file" id="qu-file-input" accept="image/*" capture="environment" style="display:none" onchange="quHandleFile(event)">
-      <div id="qu-preview" style="display:none;margin-bottom:12px;">
-        <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
-          <img id="qu-preview-img" style="width:100%;max-height:200px;object-fit:cover;display:block;">
-          <button onclick="quRemoveFile()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;">✕</button>
-        </div>
-        <div style="font-size:12px;color:var(--green);margin-top:6px;text-align:center;font-weight:700;">✅ 이미지 업로드 완료</div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div class="f-label">현장 선택</div>
-        <input class="f-input" id="qu-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="quShowSiteTags()" style="margin-bottom:6px;cursor:pointer;">
-        <div class="tag-wrap" id="qu-tags-site" style="display:none;margin-bottom:0;"></div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div class="f-label">메모 (선택)</div>
-        <input class="f-input" id="qu-memo" placeholder="간단히 메모..." style="margin-bottom:0;">
-      </div>
-      <button class="qu-save-btn" id="qu-save-btn" onclick="quSave()" disabled>⚡ 임시 저장</button>
-      <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--dim);">금액·공정은 나중에 입력해도 됩니다</div>
-    </div>
-
-    <!-- 구분선 -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-      <div style="font-size:11px;color:var(--muted);font-weight:600;">상세 직접 입력</div>
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-    </div>
-
-    <!-- 기존 상세 입력 -->
-    <div class="type-row">
-      <button class="type-btn t-cost" id="bt-cost" onclick="setType('cost')">📦 매입</button>
-      <button class="type-btn" id="bt-revenue" onclick="setType('revenue')">💰 매출</button>
-      <button class="type-btn" id="bt-as" onclick="setType('as')">🔧 AS</button>
-    </div>
-    <div class="f-label">현장 *</div>
-    <input class="f-input" id="f-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="showSiteTags()" style="cursor:pointer;">
-    <input type="hidden" id="f-site" value="">
-    <div class="tag-wrap" id="tags-site" style="display:none;"></div>
-    <div class="f-label">금액 (원) *</div>
-    <input class="f-input" id="f-amount" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateAmountDisplay()">
-    <div id="amount-display" style="font-size:12px;color:var(--accent);font-weight:700;text-align:right;min-height:18px;margin-bottom:8px;"></div>
-    <div class="f-label">날짜</div>
-    <input class="f-input" id="f-date" type="date">
-    <div class="f-label">공정</div>
-    <input class="f-input" id="f-process" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('process')" style="cursor:pointer;">
-    <div class="tag-wrap" id="tags-process" style="display:none;">
-      <div class="tag" onclick="pickTag('process','철거')">철거</div>
-      <div class="tag" onclick="pickTag('process','창호')">창호</div>
-      <div class="tag" onclick="pickTag('process','전기')">전기</div>
-      <div class="tag" onclick="pickTag('process','욕실방수')">욕실방수</div>
-      <div class="tag" onclick="pickTag('process','목공')">목공</div>
-      <div class="tag" onclick="pickTag('process','타일')">타일</div>
-      <div class="tag" onclick="pickTag('process','필름')">필름</div>
-      <div class="tag" onclick="pickTag('process','욕실설비')">욕실설비</div>
-      <div class="tag" onclick="pickTag('process','바닥')">바닥</div>
-      <div class="tag" onclick="pickTag('process','도배')">도배</div>
-      <div class="tag" onclick="pickTag('process','가구')">가구</div>
-      <div class="tag" onclick="pickTag('process','조명마감')">조명마감</div>
-      <div class="tag" onclick="pickTag('process','중문')">중문</div>
-      <div class="tag" onclick="pickTag('process','실리콘')">실리콘</div>
-      <div class="tag" onclick="pickTag('process','잔마감')">잔마감</div>
-      <div class="tag" onclick="pickCustom('process')">✏️ 직접</div>
-    </div>
-    <div class="f-label">메모</div>
-    <textarea class="f-input" id="f-memo" placeholder="자유롭게 입력하세요" rows="2" style="resize:none;line-height:1.5;font-family:inherit;"></textarea>
-    <div class="f-label">입력자</div>
-    <input class="f-input" id="f-writer" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('writer')" style="cursor:pointer;">
-    <div class="tag-wrap" id="tags-writer" style="display:none;">
-      <div class="tag" onclick="pickTag('writer','김실장')">김실장</div>
-      <div class="tag" onclick="pickTag('writer','이남경팀장')">이남경팀장</div>
-      <div class="tag" onclick="pickTag('writer','김덕수대리')">김덕수대리</div>
-      <div class="tag" onclick="pickCustom('writer')">✏️ 직접</div>
-    </div>
-    <button class="submit-btn" id="f-submit" onclick="addEntry()">+ 입력 완료</button>
-    <div style="margin-top:16px;">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">📌 최근 입력 내역</div>
-      <div id="entry-recent"></div>
-    </div>
-  </div>
-
-  <!-- ★ 미정리 내역 탭 ★ -->
-  <div class="page" id="pg-pending">
-    <div class="top-bar"><div class="top-bar-title">미정리 내역</div></div>
-    <div id="pending-body"></div>
-  </div>
-
-  <!-- 현장 관리 -->
-  <div class="page" id="pg-sites">
-    <div class="top-bar">
-      <div class="top-bar-title">현장 관리</div>
-      <button onclick="openSiteModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;">+ 등록</button>
-    </div>
-    <div class="filter-tabs">
-      <div class="ftab on" onclick="setSiteFilter('all',this)">전체</div>
-      <div class="ftab" onclick="setSiteFilter('consult',this)">상담중</div>
-      <div class="ftab" onclick="setSiteFilter('contract',this)">계약완료</div>
-      <div class="ftab" onclick="setSiteFilter('active',this)">공사중</div>
-      <div class="ftab" onclick="setSiteFilter('settle',this)">정산중</div>
-      <div class="ftab" onclick="setSiteFilter('balance',this)">잔금대기</div>
-      <div class="ftab" onclick="setSiteFilter('done',this)">마감</div>
-      <div class="ftab" onclick="setSiteFilter('as',this)">AS관리</div>
-    </div>
-    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-input" id="site-search" placeholder="현장명 검색" oninput="renderSites()"></div>
-    <div id="sites-body"></div>
-  </div>
-
-  <!-- 노하우 -->
-  <div class="page" id="pg-knowhow">
-    <div class="top-bar">
-      <div class="top-bar-title">💡 현장 노하우</div>
-      <button onclick="openKnowhowWrite()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;">+ 기록</button>
-    </div>
-    <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-input" id="kh-search" placeholder="제목·내용으로 검색" oninput="renderKnowhow()"></div>
-    <div id="kh-pinned-wrap" style="display:none;margin-bottom:14px;"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;">📌 주의사항 (핀 고정)</div><div id="kh-pinned"></div></div>
-    <div class="filter-tabs" style="margin-bottom:14px;">
-      <div class="ftab on" onclick="setKhFilter('all',this)">전체</div>
-      <div class="ftab" onclick="setKhFilter('mistake',this)">😓 실수</div>
-      <div class="ftab" onclick="setKhFilter('tip',this)">💡 팁</div>
-      <div class="ftab" onclick="setKhFilter('material',this)">🔩 자재</div>
-      <div class="ftab" onclick="setKhFilter('client',this)">🤝 고객</div>
-    </div>
-    <div id="kh-body"></div>
-  </div>
-
-  <!-- 설정 -->
-  <div class="page" id="pg-settings">
-    <div class="top-bar"><div class="top-bar-title">설정</div></div>
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;">📌 월 고정비</div></div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <select class="gf-sel" id="fc-year" onchange="loadFC()" style="flex:1;"><option value="">연도</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
-        <select class="gf-sel" id="fc-month" onchange="loadFC()" style="flex:1;"><option value="">월</option><option value="01">1월</option><option value="02">2월</option><option value="03">3월</option><option value="04">4월</option><option value="05">5월</option><option value="06">6월</option><option value="07">7월</option><option value="08">8월</option><option value="09">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option></select>
-      </div>
-      <div class="fc-item"><div class="fc-ico">👥</div><div class="fc-lbl">직원급여</div><input class="fc-inp" id="fc-salary" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateFCTotal()"></div>
-      <div class="fc-item"><div class="fc-ico">🏢</div><div class="fc-lbl">임대료</div><input class="fc-inp" id="fc-rent" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateFCTotal()"></div>
-      <div class="fc-item"><div class="fc-ico">📣</div><div class="fc-lbl">마케팅비</div><input class="fc-inp" id="fc-marketing" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateFCTotal()"></div>
-      <div class="fc-item"><div class="fc-ico">⚙️</div><div class="fc-lbl">관리비</div><input class="fc-inp" id="fc-mgmt" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateFCTotal()"></div>
-      <div class="fc-item"><div class="fc-ico">💳</div><div class="fc-lbl">카드비</div><input class="fc-inp" id="fc-card" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateFCTotal()"></div>
-      <div class="fc-item"><div class="fc-ico">📦</div><div class="fc-lbl">기타</div><input class="fc-inp" id="fc-etc" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateFCTotal()"></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);margin-top:4px;"><div style="font-size:13px;color:var(--muted);">합계</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--red);" id="fc-total">0원</div></div>
-      <button onclick="saveFC()" style="margin-top:12px;width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:10px;padding:12px;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">💾 저장</button>
-    </div>
-    <div class="card"><div style="font-size:15px;font-weight:800;margin-bottom:12px;">📥 데이터 내보내기</div><button onclick="downloadCSV()" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:13px;color:var(--text);font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">현장별 손익 CSV 다운로드</button></div>
-  </div>
-</div>
-
-<!-- 네비게이션 -->
-<nav class="nav">
-  <button class="nav-btn on" id="nb-designfor" onclick="goPage('designfor')">
-    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>디자인포
-  </button>
-  <button class="nav-btn" id="nb-home" onclick="goPage('home')">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>손익
-  </button>
-  <button class="nav-btn" id="nb-entry" onclick="goPage('entry')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>입력
-  </button>
-  <button class="nav-btn" id="nb-pending" onclick="goPage('pending')">
-    <div class="nav-badge" id="pending-badge" style="display:none;">0</div>
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>미정리
-  </button>
-  <button class="nav-btn" id="nb-sites" onclick="goPage('sites')">
-    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>현장
-  </button>
-  <button class="nav-btn" id="nb-knowhow" onclick="goPage('knowhow')">
-    <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 3-1.5 5-4 6.5V18a1 1 0 01-1 1H10a1 1 0 01-1-1v-2.5C6.5 14 5 12 5 9a7 7 0 017-7z"/><line x1="10" y1="22" x2="14" y2="22"/></svg>노하우
-  </button>
-  <button class="nav-btn" id="nb-settings" onclick="goPage('settings')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>설정
-  </button>
-</nav>
-
 <script>
 // ═══════════════════════════════
 //  Firebase 설정
@@ -851,7 +589,6 @@ function initAuth(){
     _role = code;
     localStorage.setItem('df_role', code);
     document.getElementById('lock').style.display='none';
-    // URL writer 파라미터로 입력자 자동 세팅
     const w = p.get('writer');
     if(w){ document.getElementById('f-writer').value=w; }
     initApp();
@@ -861,14 +598,11 @@ function initAuth(){
 }
 
 function initApp(){
-  // boss 전용 탭 처리
   if(_role==='staff'){
     document.getElementById('nb-home').style.display='none';
     document.getElementById('nb-settings').style.display='none';
   }
-  // 날짜 기본값
   document.getElementById('f-date').value = today();
-  // 연도 옵션 채우기
   const yr = new Date().getFullYear();
   const ysel = document.getElementById('g-year');
   for(let y=yr-1;y<=yr+1;y++){
@@ -877,7 +611,6 @@ function initApp(){
     ysel.appendChild(o);
   }
   ysel.value = yr;
-  // Firebase 연결
   db.ref('.info/connected').on('value', snap=>{
     const ok = snap.val();
     ['conn','conn2'].forEach(id=>{
@@ -887,7 +620,6 @@ function initApp(){
       el.innerHTML=`<div class="conn-dot ${ok?'':'blink'}"></div><span>${ok?'연결됨':'오프라인'}</span>`;
     });
   });
-  // 데이터 구독
   db.ref('sites').on('value', snap=>{ _sites=snap.val()||{}; renderSites(); renderDash(); renderDesignFor(); updateSiteTags(); updatePendingBadge(); });
   db.ref('entries').on('value', snap=>{ _entries=snap.val()||{}; renderDash(); renderRecentEntries(); });
   db.ref('pending').on('value', snap=>{ _pending=snap.val()||{}; renderPending(); updatePendingBadge(); });
@@ -925,7 +657,6 @@ function renderDash(){
     else if(e.type==='cost') cost+=e.amount||0;
     else if(e.type==='as') as+=e.amount||0;
   });
-  // 미정리 중 완료된 항목도 포함
   Object.values(_pending).forEach(p=>{
     if(p.status!=='done') return;
     if(yr && !p.date?.startsWith(yr)) return;
@@ -938,7 +669,6 @@ function renderDash(){
   });
   const profit = rev-cost-as;
   const margin = rev>0 ? (profit/rev*100) : 0;
-  // 고정비
   const ym = yr&&mo ? yr+'-'+mo : '';
   let fixed=0;
   if(ym){
@@ -967,11 +697,10 @@ function renderDash(){
   bar.style.width=Math.min(margin,100)+'%';
   bar.style.background=margin>=25?'var(--green)':margin>=15?'var(--orange)':'var(--red)';
   document.getElementById('k-margin-msg').textContent=margin>=25?'✅ 목표 달성!':margin>=15?`⚠️ 목표까지 ${(25-margin).toFixed(1)}% 남았어요`:`🚨 목표 대비 ${(25-margin).toFixed(1)}% 부족`;
-  // 현장 현황
   const statusCnt={};
   Object.values(_sites).forEach(s=>{ statusCnt[s.status]=(statusCnt[s.status]||0)+1; });
   document.getElementById('dash-site-status').innerHTML=Object.entries(statusCnt).map(([s,c])=>`<span class="badge b-${s}" style="margin-right:6px;margin-bottom:4px;">${STATUS_LABEL[s]||s} ${c}</span>`).join('');
-  // TOP3
+  // TOP3 - 버그 수정: r1 뒤에 잘못 들어간 ! 제거
   const siteProfits=[];
   Object.values(_sites).forEach(site=>{
     let sr=0,sc=0,sa=0;
@@ -982,7 +711,7 @@ function renderDash(){
   const max=siteProfits[0]?.profit||1;
   document.getElementById('top3').innerHTML=siteProfits.slice(0,3).map((s,i)=>`
     <div class="top3-item">
-      <div class="top3-rank ${i===0?'r1'!:''}">${i===0?'🥇':i===1?'🥈':'🥉'}</div>
+      <div class="top3-rank ${i===0?'r1':''}">${i===0?'🥇':i===1?'🥈':'🥉'}</div>
       <div style="flex:1;min-width:0;">
         <div class="top3-name">${s.name}</div>
         <div class="bar-wrap"><div class="bar-inner" style="width:${Math.max(0,s.profit/max*100)}%;background:${s.profit>=0?'var(--green)':'var(--red)'};"></div></div>
@@ -1004,10 +733,8 @@ function toggleDashDetail(){
 // ═══════════════════════════════
 function updateSiteTags(){
   const names = Object.values(_sites).map(s=>s.name);
-  // 상세 입력용
   const tw = document.getElementById('tags-site');
   if(tw) tw.innerHTML = names.map(n=>`<div class="tag" onclick="pickSite('${n.replace(/'/g,"\\'")}','detail')">${n}</div>`).join('');
-  // 빠른 업로드용
   const qu = document.getElementById('qu-tags-site');
   if(qu) qu.innerHTML = names.map(n=>`<div class="tag" onclick="pickSite('${n.replace(/'/g,"\\'")}','quick')">${n}</div>`).join('');
 }
@@ -1042,10 +769,6 @@ function setType(t){
     const btn=document.getElementById('bt-'+tp);
     btn.className='type-btn'+(tp===t?' t-'+tp:'');
   });
-  const labels={cost:'📦 매입 입력 중',revenue:'💰 매출 입력 중',as:'🔧 AS 입력 중'};
-  const colors={cost:'var(--red)',revenue:'var(--green)',as:'var(--orange)'};
-  const lbl=document.getElementById('type-selected-label');
-  if(lbl){ lbl.textContent=labels[t]; lbl.style.color=colors[t]; }
 }
 
 function showTags(field){
@@ -1215,7 +938,6 @@ function renderPending(){
   }
 
   let html='';
-  // 요약 카드
   if(pending.length>0){
     html+=`<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:14px;padding:16px;margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1234,7 +956,6 @@ function renderPending(){
     }
   }
 
-  // 미정리 목록
   pending.forEach(([k,p])=>{
     const isOverdue=(now-p.createdAt)>86400000;
     const elapsed=getElapsed(p.createdAt);
@@ -1260,7 +981,6 @@ function renderPending(){
     </div>`;
   });
 
-  // 완료 목록
   if(done.length>0){
     html+=`<div style="font-size:11px;font-weight:700;color:var(--muted);margin:16px 0 8px;letter-spacing:.4px;">✅ 완료된 내역</div>`;
     done.slice(0,5).forEach(([k,p])=>{
@@ -1302,11 +1022,9 @@ function openPendingDetail(key){
   const p=_pending[key];
   if(!p) return;
   _pendingAllocations=p.allocations?.length ? [...p.allocations.map(a=>({...a}))] : [{site:p.site||'',amount:''}];
-  // 상태 뱃지
   const badge=document.getElementById('pdm-status-badge');
   badge.className='p-status '+(p.status==='done'?'done':p.status==='progress'?'progress':'temp');
   badge.textContent=p.status==='done'?'완료':p.status==='progress'?'정리중':'임시저장';
-  // 바디 렌더
   renderPendingDetailBody(p);
   document.getElementById('pending-detail-modal').classList.add('on');
 }
@@ -1315,14 +1033,12 @@ function renderPendingDetailBody(p){
   const el=document.getElementById('pdm-body');
   const siteOptions=Object.values(_sites).map(s=>`<option value="${s.name}" ${(p.site===s.name)?'selected':''}>${s.name}</option>`).join('');
   el.innerHTML=`
-    <!-- 이미지 -->
     ${p.imageBase64?`
     <div style="border-radius:12px;overflow:hidden;margin-bottom:14px;cursor:pointer;" onclick="showFullImg('${p.imageBase64}')">
       <img src="${p.imageBase64}" style="width:100%;max-height:220px;object-fit:cover;display:block;">
       <div style="text-align:center;font-size:11px;color:var(--muted);padding:6px;background:var(--s2);">탭하면 전체화면</div>
     </div>`:`<div style="background:var(--s3);border-radius:12px;height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:32px;">📄</div>`}
 
-    <!-- 유형 -->
     <div class="f-label">유형</div>
     <div class="type-row" style="margin-bottom:14px;">
       <button id="pdm-cost" onclick="setPdmType('cost')" class="type-btn ${(!p.type||p.type==='cost')?'t-cost':''}">📦 매입</button>
@@ -1330,23 +1046,18 @@ function renderPendingDetailBody(p){
       <button id="pdm-as" onclick="setPdmType('as')" class="type-btn ${p.type==='as'?'t-as':''}">🔧 AS</button>
     </div>
 
-    <!-- 총 이체 금액 -->
     <div class="f-label">총 이체 금액</div>
     <input class="f-input" id="pdm-total" type="number" inputmode="numeric" value="${p.totalAmount||''}" placeholder="총 이체 금액" oninput="pdmRecalc()">
 
-    <!-- 거래처 -->
     <div class="f-label">거래처</div>
     <input class="f-input" id="pdm-vendor" type="text" value="${p.vendor||''}" placeholder="예) OO타일, OO목공">
 
-    <!-- 공정 -->
     <div class="f-label">공정</div>
     <input class="f-input" id="pdm-process" type="text" value="${p.process||''}" placeholder="예) 타일, 목공">
 
-    <!-- 메모 -->
     <div class="f-label">메모</div>
     <input class="f-input" id="pdm-memo" type="text" value="${p.memo||''}" placeholder="메모">
 
-    <!-- 현장 분할 -->
     <div class="card" style="margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div style="font-size:14px;font-weight:800;">현장별 금액 배정</div>
@@ -1365,7 +1076,6 @@ function renderPendingDetailBody(p){
       <div id="pdm-match-status" class="match-neutral">배정 금액을 입력해주세요</div>
     </div>
 
-    <!-- 버튼 -->
     <button class="submit-btn" id="pdm-complete-btn" onclick="pdmComplete()" disabled>✅ 완료 처리</button>
     <button onclick="pdmSaveDraft()" style="width:100%;padding:13px;background:none;border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;font-family:'Pretendard',sans-serif;">💾 임시 저장 후 나가기</button>
     ${_pendingEditKey&&_pending[_pendingEditKey]?.status!=='done'?`<button onclick="pdmDelete()" style="width:100%;padding:13px;background:none;border:1px solid #fee2e2;border-radius:var(--r);color:var(--red);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;font-family:'Pretendard',sans-serif;">🗑️ 삭제</button>`:''}
@@ -1452,7 +1162,6 @@ async function pdmComplete(){
     allocations:_pendingAllocations.filter(a=>a.site&&a.amount),
     completedAt:Date.now()
   };
-  // entries에도 현장별로 저장
   const batch=[];
   _pendingAllocations.filter(a=>a.site&&a.amount).forEach(a=>{
     batch.push(db.ref('entries').push({
@@ -1500,9 +1209,7 @@ function showFullImg(src){
   overlay.onclick=()=>overlay.remove();
   document.body.appendChild(overlay);
 }
-</script>
 
-<script>
 // ═══════════════════════════════
 //  현장 관리
 // ═══════════════════════════════
@@ -1608,7 +1315,6 @@ async function _finishDetailRender(key){
     }
   });
   const profit=rev-cost-as;
-  // 공정 데이터 로드
   const snap=await db.ref('procData/'+encKey(s.name)).once('value');
   const procRaw=snap.val()||{};
   _phCache={};
@@ -1628,7 +1334,6 @@ async function _finishDetailRender(key){
   const activePh=phases.find(p=>p.status==='active');
   const pct=totalCount>0?Math.round(doneCount/totalCount*100):0;
 
-  // 타임라인 HTML
   const tlHtml=phases.map((ph,i)=>{
     const next=phases[i+1];
     const lineClass=ph.status==='done'?'done':ph.status==='active'?'half':'wait';
@@ -1639,7 +1344,6 @@ async function _finishDetailRender(key){
     </div>${next?`<div class="tl-line ${lineClass}"></div>`:''}`;
   }).join('');
 
-  // 내역 HTML
   entryArr.sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
   const entryRows=entryArr.map(([ek,e])=>`
     <div class="entry-row">
@@ -1654,13 +1358,11 @@ async function _finishDetailRender(key){
     </div>`).join('');
 
   document.getElementById('dm-body').innerHTML=`
-    <!-- 요약 -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--green);">${fmt(rev)}원</div></div>
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--red);">${fmt(cost)}원</div></div>
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmt(profit)}원</div></div>
     </div>
-    <!-- 공정 현황 -->
     <div class="card" style="margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div style="font-size:13px;font-weight:700;">공정 현황</div>
@@ -1676,11 +1378,9 @@ async function _finishDetailRender(key){
       ${activePh?`<div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px;">🔨 진행중: ${activePh.name}</div>`:''}
       <div class="timeline-wrap"><div class="timeline-row">${tlHtml}</div></div>
     </div>
-    <!-- 공정 상세 (기본 숨김) -->
     <div id="step-panels" style="display:none;margin-bottom:14px;">
       ${phases.map(ph=>buildStepPanelHtml(ph)).join('')}
     </div>
-    <!-- 상세 내역 -->
     <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">📋 거래 내역</div>
     ${entryRows||'<div class="empty"><div class="empty-ico">📝</div>거래 내역 없음</div>'}
     ${_role==='boss'?`<button onclick="openSiteModal('${key}')" style="width:100%;margin-top:12px;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">✏️ 현장 정보 수정</button>`:''}
@@ -1894,7 +1594,6 @@ function openProcPanel(phId){
 // ═══════════════════════════════
 async function renderDesignFor(){
   const activeSites=Object.entries(_sites).filter(([,s])=>s.status==='active'||s.status==='settle'||s.status==='balance');
-  // 현황 카드
   const statusCnt={};
   Object.values(_sites).forEach(s=>{statusCnt[s.status]=(statusCnt[s.status]||0)+1;});
   document.getElementById('df-site-status').innerHTML=`
@@ -1931,7 +1630,6 @@ async function renderDesignFor(){
         <div class="tl-label ${ph.status}" style="width:52px;">${ph.name.length>4?ph.name.slice(0,4):ph.name}</div>
       </div>${next?`<div class="tl-line ${lineClass}" style="width:16px;"></div>`:''}`;
     }).join('');
-    // 진행중 공정 태스크
     const activeTasks=activePh?tasksToArr(activePh.tasks).filter(t=>!t.isDone):[];
     const activeTasksHtml=activeTasks.slice(0,3).map(t=>`
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);" onclick="dfToggleTask('${encKey(s.name)}','${activePh.id}','${t.id}',this)">
@@ -1956,7 +1654,6 @@ async function renderDesignFor(){
     </div>`;
   });
   document.getElementById('df-timelines').innerHTML=html;
-  // 진행중 공정 타임라인 자동 스크롤
   setTimeout(()=>{
     document.querySelectorAll('.tl-circle.active').forEach(el=>{
       el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
@@ -2116,7 +1813,6 @@ function handleImgUpload(e,type){
   files.slice(0,remaining).forEach(file=>{
     const reader=new FileReader();
     reader.onload=ev=>{
-      // 이미지 리사이즈
       const img=new Image();
       img.onload=()=>{
         const canvas=document.createElement('canvas');
