@@ -1475,10 +1475,59 @@ function _useDefaultPhCache() {
 }
 
 function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
-  var activePh = Object.values(_phCache).find(function(ph) { return ph.status==='active'; });
+  const activePh = Object.values(_phCache).find(ph => ph.status === 'active');
   _openPhId = activePh ? activePh.id : '';
 
-  var entryRows = sEntries.map(function(e) {
+  // 완료/전체 공정 수 계산
+  const doneCount  = Object.values(_phCache).filter(ph => ph.status === 'done').length;
+  const totalCount = Object.values(_phCache).length;
+  const pct        = totalCount > 0 ? Math.round(doneCount / totalCount * 100) : 0;
+
+  // 1. 상단 요약 (항상 노출)
+  const summaryHtml =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
+      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
+    +'</div>';
+
+  // 2. 공정 현황 한 줄 요약 (기본 접힘)
+  const procSummaryHtml =
+    '<div class="card" style="margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+        +'<div style="font-size:13px;font-weight:700;">📋 공정 현황</div>'
+        +'<div style="display:flex;gap:6px;">'
+          +'<button onclick="openProcEdit()" style="background:rgba(26,86,219,.08);border:none;color:var(--accent);font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:Pretendard,sans-serif;">⚙️ 공정 수정</button>'
+          +'<button onclick="toggleProcList()" id="toggle-proc-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Pretendard,sans-serif;">📂 공정 펼치기</button>'
+        +'</div>'
+      +'</div>'
+      // 진행률 바
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+        +'<div style="flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden;">'
+          +'<div style="height:100%;width:'+pct+'%;background:var(--accent);border-radius:4px;transition:width .5s;"></div>'
+        +'</div>'
+        +'<div style="font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap;">'+doneCount+'/'+totalCount+' ('+pct+'%)</div>'
+      +'</div>'
+      // 현재 진행중 공정 강조
+      +(activePh
+        ? '<div style="padding:8px 12px;background:rgba(26,86,219,.06);border-radius:8px;border-left:3px solid var(--accent);">'
+            +'<div style="font-size:10px;color:var(--muted);margin-bottom:2px;">🔵 현재 진행중</div>'
+            +'<div style="font-size:14px;font-weight:700;color:var(--accent);">'+getProcIcon(activePh.name)+' '+activePh.name+'</div>'
+          +'</div>'
+        : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:6px 0;">진행중인 공정이 없습니다</div>')
+    +'</div>';
+
+  // 3. 공정 타임라인 + 카드 (기본 숨김)
+  const procDetailHtml =
+    '<div id="step-panels" style="display:none;">'
+      +'<div class="proc-section" style="margin-bottom:12px;">'
+        +buildTimelineHtml()
+      +'</div>'
+      +buildAllPanelsHtml()
+    +'</div>';
+
+  // 4. 매입/매출 상세내역 (바로 노출)
+  const entryRows = sEntries.map(function(e) {
     var tl = {revenue:'매출',cost:'매입',as:'AS'}[e.type]||e.type;
     return '<div class="entry-row">'
       +'<div class="entry-left">'
@@ -1494,25 +1543,13 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
       +'</div>';
   }).join('');
 
+  // 최종 조합
   document.getElementById('dm-body').innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">'
-      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--green);">'+fmtW(rev)+'</div></div>'
-      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:var(--red);">'+fmtW(cost)+'</div></div>'
-      +'<div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:700;color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+fmtW(profit)+'</div></div>'
-    +'</div>'
-    +'<div class="proc-section">'
-      +'<div class="proc-section-title">'
-        +'<span>📋 공정 타임라인</span>'
-        +'<button class="proc-edit-btn" onclick="openProcEdit()">⚙️ 공정 수정</button>'
-      +'</div>'
-      +buildTimelineHtml()
-      +'<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">'
-        +'<button onclick="toggleProcList()" id="toggle-proc-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Pretendard,sans-serif;">📂 공정 펼치기</button>'
-      +'</div>'
-      +'<div id="step-panels" style="display:none;">'+buildAllPanelsHtml()+'</div>'
-    +'</div>'
+    summaryHtml
+    + procSummaryHtml
+    + procDetailHtml
     +'<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">상세 내역 ('+sEntries.length+'건)</div>'
-    +entryRows;
+    + entryRows;
 
   // 타임라인 진행중 공정 센터 스크롤
   setTimeout(() => {
@@ -1526,6 +1563,7 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
     }
   }, 150);
 }
+
 
 function renderDetailModal(site, rev, cost, asAmt, profit, s) {
   // 하위호환 래퍼
