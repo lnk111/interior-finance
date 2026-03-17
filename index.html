@@ -1259,7 +1259,6 @@ const DEFAULT_PROC_TEMPLATE = [
   { name:'욕실 도막방수'},
   { name:'목공'       },
   { name:'가스관 철거' },
-  { name:'목공'       },   // 2회차 — 같은 name, 다른 id
   { name:'타일'       },
   { name:'필름'       },
   { name:'욕실설비'   },
@@ -1828,41 +1827,65 @@ function _refreshTodayProc() { /* 오늘의 공정 제거됨 */ }
 function openProcEdit() {
   const wasEmpty = Object.keys(_phCache).length === 0;
 
-  // _phCache가 비어있으면 DEFAULT_PROC_TEMPLATE으로 초기화 (이름 기반 고정 ID 사용)
   if (wasEmpty) {
     DEFAULT_PROC_TEMPLATE.forEach((tmpl, i) => {
-      // 이름+순서로 안정적인 ID 생성 (재실행해도 동일한 ID)
       const id = 'ph_' + i + '_' + tmpl.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
       _phCache[id] = { id, name: tmpl.name, status:'wait', startDate:'', endDate:'', tasks:{}, order: i * 10 };
     });
   }
 
+  renderProcEditBody();
+  document.getElementById('proc-edit-modal').classList.add('on');
+}
+
+function renderProcEditBody() {
   const body   = document.getElementById('proc-edit-body');
   const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
 
   body.innerHTML = `
-    ${wasEmpty ? `<div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--s3);border-radius:8px;">
-      💡 공정 목록이 자동으로 불러와졌어요. 상태를 설정하고 저장하면 적용됩니다.
-    </div>` : ''}
-    ${phases.map((ph, i) => {
-      const status    = ph.status    || 'wait';
-      const startDate = ph.startDate || '';
-      const endDate   = ph.endDate   || '';
-      return `<div class="prow">
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <input id="new-proc-inp" class="f-input" style="margin-bottom:0;flex:1;" placeholder="공정 이름 직접 입력 (예: 도장)" type="text"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();addProcPhase();}">
+      <button onclick="addProcPhase()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:0 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;white-space:nowrap;">+ 추가</button>
+    </div>
+    <div id="proc-edit-rows">
+    ${phases.map((ph, i) => `
+      <div class="prow" id="prow-${ph.id}">
         <div class="prow-num">${i+1}</div>
         <div class="prow-name">${getProcIcon(ph.name)} ${ph.name}</div>
         <select class="prow-sel" id="ps-${ph.id}" onchange="onProcStatusChange('${ph.id}')">
-          <option value="wait"   ${status==='wait'  ?'selected':''}>대기</option>
-          <option value="active" ${status==='active'?'selected':''}>진행중</option>
-          <option value="done"   ${status==='done'  ?'selected':''}>완료</option>
+          <option value="wait"   ${(ph.status||'wait')==='wait'  ?'selected':''}>대기</option>
+          <option value="active" ${ph.status==='active'?'selected':''}>진행중</option>
+          <option value="done"   ${ph.status==='done'  ?'selected':''}>완료</option>
         </select>
-        <input class="prow-date" id="pd-s-${ph.id}" type="date" value="${startDate}" placeholder="시작일" title="시작일">
-        <input class="prow-date" id="pd-e-${ph.id}" type="date" value="${endDate}"   placeholder="완료일" title="완료일"
-               style="${status!=='done'?'opacity:.4':''}">
-      </div>`;
-    }).join('')}`;
+        <input class="prow-date" id="pd-s-${ph.id}" type="date" value="${ph.startDate||''}" placeholder="시작일">
+        <input class="prow-date" id="pd-e-${ph.id}" type="date" value="${ph.endDate||''}"   placeholder="완료일"
+               style="${ph.status!=='done'?'opacity:.4':''}">
+        <button onclick="deleteProcPhase('${ph.id}')"
+          style="background:rgba(220,38,38,.1);border:none;color:var(--red);font-size:11px;padding:5px 9px;border-radius:7px;cursor:pointer;flex-shrink:0;font-weight:700;">삭제</button>
+      </div>`).join('')}
+    </div>`;
+}
 
-  document.getElementById('proc-edit-modal').classList.add('on');
+function addProcPhase() {
+  const inp  = document.getElementById('new-proc-inp');
+  const name = inp?.value?.trim();
+  if (!name) { toast('⚠️ 공정 이름을 입력해주세요'); inp?.focus(); return; }
+
+  const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
+  const maxOrder = phases.length ? phases[phases.length-1].order ?? 0 : 0;
+  const id = 'ph_custom_' + Date.now();
+  _phCache[id] = { id, name, status:'wait', startDate:'', endDate:'', tasks: makeInitTasks(name), order: maxOrder + 10 };
+  inp.value = '';
+  renderProcEditBody();
+  toast('✅ 공정 추가됨');
+}
+
+function deleteProcPhase(phId) {
+  if (!confirm('"' + (_phCache[phId]?.name||'') + '" 공정을 삭제할까요?\n저장 버튼을 눌러야 최종 반영됩니다.')) return;
+  delete _phCache[phId];
+  renderProcEditBody();
+  toast('🗑 삭제됨 (저장 전)');
 }
 
 function onProcStatusChange(phId) {
