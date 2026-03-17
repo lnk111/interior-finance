@@ -674,7 +674,7 @@ option{background:#fff;}
   <button class="nav-btn on" id="nb-designfor" onclick="goPage('designfor')">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>디자인포
   </button>
-  <button class="nav-btn on" id="nb-home" onclick="goPage('home')">
+  <button class="nav-btn " id="nb-home" onclick="goPage('home')">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>손익 현황
   </button>
   <button class="nav-btn" id="nb-entry" onclick="goPage('entry')">
@@ -1513,7 +1513,6 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
     +'</div>'
     +'<div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;">상세 내역 ('+sEntries.length+'건)</div>'
     +entryRows;
-  +entryRows;
 
   // 타임라인 진행중 공정 센터 스크롤
   setTimeout(() => {
@@ -1526,7 +1525,6 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
       tlWrap.scrollLeft = nodeLeft - wrapCenter + nodeWidth / 2;
     }
   }, 150);
-}
 }
 
 function renderDetailModal(site, rev, cost, asAmt, profit, s) {
