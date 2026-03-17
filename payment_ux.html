@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>결제 UX 프로토타입</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Apple SD Gothic Neo','Pretendard',sans-serif;background:#f0f4ff;display:flex;justify-content:center;}
+.phone{width:390px;min-height:100vh;background:#fff;position:relative;}
+.screen{display:none;padding:16px 16px 80px;}
+.screen.active{display:block;}
+.nav-bar{position:fixed;bottom:0;width:390px;background:#fff;border-top:1px solid #dde3f5;display:flex;padding:8px 0;z-index:100;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;font-size:10px;font-weight:600;color:#94a3c0;position:relative;}
+.nav-item.active{color:#1a56db;}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;}
+.badge-num{position:absolute;top:0;right:22%;background:#dc2626;color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.top-bar{background:rgba(255,255,255,.95);border-bottom:1px solid #dde3f5;padding:14px 16px;margin:-16px -16px 16px;display:flex;align-items:center;justify-content:space-between;}
+.top-bar-title{font-size:17px;font-weight:800;color:#1a56db;}
+.card{background:#fff;border:1px solid #dde3f5;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(26,86,219,.06);}
+.btn-primary{width:100%;padding:18px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:12px;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(26,86,219,.3);}
+.btn-primary:disabled{background:#eaefff;color:#94a3c0;cursor:not-allowed;box-shadow:none;}
+.btn-ghost{width:100%;padding:12px;background:none;border:1px solid #dde3f5;border-radius:10px;font-size:14px;font-weight:600;color:#64748b;cursor:pointer;margin-top:8px;}
+.label{font-size:11px;color:#64748b;font-weight:700;margin-bottom:6px;letter-spacing:.4px;text-transform:uppercase;}
+.input{width:100%;padding:12px 14px;border:1.5px solid #dde3f5;border-radius:10px;font-size:15px;color:#0f172a;background:#f5f7ff;outline:none;font-family:inherit;margin-bottom:12px;}
+.input:focus{border-color:#1a56db;background:#fff;}
+.status-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.status-temp{background:#fee2e2;color:#991b1b;}
+.status-progress{background:#fef9c3;color:#854d0e;}
+.status-done{background:#dcfce7;color:#166534;}
+.divider{height:1px;background:#dde3f5;margin:12px 0;}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- 화면1: 빠른 업로드 -->
+  <div class="screen active" id="screen-upload">
+    <div class="top-bar">
+      <div class="top-bar-title">⚡ 빠른 기록</div>
+      <span style="font-size:12px;color:#059669;font-weight:700;">● 연결됨</span>
+    </div>
+
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:11px;color:#15803d;margin-bottom:4px;font-weight:700;">자동 설정됨</div>
+      <div style="font-size:15px;font-weight:700;color:#15803d;">수지 상록6단지 615동 604호</div>
+      <div style="font-size:12px;color:#166534;margin-top:2px;">김실장 · 오늘</div>
+    </div>
+
+    <div id="upload-area" onclick="simulateUpload()" style="border:2px dashed #c8d2f0;border-radius:14px;padding:44px 20px;text-align:center;cursor:pointer;margin-bottom:14px;background:#f5f7ff;transition:all .2s;">
+      <div style="font-size:52px;margin-bottom:12px;">📷</div>
+      <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:6px;">이체 화면 업로드</div>
+      <div style="font-size:13px;color:#64748b;">카메라 또는 갤러리에서 선택</div>
+    </div>
+
+    <div id="preview-area" style="display:none;margin-bottom:14px;">
+      <div style="position:relative;border-radius:12px;overflow:hidden;border:1px solid #dde3f5;">
+        <div style="background:linear-gradient(135deg,#1a56db,#1e40af);height:170px;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;color:#fff;">
+            <div style="font-size:36px;margin-bottom:8px;">🏦</div>
+            <div style="font-size:14px;font-weight:600;">이체 완료</div>
+            <div style="font-size:24px;font-weight:800;margin-top:4px;">1,200,000원</div>
+            <div style="font-size:12px;opacity:.7;margin-top:4px;">OO타일 · 14:23</div>
+          </div>
+        </div>
+        <button onclick="removePreview()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:12px;color:#059669;margin-top:6px;text-align:center;font-weight:700;">✅ 이미지 업로드 완료</div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <div class="label">메모 (선택사항)</div>
+      <input class="input" placeholder="간단히 메모..." style="margin-bottom:0;">
+    </div>
+
+    <button class="btn-primary" id="save-temp-btn" onclick="saveTempRecord()" disabled>⚡ 임시 저장</button>
+    <div style="text-align:center;margin-top:10px;font-size:12px;color:#94a3c0;">금액·공정은 나중에 입력해도 됩니다</div>
+  </div>
+
+  <!-- 화면2: 미정리 내역 -->
+  <div class="screen" id="screen-pending">
+    <div class="top-bar">
+      <div class="top-bar-title">미정리 내역</div>
+    </div>
+
+    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:14px;padding:16px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:28px;font-weight:800;color:#dc2626;">미정리 7건</div>
+          <div style="font-size:13px;color:#991b1b;margin-top:2px;">오늘 미완료 3건 · 24시간 초과 2건</div>
+        </div>
+        <div style="font-size:40px;">⚠️</div>
+      </div>
+    </div>
+
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:16px;">🔔</span>
+      <span style="font-size:13px;color:#92400e;">24시간 초과 미정리 건이 <b>2건</b> 있습니다</span>
+    </div>
+
+    <div class="card" onclick="goToDetail()" style="cursor:pointer;border-left:4px solid #dc2626;">
+      <div style="display:flex;gap:10px;">
+        <div style="width:62px;height:62px;background:linear-gradient(135deg,#1a56db,#1e40af);border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:1.4;">이체<br>완료</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:700;">수지 상록6단지</div>
+            <span class="status-badge status-temp">임시저장</span>
+          </div>
+          <div style="font-size:12px;color:#64748b;">김실장 · 오늘 14:23</div>
+          <div style="font-size:11px;color:#dc2626;margin-top:3px;font-weight:600;">⏰ 3시간 경과 · 금액 미입력</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid #d97706;">
+      <div style="display:flex;gap:10px;">
+        <div style="width:62px;height:62px;background:linear-gradient(135deg,#d97706,#b45309);border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:1.4;">이체<br>완료</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:700;">더샵센트럴시티</div>
+            <span class="status-badge status-progress">정리중</span>
+          </div>
+          <div style="font-size:12px;color:#64748b;">김덕수대리 · 어제 09:11</div>
+          <div style="font-size:11px;color:#d97706;margin-top:3px;font-weight:600;">💰 1,200,000원 · 현장 분할 필요</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-left:4px solid #dc2626;">
+      <div style="display:flex;gap:10px;">
+        <div style="width:62px;height:62px;background:linear-gradient(135deg,#dc2626,#991b1b);border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:1.4;">이체<br>완료</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:700;">광교 힐스테이트</div>
+            <span class="status-badge status-temp">임시저장</span>
+          </div>
+          <div style="font-size:12px;color:#64748b;">김실장 · 2일 전</div>
+          <div style="font-size:11px;color:#dc2626;margin-top:3px;font-weight:700;">🚨 24시간 초과! 즉시 정리 필요</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="opacity:.55;">
+      <div style="display:flex;gap:10px;">
+        <div style="width:62px;height:62px;background:linear-gradient(135deg,#059669,#047857);border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:1.4;">이체<br>완료</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:700;">동탄 롯데캐슬</div>
+            <span class="status-badge status-done">완료</span>
+          </div>
+          <div style="font-size:12px;color:#64748b;">이남경팀장 · 3일 전</div>
+          <div style="font-size:11px;color:#059669;margin-top:3px;font-weight:600;">✅ 500,000원 · 타일 공정</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 화면3: 상세 입력 -->
+  <div class="screen" id="screen-detail">
+    <div class="top-bar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="goBack()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#64748b;">←</button>
+        <div class="top-bar-title">상세 입력</div>
+      </div>
+      <span class="status-badge status-temp">임시저장</span>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#1a56db,#1e40af);border-radius:14px;padding:20px;margin-bottom:14px;text-align:center;color:#fff;cursor:pointer;" onclick="alert('전체화면으로 표시됩니다')">
+      <div style="font-size:32px;margin-bottom:8px;">🏦</div>
+      <div style="font-size:13px;opacity:.7;margin-bottom:4px;">이체 완료 화면 · 탭하면 전체화면</div>
+      <div style="font-size:26px;font-weight:800;">1,200,000원</div>
+      <div style="font-size:12px;opacity:.6;margin-top:4px;">OO타일 · 오늘 14:23</div>
+    </div>
+
+    <div class="card">
+      <div class="label">유형</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
+        <button id="type-cost" onclick="setType('cost')" style="padding:11px;border-radius:10px;border:1.5px solid #dc2626;background:#fef2f2;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">📦 매입</button>
+        <button id="type-revenue" onclick="setType('revenue')" style="padding:11px;border-radius:10px;border:1px solid #dde3f5;background:#f5f7ff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">💰 매출</button>
+        <button id="type-as" onclick="setType('as')" style="padding:11px;border-radius:10px;border:1px solid #dde3f5;background:#f5f7ff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">🔧 AS</button>
+      </div>
+      <div class="label">총 이체 금액</div>
+      <input class="input" type="number" inputmode="numeric" id="total-amount" value="1200000" oninput="recalc()" placeholder="총 이체 금액 입력">
+      <div class="label">거래처</div>
+      <input class="input" placeholder="예) OO타일, OO목공" id="vendor-input">
+      <div class="label">공정</div>
+      <select class="input" style="margin-bottom:0;-webkit-appearance:none;">
+        <option>-- 공정 선택 --</option>
+        <option>철거</option><option>목공</option><option>타일</option><option>필름</option>
+        <option>욕실설비</option><option>바닥</option><option>도배</option><option>가구</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:800;">현장별 금액 배정</div>
+        <button onclick="addSite()" style="background:#e0f2fe;color:#0284c7;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">+ 현장 추가</button>
+      </div>
+      <div id="site-rows"></div>
+      <div class="divider"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:13px;color:#64748b;">배정 합계</div>
+        <div style="font-size:14px;font-weight:700;" id="alloc-sum-display">0원</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:13px;color:#64748b;">총 이체 금액</div>
+        <div style="font-size:14px;font-weight:700;" id="total-display">1,200,000원</div>
+      </div>
+      <div style="margin-top:10px;padding:10px;border-radius:8px;text-align:center;font-size:13px;font-weight:700;" id="match-status">
+        배정 금액을 입력해주세요
+      </div>
+    </div>
+
+    <button class="btn-primary" id="complete-btn" onclick="completeRecord()" disabled>✅ 완료 처리</button>
+    <button class="btn-ghost" onclick="saveDraft()">💾 임시 저장 후 나가기</button>
+  </div>
+
+  <!-- 네비 -->
+  <nav class="nav-bar">
+    <div class="nav-item" onclick="showScreen('upload')" id="nav-upload">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      빠른 기록
+    </div>
+    <div class="nav-item active" onclick="showScreen('pending')" id="nav-pending">
+      <div class="badge-num">7</div>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      미정리
+    </div>
+    <div class="nav-item" id="nav-done">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      완료내역
+    </div>
+  </nav>
+</div>
+
+<script>
+const sites = ['수지 상록6단지 615동 604호','더샵센트럴시티 2차','동탄 롯데캐슬','광교 힐스테이트','판교 TH212'];
+let allocations = [{ site: '', amount: '' }];
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+function simulateUpload() {
+  document.getElementById('upload-area').style.display = 'none';
+  document.getElementById('preview-area').style.display = 'block';
+  document.getElementById('save-temp-btn').disabled = false;
+}
+
+function removePreview() {
+  document.getElementById('upload-area').style.display = 'block';
+  document.getElementById('preview-area').style.display = 'none';
+  document.getElementById('save-temp-btn').disabled = true;
+}
+
+function saveTempRecord() {
+  alert('✅ 임시 저장 완료!\n금액·공정은 나중에 입력해도 됩니다.');
+  showScreen('pending');
+}
+
+function goToDetail() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-detail').classList.add('active');
+  renderSiteRows();
+  recalc();
+}
+
+function goBack() { showScreen('pending'); }
+
+function setType(t) {
+  const colors = { cost:['#fef2f2','#dc2626'], revenue:['#f0fdf4','#059669'], as:['#fffbeb','#d97706'] };
+  ['cost','revenue','as'].forEach(tp => {
+    const btn = document.getElementById('type-' + tp);
+    if (tp === t) {
+      btn.style.background = colors[tp][0];
+      btn.style.color = colors[tp][1];
+      btn.style.border = '1.5px solid ' + colors[tp][1];
+    } else {
+      btn.style.background = '#f5f7ff';
+      btn.style.color = '#64748b';
+      btn.style.border = '1px solid #dde3f5';
+    }
+  });
+}
+
+function addSite() {
+  allocations.push({ site: '', amount: '' });
+  renderSiteRows();
+  recalc();
+}
+
+function removeSite(idx) {
+  if (allocations.length <= 1) return;
+  allocations.splice(idx, 1);
+  renderSiteRows();
+  recalc();
+}
+
+function renderSiteRows() {
+  const container = document.getElementById('site-rows');
+  container.innerHTML = allocations.map((alloc, i) => `
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+      <select onchange="allocations[${i}].site=this.value;recalc()"
+        style="flex:1;padding:10px;border:1.5px solid #dde3f5;border-radius:10px;font-size:13px;background:#f5f7ff;color:#0f172a;outline:none;-webkit-appearance:none;">
+        <option value="">현장 선택</option>
+        ${sites.map(s => `<option value="${s}" ${alloc.site===s?'selected':''}>${s.length>13?s.slice(0,13)+'..':s}</option>`).join('')}
+      </select>
+      <input type="number" inputmode="numeric" value="${alloc.amount||''}"
+        onchange="allocations[${i}].amount=parseInt(this.value)||0;recalc()"
+        oninput="allocations[${i}].amount=parseInt(this.value)||0;recalc()"
+        placeholder="금액"
+        style="width:100px;padding:10px;border:1.5px solid #dde3f5;border-radius:10px;font-size:13px;background:#f5f7ff;color:#0f172a;outline:none;text-align:right;">
+      <button onclick="removeSite(${i})"
+        style="background:none;border:none;color:#dc2626;font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
+    </div>
+  `).join('');
+}
+
+function recalc() {
+  const total = parseInt(document.getElementById('total-amount')?.value) || 0;
+  const sum = allocations.reduce((a,b) => a + (parseInt(b.amount)||0), 0);
+  const diff = total - sum;
+  document.getElementById('alloc-sum-display').textContent = sum.toLocaleString() + '원';
+  document.getElementById('total-display').textContent = total.toLocaleString() + '원';
+  const statusEl = document.getElementById('match-status');
+  const completeBtn = document.getElementById('complete-btn');
+  if (total === 0) {
+    statusEl.textContent = '총 이체 금액을 입력해주세요';
+    statusEl.style.background = '#f5f7ff'; statusEl.style.color = '#64748b';
+    completeBtn.disabled = true;
+  } else if (sum === total && sum > 0) {
+    statusEl.textContent = '✅ 금액 일치! 완료 처리 가능합니다';
+    statusEl.style.background = '#f0fdf4'; statusEl.style.color = '#15803d';
+    completeBtn.disabled = false;
+  } else if (diff > 0) {
+    statusEl.textContent = `⚠️ ${diff.toLocaleString()}원 부족`;
+    statusEl.style.background = '#fef2f2'; statusEl.style.color = '#dc2626';
+    completeBtn.disabled = true;
+  } else {
+    statusEl.textContent = `⚠️ ${Math.abs(diff).toLocaleString()}원 초과`;
+    statusEl.style.background = '#fef2f2'; statusEl.style.color = '#dc2626';
+    completeBtn.disabled = true;
+  }
+}
+
+function completeRecord() {
+  alert('✅ 완료 처리!\n\n현장별로 개별 매입 내역이 저장됩니다:\n' +
+    allocations.filter(a=>a.site&&a.amount).map(a=>`• ${a.site}: ${parseInt(a.amount).toLocaleString()}원`).join('\n'));
+  showScreen('pending');
+}
+
+function saveDraft() {
+  alert('💾 임시 저장!\n미정리 내역에서 이어서 입력할 수 있습니다.');
+  showScreen('pending');
+}
+
+showScreen('pending');
+renderSiteRows();
+recalc();
+</script>
+</body>
+</html>
