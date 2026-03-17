@@ -1680,13 +1680,15 @@ function toggleStepPanel(phId) {
 }
 function toggleAllPanels() {
   const btn = document.getElementById('toggle-all-btn');
-  const allPanels = document.querySelectorAll('.task-panel');
+  const modal = document.getElementById('detail-modal');
+  const allPanels = modal ? modal.querySelectorAll('.task-panel') : document.querySelectorAll('.task-panel');
   const anyOpen = Array.from(allPanels).some(p => p.classList.contains('open'));
 
   allPanels.forEach(panel => {
     panel.classList.toggle('open', !anyOpen);
   });
-  document.querySelectorAll('.spanel-arrow').forEach(arrow => {
+  const container = document.getElementById('detail-modal') || document;
+  container.querySelectorAll('.spanel-arrow').forEach(arrow => {
     arrow.textContent = anyOpen ? '▼' : '▲';
   });
   if (btn) btn.textContent = anyOpen ? '📂 전체 펼치기' : '📁 전체 접기';
