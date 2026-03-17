@@ -1507,7 +1507,7 @@ function _finishDetailRender(sEntries, rev, cost, asAmt, profit) {
       +'</div>'
       +buildTimelineHtml()
       +'<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">'
-        +'<button onclick="toggleAllPanels()" id="toggle-all-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Pretendard,sans-serif;">📂 전체 펼치기</button>'
+        +'<button onclick="toggleProcList()" id="toggle-proc-btn" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Pretendard,sans-serif;">📁 공정 접기</button>'
       +'</div>'
       +'<div id="step-panels">'+buildAllPanelsHtml()+'</div>'
     +'</div>'
@@ -1678,26 +1678,19 @@ function toggleStepPanel(phId) {
     if (arrow) arrow.textContent = isOpen ? '▲' : '▼';
   });
 }
-function toggleAllPanels() {
-  const btn = document.getElementById('toggle-all-btn');
-  const modal = document.getElementById('detail-modal');
-  const allPanels = modal ? modal.querySelectorAll('.task-panel') : document.querySelectorAll('.task-panel');
-  const anyOpen = Array.from(allPanels).some(p => p.classList.contains('open'));
 
-  allPanels.forEach(panel => {
-    panel.classList.toggle('open', !anyOpen);
-  });
-  const container = document.getElementById('detail-modal') || document;
-  container.querySelectorAll('.spanel-arrow').forEach(arrow => {
-    arrow.textContent = anyOpen ? '▼' : '▲';
-  });
-  if (btn) btn.textContent = anyOpen ? '📂 전체 펼치기' : '📁 전체 접기';
-
-  if (anyOpen) {
-    _openPhId = '';
+  // 공정 카드 전체 숨김/표시 토글
+function toggleProcList() {
+  const btn = document.getElementById('toggle-proc-btn');
+  const procList = document.getElementById('step-panels');
+  if (!procList) return;
+  const isVisible = procList.style.display !== 'none';
+  if (isVisible) {
+    procList.style.display = 'none';
+    if (btn) btn.textContent = '📂 공정 펼치기';
   } else {
-    const phases = Object.values(_phCache).sort((a,b)=>(a.order??0)-(b.order??0));
-    _openPhId = phases[phases.length-1]?.id || '';
+    procList.style.display = 'block';
+    if (btn) btn.textContent = '📁 공정 접기';
   }
 }
 
