@@ -1915,6 +1915,28 @@ function onProcStatusChange(phId) {
 }
 
 async function saveProcEdit() {
+  const dbSnap = await db.ref('procData/' + encKey(_curSite)).once('value');
+  const dbKeys = Object.keys(dbSnap.val() || {});
+  const cacheKeys = Object.keys(_phCache);
+  const toDelete = dbKeys.filter(k => !cacheKeys.includes(k));
+  for (const k of toDelete) {
+    await db.ref('procData/' + encKey(_curSite) + '/' + k).remove();
+  }
+  const updates = {};
+```
+
+즉, `async function saveProcEdit() {` 와 `const updates = {};` **사이에** 6줄을 끼워넣는 거예요!
+
+**전:** 
+```
+async function saveProcEdit() {
+  const updates = {};   ← 이 줄 바로 위에
+```
+
+**후:**
+```
+async function saveProcEdit() {
+  ← 여기에 6줄 추가
   const updates = {};
   Object.values(_phCache).forEach(ph => {
     const status    = document.getElementById('ps-' + ph.id)?.value   || ph.status    || 'wait';
