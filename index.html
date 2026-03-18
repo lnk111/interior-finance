@@ -708,10 +708,7 @@ function initApp(){
   db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDash();renderRecentEntries();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
-      // sites 관련 키 찾기
-      var siteKeys = keys.filter(function(k){ return k.toLowerCase().includes('site'); });
-      if(siteKeys.length > 0) {
-      }
+
 
 }
 
