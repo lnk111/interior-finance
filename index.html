@@ -634,7 +634,7 @@ const STATUS_DESC={consult:'고객과 상담 진행 중',contract:'계약 완료
 const PROC_ICONS={'현장답사':'🗺️','철거':'🔨','샷시':'🪟','전기배선':'⚡','욕실 도막방수':'💧','목공':'🪚','가스관 철거':'🔧','타일':'🟦','필름':'🎞','욕실설비':'🚿','천정돔':'⭕','폐기물 반출':'🚛','바닥':'🟫','도배':'🎨','가구':'🛋','상판시공':'🪵','조명마감':'💡','중문':'🚪','실리콘마감':'🔵','공사잔마감':'✅','A/S':'🔧','탄성코트':'🪣'};
 const DEFAULT_PROC=['현장답사','철거','샷시','전기배선','욕실 도막방수','목공','가스관 철거','타일','필름','욕실설비','천정돔','폐기물 반출','바닥','도배','가구','상판시공','조명마감','중문','실리콘마감','공사잔마감','A/S'];
 
-function encKey(s){return s.replace(/[.#$/\[\]]/g,'_');}
+function encKey(s){return s.replace(/[.#$/ \[\]]/g,'_');}
 function fmt(n){return Math.abs(n)>=10000?(n<0?'-':'')+Math.round(Math.abs(n)/10000)+'만':n.toLocaleString();}
 function fmtFull(n){return n.toLocaleString()+'원';}
 function today(){return new Date().toISOString().slice(0,10);}
@@ -1275,11 +1275,8 @@ async function _finishDetailRender(key){
     }
   });
   const profit=rev-cost-as;
-  const procPath = 'procData/'+encKey(s.name);
-  console.log('[PROC] 현장명:', s.name, '/ 경로:', procPath);
-  const snap=await db.ref(procPath).once('value');
+  const snap=await db.ref('procData/'+encKey(s.name)).once('value');
   const procRaw=snap.val()||{};
-  console.log('[PROC] 조회결과:', procRaw && Object.keys(procRaw).length>0 ? Object.keys(procRaw).length+'개 공정' : 'null(기본값 사용)');
   _phCache={};
   let phases=[];
   if(Object.keys(procRaw).length>0){
