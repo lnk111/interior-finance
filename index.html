@@ -1275,8 +1275,11 @@ async function _finishDetailRender(key){
     }
   });
   const profit=rev-cost-as;
-  const snap=await db.ref('procData/'+encKey(s.name)).once('value');
+  const procPath = 'procData/'+encKey(s.name);
+  console.log('[PROC] 현장명:', s.name, '/ 경로:', procPath);
+  const snap=await db.ref(procPath).once('value');
   const procRaw=snap.val()||{};
+  console.log('[PROC] 조회결과:', procRaw && Object.keys(procRaw).length>0 ? Object.keys(procRaw).length+'개 공정' : 'null(기본값 사용)');
   _phCache={};
   let phases=[];
   if(Object.keys(procRaw).length>0){
