@@ -686,7 +686,7 @@ function initApp(){
       el.innerHTML=`<div class="conn-dot ${ok?'':'blink'}"></div><span>${ok?'연결됨':'오프라인'}</span>`;
     });
   });
-  db.ref('sites').on('value',
+  db.ref('siteInfo').on('value',
   function(snap){
     var data=snap.val();
     console.log('[DEBUG] sites 수신 - null여부:', data===null, '/ 키수:', data?Object.keys(data).length:0);
@@ -786,7 +786,7 @@ function renderDash(){
   const margin=rev>0?(profit/rev*100):0;
   const ym=yr&&mo?yr+'-'+mo:'';
   if(ym){
-    db.ref('fixedCost/'+encKey(ym)).once('value',snap=>{
+    db.ref('fixedCosts/'+encKey(ym)).once('value',snap=>{
       const fc=snap.val()||{};
       const fixed=(fc.salary||0)+(fc.rent||0)+(fc.marketing||0)+(fc.mgmt||0)+(fc.card||0)+(fc.etc||0);
       const tax=Math.round(rev*0.1);
@@ -1281,8 +1281,8 @@ async function saveSite(){
   if(!name){toast('⚠️ 현장명을 입력해주세요');return;}
   const data={name,year,month,status,createdAt:_editSiteKey?(_sites[_editSiteKey]?.createdAt||Date.now()):Date.now()};
   try{
-    if(_editSiteKey)await db.ref('sites/'+_editSiteKey).update(data);
-    else await db.ref('sites').push(data);
+    if(_editSiteKey)await db.ref('siteInfo/'+_editSiteKey).update(data);
+    else await db.ref('siteInfo').push(data);
     closeSiteModal();
     toast(_editSiteKey?'✅ 수정 완료':'✅ 현장 등록 완료');
   }catch(e){toast('❌ 저장 실패');}
@@ -1635,7 +1635,7 @@ async function loadFC(){
   const y=document.getElementById('fc-year').value;
   const m=document.getElementById('fc-month').value;
   if(!y||!m)return;
-  const snap=await db.ref('fixedCost/'+encKey(y+'-'+m)).once('value');
+  const snap=await db.ref('fixedCosts/'+encKey(y+'-'+m)).once('value');
   const fc=snap.val()||{};
   ['salary','rent','marketing','mgmt','card','etc'].forEach(k=>document.getElementById('fc-'+k).value=fc[k]||'');
   updateFCTotal();
@@ -1650,7 +1650,7 @@ async function saveFC(){
   if(!y||!m){toast('⚠️ 연도와 월을 선택해주세요');return;}
   const data={};
   ['salary','rent','marketing','mgmt','card','etc'].forEach(k=>data[k]=parseInt(document.getElementById('fc-'+k)?.value)||0);
-  await db.ref('fixedCost/'+encKey(y+'-'+m)).set(data);
+  await db.ref('fixedCosts/'+encKey(y+'-'+m)).set(data);
   toast('✅ 고정비 저장 완료');
 }
 
