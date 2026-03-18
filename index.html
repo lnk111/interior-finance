@@ -427,7 +427,10 @@ option{background:#fff;}
   <div class="page" id="pg-sites">
     <div class="top-bar">
       <div class="top-bar-title">현장 관리</div>
-      <button onclick="openSiteModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;">+ 등록</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="conn3" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
+        <button onclick="openSiteModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:800;cursor:pointer;">+ 등록</button>
+      </div>
     </div>
     <div class="filter-tabs">
       <div class="ftab on" onclick="setSiteFilter('all',this)">전체</div>
@@ -623,7 +626,7 @@ const firebaseConfig={apiKey:"AIzaSyC3ePaFaHhNKLiKBmkEuAGMmHc3aqOxUEM",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-var _role='',_sites={},_entries={},_pending={},_phCache={},_curSite='',_openPhId='',_siteFilter='all',_khFilter='all',_khImgs={problem:[],solution:[]},_editSiteKey=null,_editEntryKey=null,_pendingAllocations=[],_pendingEditKey=null,_khData={};
+var _firebaseConnected=false,_role='',_sites={},_entries={},_pending={},_phCache={},_curSite='',_openPhId='',_siteFilter='all',_khFilter='all',_khImgs={problem:[],solution:[]},_editSiteKey=null,_editEntryKey=null,_pendingAllocations=[],_pendingEditKey=null,_khData={};
 
 const STATUS_LABEL={consult:'상담중',contract:'계약완료',active:'공사중',settle:'정산중',balance:'잔금대기',done:'마감',as:'AS관리'};
 const STATUS_DESC={consult:'고객과 상담 진행 중',contract:'계약 완료, 공사 시작 전',active:'현재 공사가 진행 중',settle:'공사 완료, 정산 처리 중',balance:'잔금 입금 대기 중',done:'모든 절차 완료',as:'공사 후 AS 진행 중'};
@@ -672,13 +675,15 @@ function initApp(){
   ysel.value=yr;
   db.ref('.info/connected').on('value',snap=>{
     const ok=snap.val();
-    ['conn','conn2'].forEach(id=>{
+    _firebaseConnected=!!ok;
+    ['conn','conn2','conn3'].forEach(id=>{
       const el=document.getElementById(id);if(!el)return;
       el.className='conn '+(ok?'ok':'err');
       el.innerHTML=`<div class="conn-dot ${ok?'':'blink'}"></div><span>${ok?'연결됨':'오프라인'}</span>`;
     });
   });
-  db.ref('sites').on('value',snap=>{_sites=snap.val()||{};renderSites();renderDash();renderDesignFor();updateSiteTags();updatePendingBadge();});
+  db.ref('sites').on('value',snap=>{
+    console.log('[DEBUG] sites 데이터 수신:', snap.val() ? Object.keys(snap.val()).length+'개' : '없음');_sites=snap.val()||{};renderSites();renderDash();renderDesignFor();updateSiteTags();updatePendingBadge();});
   db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDash();renderRecentEntries();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
@@ -1154,13 +1159,18 @@ function setSiteFilter(f,el){
 
 function renderSites(){
   const q=(document.getElementById('site-search')?.value||'').toLowerCase();
+  const el=document.getElementById('sites-body');
+  if(!el)return;
+  // Firebase 연결 전 로딩 상태
+  if(!_firebaseConnected && Object.keys(_sites).length===0){
+    el.innerHTML='<div class="empty"><div class="empty-ico" style="font-size:28px;">🔄</div><div style="font-size:13px;">Firebase 연결 중...</div></div>';
+    return;
+  }
   const arr=Object.entries(_sites).filter(([,s])=>{
     if(_siteFilter!=='all'&&s.status!==_siteFilter)return false;
     if(q&&!s.name?.toLowerCase().includes(q))return false;
     return true;
   }).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
-  const el=document.getElementById('sites-body');
-  if(!el)return;
   if(!arr.length){el.innerHTML='<div class="empty"><div class="empty-ico">🏗️</div>현장 없음</div>';return;}
   el.innerHTML=arr.map(([k,s])=>{
     let rev=0,cost=0,as=0;
