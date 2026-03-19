@@ -1087,8 +1087,6 @@ function renderPendingDetailBody(p){
     </div>
     <div class="f-label">총 이체 금액</div>
     <input class="f-input" id="pdm-total" type="number" inputmode="numeric" value="${p.totalAmount||''}" placeholder="총 이체 금액" oninput="pdmRecalc()">
-    <div class="f-label">거래처</div>
-    <input class="f-input" id="pdm-vendor" type="text" value="${p.vendor||''}" placeholder="예) OO타일, OO목공">
     <div class="f-label">공정</div>
     <input class="f-input" id="pdm-process" type="text" value="${p.process||''}" placeholder="선택 또는 직접입력" readonly onfocus="togglePdmProcessTags()" style="cursor:pointer;">
     <div class="tag-wrap" id="pdm-tags-process" style="display:none;">
@@ -1207,7 +1205,6 @@ function pdmRecalc(){
 async function pdmComplete(){
   const key=_pendingEditKey;if(!key)return;
   const total=parseInt(document.getElementById('pdm-total')?.value)||0;
-  const vendor=document.getElementById('pdm-vendor')?.value.trim()||'';
   const process=document.getElementById('pdm-process')?.value.trim()||'';
   const memo=document.getElementById('pdm-memo')?.value.trim()||'';
   const updates={status:'done',totalAmount:total,type:_pdmType,vendor,process,memo,allocations:_pendingAllocations.filter(a=>a.site&&a.amount),completedAt:Date.now()};
@@ -1225,7 +1222,6 @@ async function pdmComplete(){
 async function pdmSaveDraft(){
   const key=_pendingEditKey;if(!key)return;
   const total=parseInt(document.getElementById('pdm-total')?.value)||0;
-  const vendor=document.getElementById('pdm-vendor')?.value.trim()||'';
   const process=document.getElementById('pdm-process')?.value.trim()||'';
   const memo=document.getElementById('pdm-memo')?.value.trim()||'';
   await db.ref('pending/'+key).update({status:'progress',totalAmount:total||null,type:_pdmType,vendor,process,memo,allocations:_pendingAllocations});
