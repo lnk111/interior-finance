@@ -1526,26 +1526,40 @@ function openProcEdit(){
 function closeProcEdit(){document.getElementById('proc-edit-modal').classList.remove('on');}
 async function saveProcEdit(){
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
-  const updates={};
-  const dbSnap=await db.ref('procData/'+encKey(_curSite)).once('value');
-  const dbKeys=Object.keys(dbSnap.val()||{});
-  const cacheKeys=Object.keys(_phCache);
-  const toDelete=dbKeys.filter(k=>!cacheKeys.includes(k));
-  for(const k of toDelete)await db.ref('procData/'+encKey(_curSite)+'/'+k).remove();
-  phases.forEach((ph,i)=>{
-    const status=document.getElementById('ps-'+ph.id)?.value||ph.status;
-    const doneDate=document.getElementById('pd-'+ph.id)?.value||'';
-    _phCache[ph.id].status=status;
-    _phCache[ph.id].doneDate=doneDate;
-    _phCache[ph.id].order=i;
-    updates[ph.id]={..._phCache[ph.id],status,doneDate,order:i};
-  });
+  
+  const saveBtn=document.querySelector('#proc-edit-modal .submit-btn');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='⏳ 저장 중...';}
+  
   try{
+    const dbSnap=await db.ref('procData/'+encKey(_curSite)).once('value');
+    const dbKeys=Object.keys(dbSnap.val()||{});
+    const cacheKeys=Object.keys(_phCache);
+    const toDelete=dbKeys.filter(k=>!cacheKeys.includes(k));
+    for(const k of toDelete)await db.ref('procData/'+encKey(_curSite)+'/'+k).remove();
+    
+    const updates={};
+    phases.forEach((ph,i)=>{
+      const status=document.getElementById('ps-'+ph.id)?.value||ph.status||'wait';
+      const rawDate=(document.getElementById('pd-'+ph.id)?.value||'').trim();
+      const doneDate=rawDate||null;
+      _phCache[ph.id].status=status;
+      _phCache[ph.id].doneDate=doneDate;
+      _phCache[ph.id].order=i;
+      const saveData={id:ph.id,name:ph.name,status:status,order:i,tasks:ph.tasks||{}};
+      if(doneDate)saveData.doneDate=doneDate;
+      updates[ph.id]=saveData;
+    });
+    
     await db.ref('procData/'+encKey(_curSite)).update(updates);
     closeProcEdit();
     if(_editSiteKey)await _finishDetailRender(_editSiteKey);
     toast('✅ 공정 저장 완료');
-  }catch(e){toast('❌ 저장 실패');}
+    
+  }catch(e){
+    console.error('saveProcEdit 오류:',e);
+    toast('❌ 저장 실패: '+(e.message||e.code||'알 수 없는 오류'));
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✅ 저장';}
+  }
 }
 function openProcPanel(phId){
   const list=document.getElementById('step-panels');
