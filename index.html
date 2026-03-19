@@ -1334,7 +1334,8 @@ async function _finishDetailRender(key){
     return `<div class="tl-node-wrap" onclick="openProcPanel('${ph.id}')">
       <div class="tl-circle ${ph.status}">${PROC_ICONS[ph.name]||'⬜'}</div>
       <div class="tl-label ${ph.status}">${ph.name.length>4?ph.name.slice(0,4):ph.name}</div>
-      <div class="tl-date">${ph.doneDate||''}</div>
+      <div class="tl-date">${ph.startDate?ph.startDate.slice(5)+' ~':''}</div>
+      <div class="tl-date">${ph.doneDate?ph.doneDate.slice(5):''}</div>
     </div>${next?`<div class="tl-line ${lineClass}"></div>`:''}`;
   }).join('');
   entryArr.sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
@@ -1511,15 +1512,26 @@ async function deleteTask(phId,taskId){
 function openProcEdit(){
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
   document.getElementById('proc-edit-body').innerHTML=phases.map((ph,i)=>`
-    <div class="prow" id="prow-${ph.id}">
-      <div class="prow-num">${i+1}</div>
-      <div class="prow-name">${PROC_ICONS[ph.name]||'⬜'} ${ph.name}</div>
-      <select class="prow-sel" id="ps-${ph.id}">
-        <option value="wait" ${ph.status==='wait'?'selected':''}>대기</option>
-        <option value="active" ${ph.status==='active'?'selected':''}>진행중</option>
-        <option value="done" ${ph.status==='done'?'selected':''}>완료</option>
-      </select>
-      <input class="prow-date" type="date" id="pd-${ph.id}" value="${ph.doneDate||''}">
+    <div class="prow" id="prow-${ph.id}" style="flex-wrap:wrap;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;width:100%;">
+        <div class="prow-num">${i+1}</div>
+        <div class="prow-name">${PROC_ICONS[ph.name]||'⬜'} ${ph.name}</div>
+        <select class="prow-sel" id="ps-${ph.id}">
+          <option value="wait" ${ph.status==='wait'?'selected':''}>대기</option>
+          <option value="active" ${ph.status==='active'?'selected':''}>진행중</option>
+          <option value="done" ${ph.status==='done'?'selected':''}>완료</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:6px;padding-left:30px;width:100%;">
+        <div style="flex:1;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;">🟢 시작일</div>
+          <input class="prow-date" type="date" id="pd-start-${ph.id}" value="${ph.startDate||''}" style="width:100%;">
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;">🔴 완료일</div>
+          <input class="prow-date" type="date" id="pd-${ph.id}" value="${ph.doneDate||''}" style="width:100%;">
+        </div>
+      </div>
     </div>`).join('');
   document.getElementById('proc-edit-modal').classList.add('on');
 }
@@ -1545,7 +1557,11 @@ async function saveProcEdit(){
       _phCache[ph.id].status=status;
       _phCache[ph.id].doneDate=doneDate;
       _phCache[ph.id].order=i;
+      const rawStart=(document.getElementById('pd-start-'+ph.id)?.value||'').trim();
+      const startDate=rawStart||null;
+      _phCache[ph.id].startDate=startDate;
       const saveData={id:ph.id,name:ph.name,status:status,order:i,tasks:ph.tasks||{}};
+      if(startDate)saveData.startDate=startDate;
       if(doneDate)saveData.doneDate=doneDate;
       updates[ph.id]=saveData;
     });
