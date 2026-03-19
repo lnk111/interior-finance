@@ -1090,7 +1090,25 @@ function renderPendingDetailBody(p){
     <div class="f-label">거래처</div>
     <input class="f-input" id="pdm-vendor" type="text" value="${p.vendor||''}" placeholder="예) OO타일, OO목공">
     <div class="f-label">공정</div>
-    <input class="f-input" id="pdm-process" type="text" value="${p.process||''}" placeholder="예) 타일, 목공">
+    <input class="f-input" id="pdm-process" type="text" value="${p.process||''}" placeholder="선택 또는 직접입력" readonly onfocus="togglePdmProcessTags()" style="cursor:pointer;">
+    <div class="tag-wrap" id="pdm-tags-process" style="display:none;">
+    <div class="tag" onclick="pickPdmProcess('철거')">철거</div>
+    <div class="tag" onclick="pickPdmProcess('창호')">창호</div>
+    <div class="tag" onclick="pickPdmProcess('전기')">전기</div>
+    <div class="tag" onclick="pickPdmProcess('욕실방수')">욕실방수</div>
+    <div class="tag" onclick="pickPdmProcess('목공')">목공</div>
+    <div class="tag" onclick="pickPdmProcess('타일')">타일</div>
+    <div class="tag" onclick="pickPdmProcess('필름')">필름</div>
+    <div class="tag" onclick="pickPdmProcess('욕실설비')">욕실설비</div>
+    <div class="tag" onclick="pickPdmProcess('바닥')">바닥</div>
+    <div class="tag" onclick="pickPdmProcess('도배')">도배</div>
+    <div class="tag" onclick="pickPdmProcess('가구')">가구</div>
+    <div class="tag" onclick="pickPdmProcess('조명마감')">조명마감</div>
+    <div class="tag" onclick="pickPdmProcess('중문')">중문</div>
+    <div class="tag" onclick="pickPdmProcess('실리콘')">실리콘</div>
+    <div class="tag" onclick="pickPdmProcess('잔마감')">잔마감</div>
+    <div class="tag" onclick="pickPdmProcess('직접입력')">✏️ 직접</div>
+  </div>
     <div class="f-label">메모</div>
     <input class="f-input" id="pdm-memo" type="text" value="${p.memo||''}" placeholder="메모">
     <div class="card" style="margin-bottom:14px;">
@@ -1125,6 +1143,24 @@ function renderPendingDetailBody(p){
   }
 }
 
+function togglePdmProcessTags(){
+  const tw=document.getElementById('pdm-tags-process');
+  if(tw)tw.style.display=tw.style.display==='none'?'flex':'none';
+}
+function pickPdmProcess(val){
+  if(val==='직접입력'){
+    const v=prompt('공정명 입력:');
+    if(v)document.getElementById('pdm-process').value=v;
+  } else {
+    document.getElementById('pdm-process').value=val;
+  }
+  const tw=document.getElementById('pdm-tags-process');
+  if(tw)tw.style.display='none';
+}
+
+var _pdmType='cost';  // ← 기존 코드
+function setPdmType(t){  // ← 기존 코드
+  
 var _pdmType='cost';
 function setPdmType(t){
   _pdmType=t;
