@@ -1509,18 +1509,25 @@ async function deleteTask(phId,taskId){
   catch(e){toast('저장 실패');}
 }
 
+
 function openProcEdit(){
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
+  renderProcEditRows(phases);
+  document.getElementById('proc-edit-modal').classList.add('on');
+}
+
+function renderProcEditRows(phases){
   document.getElementById('proc-edit-body').innerHTML=phases.map((ph,i)=>`
-    <div class="prow" id="prow-${ph.id}" style="flex-wrap:wrap;gap:6px;">
+    <div class="prow" id="prow-${ph.id}" style="flex-wrap:wrap;gap:6px;position:relative;">
       <div style="display:flex;align-items:center;gap:8px;width:100%;">
         <div class="prow-num">${i+1}</div>
-        <div class="prow-name">${PROC_ICONS[ph.name]||'⬜'} ${ph.name}</div>
+        <div class="prow-name" style="flex:1;">${PROC_ICONS[ph.name]||'⬜'} ${ph.name}</div>
         <select class="prow-sel" id="ps-${ph.id}">
           <option value="wait" ${ph.status==='wait'?'selected':''}>대기</option>
           <option value="active" ${ph.status==='active'?'selected':''}>진행중</option>
           <option value="done" ${ph.status==='done'?'selected':''}>완료</option>
         </select>
+        <button onclick="deleteProcPhase('${ph.id}')" style="background:#fee2e2;border:none;border-radius:6px;color:var(--red);font-size:13px;width:28px;height:28px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
       <div style="display:flex;gap:6px;padding-left:30px;width:100%;">
         <div style="flex:1;">
@@ -1532,9 +1539,41 @@ function openProcEdit(){
           <input class="prow-date" type="date" id="pd-${ph.id}" value="${ph.doneDate||''}" style="width:100%;">
         </div>
       </div>
-    </div>`).join('');
-  document.getElementById('proc-edit-modal').classList.add('on');
+    </div>`).join('')+`
+  <div style="margin-top:16px;padding-top:14px;border-top:2px dashed var(--border);">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">➕ 공정 추가</div>
+    <div style="display:flex;gap:8px;">
+      <input id="proc-add-inp" class="f-input" type="text" placeholder="공정명 입력 (예: 도장, 철물점...)" style="flex:1;margin-bottom:0;">
+      <button onclick="addProcPhase()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:0 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;white-space:nowrap;">추가</button>
+    </div>
+  </div>`;
 }
+
+function deleteProcPhase(phId){
+  if(!confirm('이 공정을 삭제할까요?\n(저장 버튼을 눌러야 실제로 삭제됩니다)'))return;
+  delete _phCache[phId];
+  const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
+  renderProcEditRows(phases);
+}
+
+function addProcPhase(){
+  const inp=document.getElementById('proc-add-inp');
+  const name=inp?.value?.trim();
+  if(!name){toast('⚠️ 공정명을 입력하세요');inp?.focus();return;}
+  // 중복 체크
+  const exists=Object.values(_phCache).some(ph=>ph.name===name);
+  if(exists){toast('⚠️ 이미 있는 공정이에요');return;}
+  const maxOrder=Object.values(_phCache).reduce((m,ph)=>Math.max(m,ph.order??0),0);
+  const newId='ph_custom_'+Date.now();
+  _phCache[newId]={id:newId,name,status:'wait',order:maxOrder+10,tasks:{}};
+  inp.value='';
+  const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
+  renderProcEditRows(phases);
+  toast('✅ '+name+' 공정 추가됨 (저장 필요)');
+  // 새로 추가된 항목으로 스크롤
+  setTimeout(()=>document.getElementById('prow-'+newId)?.scrollIntoView({behavior:'smooth',block:'center'}),100);
+}
+  
 function closeProcEdit(){document.getElementById('proc-edit-modal').classList.remove('on');}
 async function saveProcEdit(){
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
