@@ -246,14 +246,15 @@ option{background:#fff;}
 .match-ok{background:#f0fdf4;color:#15803d;border-radius:8px;padding:10px;text-align:center;font-size:13px;font-weight:700;margin-top:8px;}
 .match-err{background:#fef2f2;color:#dc2626;border-radius:8px;padding:10px;text-align:center;font-size:13px;font-weight:700;margin-top:8px;}
 .match-neutral{background:var(--s2);color:var(--muted);border-radius:8px;padding:10px;text-align:center;font-size:13px;font-weight:600;margin-top:8px;}
-/* ★ 전체화면 이미지 뷰어 — onclick에 base64 대신 전용 overlay 사용 */
 #fullimg-overlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;cursor:pointer;}
 #fullimg-overlay.on{display:flex;}
 #fullimg-overlay img{max-width:100%;max-height:100%;object-fit:contain;}
-/* ★ 전체화면 이미지 뷰어 — onclick에 base64 절대 삽입 금지 */
-#fullimg-overlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;cursor:pointer;}
-#fullimg-overlay.on{display:flex;}
-#fullimg-overlay img{max-width:100%;max-height:100%;object-fit:contain;}
+
+/* ── 자동 상태 배지 (공정 수정 모달용) ── */
+.auto-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;margin-left:6px;}
+.auto-badge.wait{background:rgba(148,163,184,.15);color:#64748b;}
+.auto-badge.active{background:rgba(26,86,219,.12);color:#1a56db;}
+.auto-badge.done{background:rgba(5,150,105,.12);color:#059669;}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -267,7 +268,6 @@ option{background:#fff;}
     <div class="lock-sub">올바른 링크로 접속해주세요.<br>담당자에게 문의하세요.</div>
   </div>
 </div>
-<!-- ★ 전체화면 이미지 뷰어 (onclick에 base64 절대 삽입 금지) -->
 <div id="fullimg-overlay" onclick="hideFullImg()"><img id="fullimg-img" src="" alt=""></div>
 <div id="toast"></div>
 <div id="app">
@@ -336,7 +336,6 @@ option{background:#fff;}
   <!-- 거래 입력 -->
   <div class="page" id="pg-entry">
     <div class="top-bar"><div class="top-bar-title">거래 입력</div></div>
-<!-- 빠른기록 버튼 -->
 <button onclick="openQuickModal()" style="width:100%;padding:18px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:var(--r);font-size:17px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;box-shadow:0 4px 14px rgba(26,86,219,.3);margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:10px;">
   <span style="font-size:22px;">⚡</span> 빠른 기록
   <span style="font-size:12px;font-weight:600;opacity:.8;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:10px;">사진 선택사항</span>
@@ -457,6 +456,7 @@ option{background:#fff;}
     <div class="card"><div style="font-size:15px;font-weight:800;margin-bottom:12px;">📥 데이터 내보내기</div><button onclick="downloadCSV()" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:13px;color:var(--text);font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">현장별 손익 CSV 다운로드</button></div>
   </div>
 </div>
+
 <!-- 네비게이션 -->
 <nav class="nav">
   <button class="nav-btn on" id="nb-designfor" onclick="goPage('designfor')">
@@ -594,7 +594,6 @@ option{background:#fff;}
       <div style="font-size:13px;font-weight:700;color:#15803d;" id="qu-site-display">현장을 선택해주세요</div>
       <div style="font-size:11px;color:#166534;margin-top:1px;" id="qu-meta-display">오늘</div>
     </div>
-    <!-- 사진 업로드 (선택사항) -->
     <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;">📎 사진 첨부 <span style="font-weight:400;color:var(--dim);">(선택사항)</span></div>
     <div id="qu-upload-area" style="margin-bottom:12px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -629,24 +628,32 @@ option{background:#fff;}
     <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--dim);">금액·공정은 나중에 미정리 탭에서 입력하세요</div>
   </div>
 </div>
-  
+
 <!-- 공정 편집 모달 -->
 <div id="proc-edit-modal">
   <div class="proc-edit-sheet">
     <div class="modal-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div style="font-size:16px;font-weight:800;">⚙️ 공정 상태 수정</div>
       <button onclick="closeProcEdit()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+    <!-- ★ 자동 상태 안내 배너 -->
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:8px;">
+      <span style="font-size:16px;flex-shrink:0;">🤖</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:2px;">날짜 자동 상태</div>
+        <div style="font-size:11px;color:#3b82f6;line-height:1.5;">시작일·완료일을 입력하면 <b>오늘 날짜 기준</b>으로 상태가 자동으로 바뀌어요.<br>시작 전→대기 / 진행 중→진행중 / 완료일 지남→완료</div>
+      </div>
     </div>
     <div id="proc-edit-body"></div>
     <button class="submit-btn" style="margin-top:12px;" onclick="saveProcEdit()">✅ 저장</button>
   </div>
 </div>
+
 <script>
 const firebaseConfig={apiKey:"AIzaSyC3ePaFaHhNKLiKBmkEuAGMmHc3aqOxUEM",authDomain:"design-for-money-flow.firebaseapp.com",databaseURL:"https://design-for-money-flow-default-rtdb.firebaseio.com",projectId:"design-for-money-flow",storageBucket:"design-for-money-flow.appspot.com",messagingSenderId:"567890123456",appId:"1:567890123456:web:abcdef1234567890"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-// Firebase 초기화 완료
 
 var _firebaseConnected=false,_role='',_sites={},_entries={},_pending={},_phCache={},_curSite='',_openPhId='',_siteFilter='all',_khFilter='all',_khImgs={problem:[],solution:[]},_editSiteKey=null,_editEntryKey=null,_pendingAllocations=[],_pendingEditKey=null,_khData={};
 
@@ -661,7 +668,6 @@ function fmtFull(n){return n.toLocaleString()+'원';}
 function today(){return new Date().toISOString().slice(0,10);}
 function toast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),dur);}
 
-// ★ PATCH 1: showFullImg — onclick에 base64 직접 삽입 금지, 전용 overlay 사용
 function showFullImg(src){
   document.getElementById('fullimg-img').src=src;
   document.getElementById('fullimg-overlay').classList.add('on');
@@ -669,6 +675,52 @@ function showFullImg(src){
 function hideFullImg(){
   document.getElementById('fullimg-overlay').classList.remove('on');
   document.getElementById('fullimg-img').src='';
+}
+
+// ════════════════════════════════════════════
+//  ★ 공정 상태 자동 계산
+//  시작일·완료일을 오늘과 비교해 상태를 결정
+// ════════════════════════════════════════════
+function calcAutoStatus(startDate, endDate) {
+  var t = new Date(); t.setHours(0,0,0,0);
+  if (!startDate) return 'wait';                      // 시작일 없음 → 대기
+  var s = new Date(startDate); s.setHours(0,0,0,0);
+  if (t < s) return 'wait';                           // 시작일 전 → 대기
+  if (endDate) {
+    var e = new Date(endDate); e.setHours(0,0,0,0);
+    if (t > e) return 'done';                         // 완료일 지남 → 완료
+  }
+  return 'active';                                    // 그 사이 → 진행중
+}
+
+// select 색상 강조
+function highlightProcSel(sel, status) {
+  var map = {
+    wait:   {bg:'rgba(148,163,184,.15)', color:'#64748b', border:'#94a3b8'},
+    active: {bg:'rgba(26,86,219,.1)',    color:'#1a56db', border:'#1a56db'},
+    done:   {bg:'rgba(5,150,105,.1)',    color:'#059669', border:'#059669'},
+  };
+  var c = map[status] || map.wait;
+  sel.style.background  = c.bg;
+  sel.style.color       = c.color;
+  sel.style.fontWeight  = '700';
+  sel.style.borderColor = c.border;
+}
+
+// 날짜 변경 → select 자동 갱신
+function autoUpdateProcSel(phId) {
+  var startEl = document.getElementById('pd-start-' + phId);
+  var endEl   = document.getElementById('pd-'       + phId);
+  var sel     = document.getElementById('ps-'       + phId);
+  if (!sel) return;
+  var autoStatus = calcAutoStatus(startEl ? startEl.value : '', endEl ? endEl.value : '');
+  sel.value = autoStatus;
+  highlightProcSel(sel, autoStatus);
+}
+
+// 수동 select 변경 → 색상만 갱신
+function onProcSelChange(phId, sel) {
+  highlightProcSel(sel, sel.value);
 }
 
 function initAuth(){
@@ -698,7 +750,6 @@ function initApp(){
   db.ref('.info/connected').on('value',snap=>{
     const ok=snap.val();
     _firebaseConnected=!!ok;
-
     ['conn','conn2','conn3'].forEach(id=>{
       const el=document.getElementById(id);if(!el)return;
       el.className='conn '+(ok?'ok':'err');
@@ -706,31 +757,28 @@ function initApp(){
     });
   });
   db.ref('siteInfo').on('value',
-  function(snap){
-    var data=snap.val();
-    _sites=data||{};
-    // 데이터 수신 상태를 연결 표시에 반영
-    var siteCount = data ? Object.keys(data).length : 0;
-    ['conn','conn2','conn3'].forEach(function(id){
-      var el=document.getElementById(id);if(!el)return;
-      if(!_firebaseConnected) return; // 연결 상태는 .info/connected 가 결정
-      el.className='conn ok';
-      el.innerHTML=siteCount > 0
-        ? '<div class="conn-dot"></div><span>연결됨 ('+siteCount+'개 현장)</span>'
-        : '<div class="conn-dot"></div><span>연결됨</span>';
-    });
-    renderSites();renderDash();renderDesignFor();updateSiteTags();updatePendingBadge();
-  },
-  function(err){
-    document.getElementById('sites-body').innerHTML='<div class="empty"><div class="empty-ico">🔴</div><div>Firebase 오류: '+err.code+'</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Firebase Console에서 Rules 확인 필요</div></div>';
-    toast('🔴 DB 오류: '+err.code);
-  }
-);
+    function(snap){
+      var data=snap.val();
+      _sites=data||{};
+      var siteCount=data?Object.keys(data).length:0;
+      ['conn','conn2','conn3'].forEach(function(id){
+        var el=document.getElementById(id);if(!el)return;
+        if(!_firebaseConnected)return;
+        el.className='conn ok';
+        el.innerHTML=siteCount>0
+          ?'<div class="conn-dot"></div><span>연결됨 ('+siteCount+'개 현장)</span>'
+          :'<div class="conn-dot"></div><span>연결됨</span>';
+      });
+      renderSites();renderDash();renderDesignFor();updateSiteTags();updatePendingBadge();
+    },
+    function(err){
+      document.getElementById('sites-body').innerHTML='<div class="empty"><div class="empty-ico">🔴</div><div>Firebase 오류: '+err.code+'</div></div>';
+      toast('🔴 DB 오류: '+err.code);
+    }
+  );
   db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDash();renderRecentEntries();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
-
-
 }
 
 function goPage(name){
@@ -824,15 +872,13 @@ function toggleDashDetail(){
   a.textContent=open?'▲ 접기':'▼ 펼치기';
 }
 
-// ★ PATCH 2: updateSiteTags — data-* 이벤트 위임 방식 (onclick에 현장명 직접 삽입 금지)
 function updateSiteTags(){
   const names=Object.values(_sites).map(s=>s.name);
   const tw=document.getElementById('tags-site');
-  if(tw) tw.innerHTML=names.map(n=>`<div class="tag" data-site-name="${n.replace(/"/g,'&quot;')}" data-site-mode="detail">${n}</div>`).join('');
+  if(tw)tw.innerHTML=names.map(n=>`<div class="tag" data-site-name="${n.replace(/"/g,'&quot;')}" data-site-mode="detail">${n}</div>`).join('');
   const qu=document.getElementById('qu-tags-site');
-  if(qu) qu.innerHTML=names.map(n=>`<div class="tag" data-site-name="${n.replace(/"/g,'&quot;')}" data-site-mode="quick">${n}</div>`).join('');
+  if(qu)qu.innerHTML=names.map(n=>`<div class="tag" data-site-name="${n.replace(/"/g,'&quot;')}" data-site-mode="quick">${n}</div>`).join('');
 }
-// 이벤트 위임: 현장 태그 클릭
 document.addEventListener('click',function(e){
   const tag=e.target.closest('[data-site-name]');
   if(!tag)return;
@@ -916,15 +962,12 @@ function renderRecentEntries(){
 async function delEntry(key){if(!confirm('삭제할까요?'))return;await db.ref('entries/'+key).remove();toast('🗑️ 삭제됨');}
 
 var _quFile=null,_quBase64=null;
-// 촬영 또는 갤러리에서 파일 선택 시 호출
-// 카메라(qu-camera-input)와 갤러리(qu-gallery-input) 모두 이 함수 사용
 function quHandleFile(e){
-  const file=e.target.files[0]; // 첫 번째 파일 사용 (단일 처리)
+  const file=e.target.files[0];
   if(!file)return;
   _quFile=file;
   const reader=new FileReader();
   reader.onload=ev=>{
-    // 이미지를 Base64로 변환해서 미리보기 표시
     _quBase64=ev.target.result;
     document.getElementById('qu-upload-area').style.display='none';
     document.getElementById('qu-preview').style.display='block';
@@ -932,19 +975,16 @@ function quHandleFile(e){
     checkQuReady();
   };
   reader.readAsDataURL(file);
-  // input 초기화 (같은 파일 재선택 가능하게)
   e.target.value='';
 }
-// 선택된 사진 제거 — 촬영/갤러리 input 모두 초기화
 function quRemoveFile(){
   _quFile=null;_quBase64=null;
   document.getElementById('qu-upload-area').style.display='block';
   document.getElementById('qu-preview').style.display='none';
-  // 두 input 모두 초기화 (카메라 + 갤러리)
   const cam=document.getElementById('qu-camera-input');
   const gal=document.getElementById('qu-gallery-input');
-  if(cam) cam.value='';
-  if(gal) gal.value='';
+  if(cam)cam.value='';
+  if(gal)gal.value='';
   checkQuReady();
 }
 function checkQuReady(){
@@ -960,7 +1000,7 @@ async function quSave(){
   try{
     await db.ref('pending').push(record);
     toast('✅ 임시 저장! 나중에 미정리 탭에서 완료하세요 😊');
-    closeQuickModal();  // ← 여기 추가
+    closeQuickModal();
     quRemoveFile();
     document.getElementById('qu-site-inp').value='';
     document.getElementById('qu-site-display').textContent='현장을 선택해주세요';
@@ -977,7 +1017,6 @@ function updatePendingBadge(){
   else badge.style.display='none';
 }
 
-// ★ PATCH 3: renderPending — data-pending-key 이벤트 위임
 function renderPending(){
   const el=document.getElementById('pending-body');
   if(!el)return;
@@ -995,7 +1034,7 @@ function renderPending(){
         <div style="font-size:13px;color:#991b1b;margin-top:2px;">오늘 ${pending.filter(([,p])=>p.date===today()).length}건 · 24시간 초과 ${overdue.length}건</div></div>
         <div style="font-size:38px;">⚠️</div>
       </div></div>`;
-    if(overdue.length>0) html+=`<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🔔</span><span style="font-size:13px;color:#92400e;">24시간 초과 미정리 건이 <b>${overdue.length}건</b> 있습니다</span></div>`;
+    if(overdue.length>0)html+=`<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">🔔</span><span style="font-size:13px;color:#92400e;">24시간 초과 미정리 건이 <b>${overdue.length}건</b> 있습니다</span></div>`;
   }
   pending.forEach(([k,p])=>{
     const isOverdue=(now-p.createdAt)>86400000;
@@ -1038,7 +1077,6 @@ function renderPending(){
     });
   }
   el.innerHTML=html;
-  // ★ 이벤트 위임: pending 카드 클릭
   el.addEventListener('click',function(e){
     const card=e.target.closest('[data-pending-key]');
     if(card)openPendingDetail(card.dataset.pendingKey);
@@ -1054,13 +1092,12 @@ function getElapsed(ts){
   return '방금';
 }
 
-// ★ PATCH 4+5: openPendingDetail — _pdmType 복원, renderPendingDetailBody — onclick에 base64 금지
 function openPendingDetail(key){
   _pendingEditKey=key;
   const p=_pending[key];
   if(!p)return;
   _pendingAllocations=p.allocations?.length?[...p.allocations.map(a=>({...a}))]:[{site:p.site||'',amount:''}];
-  _pdmType=p.type||'cost'; // ★ 기존 타입 복원
+  _pdmType=p.type||'cost';
   const badge=document.getElementById('pdm-status-badge');
   badge.className='p-status '+(p.status==='done'?'done':p.status==='progress'?'progress':'temp');
   badge.textContent=p.status==='done'?'완료':p.status==='progress'?'정리중':'임시저장';
@@ -1070,7 +1107,6 @@ function openPendingDetail(key){
 
 function renderPendingDetailBody(p){
   const el=document.getElementById('pdm-body');
-  // ★ 이미지를 id="pdm-img-wrap" 으로 — onclick에 base64 삽입 금지
   const imgHtml=p.imageBase64
     ?`<div id="pdm-img-wrap" style="border-radius:12px;overflow:hidden;margin-bottom:14px;cursor:pointer;">
         <img src="${p.imageBase64}" style="width:100%;max-height:220px;object-fit:cover;display:block;">
@@ -1090,23 +1126,23 @@ function renderPendingDetailBody(p){
     <div class="f-label">공정</div>
     <input class="f-input" id="pdm-process" type="text" value="${p.process||''}" placeholder="선택 또는 직접입력" readonly onfocus="togglePdmProcessTags()" style="cursor:pointer;">
     <div class="tag-wrap" id="pdm-tags-process" style="display:none;">
-    <div class="tag" onclick="pickPdmProcess('철거')">철거</div>
-    <div class="tag" onclick="pickPdmProcess('창호')">창호</div>
-    <div class="tag" onclick="pickPdmProcess('전기')">전기</div>
-    <div class="tag" onclick="pickPdmProcess('욕실방수')">욕실방수</div>
-    <div class="tag" onclick="pickPdmProcess('목공')">목공</div>
-    <div class="tag" onclick="pickPdmProcess('타일')">타일</div>
-    <div class="tag" onclick="pickPdmProcess('필름')">필름</div>
-    <div class="tag" onclick="pickPdmProcess('욕실설비')">욕실설비</div>
-    <div class="tag" onclick="pickPdmProcess('바닥')">바닥</div>
-    <div class="tag" onclick="pickPdmProcess('도배')">도배</div>
-    <div class="tag" onclick="pickPdmProcess('가구')">가구</div>
-    <div class="tag" onclick="pickPdmProcess('조명마감')">조명마감</div>
-    <div class="tag" onclick="pickPdmProcess('중문')">중문</div>
-    <div class="tag" onclick="pickPdmProcess('실리콘')">실리콘</div>
-    <div class="tag" onclick="pickPdmProcess('잔마감')">잔마감</div>
-    <div class="tag" onclick="pickPdmProcess('직접입력')">✏️ 직접</div>
-  </div>
+      <div class="tag" onclick="pickPdmProcess('철거')">철거</div>
+      <div class="tag" onclick="pickPdmProcess('창호')">창호</div>
+      <div class="tag" onclick="pickPdmProcess('전기')">전기</div>
+      <div class="tag" onclick="pickPdmProcess('욕실방수')">욕실방수</div>
+      <div class="tag" onclick="pickPdmProcess('목공')">목공</div>
+      <div class="tag" onclick="pickPdmProcess('타일')">타일</div>
+      <div class="tag" onclick="pickPdmProcess('필름')">필름</div>
+      <div class="tag" onclick="pickPdmProcess('욕실설비')">욕실설비</div>
+      <div class="tag" onclick="pickPdmProcess('바닥')">바닥</div>
+      <div class="tag" onclick="pickPdmProcess('도배')">도배</div>
+      <div class="tag" onclick="pickPdmProcess('가구')">가구</div>
+      <div class="tag" onclick="pickPdmProcess('조명마감')">조명마감</div>
+      <div class="tag" onclick="pickPdmProcess('중문')">중문</div>
+      <div class="tag" onclick="pickPdmProcess('실리콘')">실리콘</div>
+      <div class="tag" onclick="pickPdmProcess('잔마감')">잔마감</div>
+      <div class="tag" onclick="pickPdmProcess('직접입력')">✏️ 직접</div>
+    </div>
     <div class="f-label">메모</div>
     <input class="f-input" id="pdm-memo" type="text" value="${p.memo||''}" placeholder="메모">
     <div class="card" style="margin-bottom:14px;">
@@ -1132,11 +1168,10 @@ function renderPendingDetailBody(p){
   `;
   pdmRenderAllocRows();
   pdmRecalc();
-  // ★ 이미지 전체화면: addEventListener 사용 (onclick에 base64 삽입 금지)
   if(p.imageBase64){
     setTimeout(()=>{
       const w=document.getElementById('pdm-img-wrap');
-      if(w) w.addEventListener('click',()=>showFullImg(p.imageBase64));
+      if(w)w.addEventListener('click',()=>showFullImg(p.imageBase64));
     },0);
   }
 }
@@ -1155,7 +1190,7 @@ function pickPdmProcess(val){
   const tw=document.getElementById('pdm-tags-process');
   if(tw)tw.style.display='none';
 }
-  
+
 var _pdmType='cost';
 function setPdmType(t){
   _pdmType=t;
@@ -1207,10 +1242,10 @@ async function pdmComplete(){
   const total=parseInt(document.getElementById('pdm-total')?.value)||0;
   const process=document.getElementById('pdm-process')?.value.trim()||'';
   const memo=document.getElementById('pdm-memo')?.value.trim()||'';
-  const updates={status:'done',totalAmount:total,type:_pdmType,vendor,process,memo,allocations:_pendingAllocations.filter(a=>a.site&&a.amount),completedAt:Date.now()};
+  const updates={status:'done',totalAmount:total,type:_pdmType,process,memo,allocations:_pendingAllocations.filter(a=>a.site&&a.amount),completedAt:Date.now()};
   const batch=[];
   _pendingAllocations.filter(a=>a.site&&a.amount).forEach(a=>{
-    batch.push(db.ref('entries').push({type:_pdmType,site:a.site,amount:parseInt(a.amount)||0,date:_pending[key]?.date||today(),process,vendor,memo,writer:_pending[key]?.writer||'',fromPending:key,createdAt:Date.now()}));
+    batch.push(db.ref('entries').push({type:_pdmType,site:a.site,amount:parseInt(a.amount)||0,date:_pending[key]?.date||today(),process,memo,writer:_pending[key]?.writer||'',fromPending:key,createdAt:Date.now()}));
   });
   try{
     await Promise.all([db.ref('pending/'+key).update(updates),...batch]);
@@ -1224,7 +1259,7 @@ async function pdmSaveDraft(){
   const total=parseInt(document.getElementById('pdm-total')?.value)||0;
   const process=document.getElementById('pdm-process')?.value.trim()||'';
   const memo=document.getElementById('pdm-memo')?.value.trim()||'';
-  await db.ref('pending/'+key).update({status:'progress',totalAmount:total||null,type:_pdmType,vendor,process,memo,allocations:_pendingAllocations});
+  await db.ref('pending/'+key).update({status:'progress',totalAmount:total||null,type:_pdmType,process,memo,allocations:_pendingAllocations});
   document.getElementById('pending-detail-modal').classList.remove('on');
   toast('💾 임시 저장됨');
 }
@@ -1246,8 +1281,7 @@ function renderSites(){
   const q=(document.getElementById('site-search')?.value||'').toLowerCase();
   const el=document.getElementById('sites-body');
   if(!el)return;
-  // Firebase 연결 전 로딩 상태
-  if(!_firebaseConnected && Object.keys(_sites).length===0){
+  if(!_firebaseConnected&&Object.keys(_sites).length===0){
     el.innerHTML='<div class="empty"><div class="empty-ico" style="font-size:28px;">🔄</div><div style="font-size:13px;">Firebase 연결 중...</div></div>';
     return;
   }
@@ -1350,6 +1384,15 @@ async function _finishDetailRender(key){
       _phCache[id]=ph;phases.push(ph);
     });
   }
+
+  // ★ Firebase에서 불러온 뒤 날짜 기반으로 상태 자동 갱신
+  phases.forEach(ph => {
+    if (ph.startDate || ph.doneDate) {
+      ph.status = calcAutoStatus(ph.startDate || '', ph.doneDate || '');
+      _phCache[ph.id].status = ph.status;
+    }
+  });
+
   const doneCount=phases.filter(p=>p.status==='done').length;
   const totalCount=phases.length;
   const activePh=phases.find(p=>p.status==='active');
@@ -1535,11 +1578,17 @@ async function deleteTask(phId,taskId){
   catch(e){toast('저장 실패');}
 }
 
-
+// ════════════════════════════════════════════
+//  ★ 공정 편집 모달 — 자동 상태 통합 버전
+// ════════════════════════════════════════════
 function openProcEdit(){
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
   renderProcEditRows(phases);
   document.getElementById('proc-edit-modal').classList.add('on');
+  // 렌더 직후 모든 공정에 자동 상태 반영
+  setTimeout(()=>{
+    Object.values(_phCache).forEach(ph => autoUpdateProcSel(ph.id));
+  }, 0);
 }
 
 function renderProcEditRows(phases){
@@ -1548,21 +1597,23 @@ function renderProcEditRows(phases){
       <div style="display:flex;align-items:center;gap:8px;width:100%;">
         <div class="prow-num">${i+1}</div>
         <div class="prow-name" style="flex:1;">${PROC_ICONS[ph.name]||'⬜'} ${ph.name}</div>
-        <select class="prow-sel" id="ps-${ph.id}">
-          <option value="wait" ${ph.status==='wait'?'selected':''}>대기</option>
+        <select class="prow-sel" id="ps-${ph.id}" onchange="onProcSelChange('${ph.id}',this)">
+          <option value="wait"   ${ph.status==='wait'  ?'selected':''}>대기</option>
           <option value="active" ${ph.status==='active'?'selected':''}>진행중</option>
-          <option value="done" ${ph.status==='done'?'selected':''}>완료</option>
+          <option value="done"   ${ph.status==='done'  ?'selected':''}>완료</option>
         </select>
         <button onclick="deleteProcPhase('${ph.id}')" style="background:#fee2e2;border:none;border-radius:6px;color:var(--red);font-size:13px;width:28px;height:28px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
       <div style="display:flex;gap:6px;padding-left:30px;width:100%;">
         <div style="flex:1;">
           <div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;">🟢 시작일</div>
-          <input class="prow-date" type="date" id="pd-start-${ph.id}" value="${ph.startDate||''}" style="width:100%;">
+          <input class="prow-date" type="date" id="pd-start-${ph.id}" value="${ph.startDate||''}" style="width:100%;"
+            oninput="autoUpdateProcSel('${ph.id}')">
         </div>
         <div style="flex:1;">
           <div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;">🔴 완료일</div>
-          <input class="prow-date" type="date" id="pd-${ph.id}" value="${ph.doneDate||''}" style="width:100%;">
+          <input class="prow-date" type="date" id="pd-${ph.id}" value="${ph.doneDate||''}" style="width:100%;"
+            oninput="autoUpdateProcSel('${ph.id}')">
         </div>
       </div>
     </div>`).join('')+`
@@ -1580,13 +1631,13 @@ function deleteProcPhase(phId){
   delete _phCache[phId];
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
   renderProcEditRows(phases);
+  setTimeout(()=>{Object.values(_phCache).forEach(ph=>autoUpdateProcSel(ph.id));},0);
 }
 
 function addProcPhase(){
   const inp=document.getElementById('proc-add-inp');
   const name=inp?.value?.trim();
   if(!name){toast('⚠️ 공정명을 입력하세요');inp?.focus();return;}
-  // 중복 체크
   const exists=Object.values(_phCache).some(ph=>ph.name===name);
   if(exists){toast('⚠️ 이미 있는 공정이에요');return;}
   const maxOrder=Object.values(_phCache).reduce((m,ph)=>Math.max(m,ph.order??0),0);
@@ -1595,53 +1646,56 @@ function addProcPhase(){
   inp.value='';
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
   renderProcEditRows(phases);
+  setTimeout(()=>{Object.values(_phCache).forEach(ph=>autoUpdateProcSel(ph.id));},0);
   toast('✅ '+name+' 공정 추가됨 (저장 필요)');
-  // 새로 추가된 항목으로 스크롤
   setTimeout(()=>document.getElementById('prow-'+newId)?.scrollIntoView({behavior:'smooth',block:'center'}),100);
 }
-  
+
 function closeProcEdit(){document.getElementById('proc-edit-modal').classList.remove('on');}
+
 async function saveProcEdit(){
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
-  
   const saveBtn=document.querySelector('#proc-edit-modal .submit-btn');
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='⏳ 저장 중...';}
-  
   try{
     const dbSnap=await db.ref('procData/'+encKey(_curSite)).once('value');
     const dbKeys=Object.keys(dbSnap.val()||{});
     const cacheKeys=Object.keys(_phCache);
     const toDelete=dbKeys.filter(k=>!cacheKeys.includes(k));
     for(const k of toDelete)await db.ref('procData/'+encKey(_curSite)+'/'+k).remove();
-    
+
     const updates={};
     phases.forEach((ph,i)=>{
-      const status=document.getElementById('ps-'+ph.id)?.value||ph.status||'wait';
-      const rawDate=(document.getElementById('pd-'+ph.id)?.value||'').trim();
-      const doneDate=rawDate||null;
-      _phCache[ph.id].status=status;
-      _phCache[ph.id].doneDate=doneDate;
-      _phCache[ph.id].order=i;
-      const rawStart=(document.getElementById('pd-start-'+ph.id)?.value||'').trim();
-      const startDate=rawStart||null;
-      _phCache[ph.id].startDate=startDate;
-      const saveData={id:ph.id,name:ph.name,status:status,order:i,tasks:ph.tasks||{}};
-      if(startDate)saveData.startDate=startDate;
-      if(doneDate)saveData.doneDate=doneDate;
+      const rawStart=(document.getElementById('pd-start-'+ph.id)?.value||'').trim()||null;
+      const rawEnd  =(document.getElementById('pd-'+ph.id)?.value||'').trim()||null;
+
+      // ★ 핵심: 날짜가 있으면 자동 계산, 없으면 수동 select 값 사용
+      const autoSt  = calcAutoStatus(rawStart||'', rawEnd||'');
+      const manualSt= document.getElementById('ps-'+ph.id)?.value || ph.status || 'wait';
+      const status  = (rawStart||rawEnd) ? autoSt : manualSt;
+
+      _phCache[ph.id].status    = status;
+      _phCache[ph.id].startDate = rawStart;
+      _phCache[ph.id].doneDate  = rawEnd;
+      _phCache[ph.id].order     = i;
+
+      const saveData={id:ph.id,name:ph.name,status,order:i,tasks:ph.tasks||{}};
+      if(rawStart)saveData.startDate=rawStart;
+      if(rawEnd)  saveData.doneDate =rawEnd;
       updates[ph.id]=saveData;
     });
-    
+
     await db.ref('procData/'+encKey(_curSite)).update(updates);
     closeProcEdit();
     if(_editSiteKey)await _finishDetailRender(_editSiteKey);
     toast('✅ 공정 저장 완료');
-    
   }catch(e){
     console.error('saveProcEdit 오류:',e);
     toast('❌ 저장 실패: '+(e.message||e.code||'알 수 없는 오류'));
     if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='✅ 저장';}
   }
 }
+
 function openProcPanel(phId){
   const list=document.getElementById('step-panels');
   if(list&&list.style.display==='none'){
@@ -1675,6 +1729,12 @@ async function renderDesignFor(){
     } else {
       phases=DEFAULT_PROC.map((name,i)=>({id:'ph_'+i,name,status:'wait',order:i,tasks:{}}));
     }
+    // ★ 디자인포 타임라인에도 자동 상태 반영
+    phases.forEach(ph=>{
+      if(ph.startDate||ph.doneDate){
+        ph.status=calcAutoStatus(ph.startDate||'',ph.doneDate||'');
+      }
+    });
     const done=phases.filter(p=>p.status==='done').length;
     const total=phases.length;
     const pct=total>0?Math.round(done/total*100):0;
@@ -1776,7 +1836,6 @@ function renderKnowhow(data){
   el.innerHTML=normal.length?normal.map(([k,kh])=>khCardHtml(k,kh,catLabel)).join(''):'<div class="empty"><div class="empty-ico">💡</div>노하우 없음</div>';
 }
 
-// ★ PATCH 6: khCardHtml — 이미지 onclick에 src(base64) 삽입 금지 → data-kh-img-key 이벤트 위임
 function khCardHtml(k,kh,catLabel){
   const imgs=[...(kh.imgsProblem||[]),...(kh.imgsSolution||[])];
   const imgThumbsHtml=imgs.slice(0,3).map((src,i)=>`<img class="kh-img-thumb" src="${src}" data-kh-img-key="${k}" data-kh-img-idx="${i}">`).join('');
@@ -1791,7 +1850,6 @@ function khCardHtml(k,kh,catLabel){
     <div class="kh-footer"><span class="kh-meta">✍️ ${kh.writer||''} · ${kh.site||''}</span><span class="kh-meta">${kh.date||''}</span></div>
   </div>`;
 }
-// 이벤트 위임: 노하우 이미지 썸네일 클릭 (base64를 onclick에 삽입 금지)
 document.addEventListener('click',function(e){
   const img=e.target.closest('[data-kh-img-key]');
   if(!img)return;
@@ -1851,10 +1909,7 @@ function openQuickModal(){
   quRemoveFile();
   document.getElementById('quick-modal').classList.add('on');
 }
-function closeQuickModal(){
-  document.getElementById('quick-modal').classList.remove('on');
-}
-  
+function closeQuickModal(){document.getElementById('quick-modal').classList.remove('on');}
 function closeKnowhowWrite(){document.getElementById('kh-modal').classList.remove('on');}
 function pickKhCat(el){
   document.querySelectorAll('.kh-cat-btn').forEach(b=>b.classList.remove('on'));
