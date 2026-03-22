@@ -707,7 +707,7 @@ function highlightProcSel(sel, status) {
   sel.style.borderColor = c.border;
 }
 
-// 날짜 변경 → select 자동 갱신
+// 날짜 변경 → 자동 상태 갱신 + 날짜 순서로 전체 재정렬
 function autoUpdateProcSel(phId) {
   var startEl = document.getElementById('pd-start-' + phId);
   var endEl   = document.getElementById('pd-'       + phId);
@@ -716,6 +716,51 @@ function autoUpdateProcSel(phId) {
   var autoStatus = calcAutoStatus(startEl ? startEl.value : '', endEl ? endEl.value : '');
   sel.value = autoStatus;
   highlightProcSel(sel, autoStatus);
+  // 날짜가 입력된 경우 → 전체 공정을 날짜 기준 재정렬
+  _reorderProcByDate(phId);
+}
+
+// 날짜 기준 전체 공정 재정렬 후 리렌더링
+function _reorderProcByDate(changedPhId) {
+  // 1. 현재 DOM의 최신 날짜값을 _phCache에 반영
+  Object.keys(_phCache).forEach(function(id) {
+    var s = document.getElementById('pd-start-' + id);
+    var e = document.getElementById('pd-'       + id);
+    var sel = document.getElementById('ps-' + id);
+    if (s)   _phCache[id].startDate = s.value || null;
+    if (e)   _phCache[id].doneDate  = e.value || null;
+    if (sel) _phCache[id].status    = sel.value;
+  });
+
+  // 2. 날짜 기준 정렬 함수
+  //    - 시작일 있는 것끼리 → 시작일 오름차순
+  //    - 날짜 없는 것 → 원래 order 유지 (맨 뒤)
+  var phases = Object.values(_phCache);
+  phases.sort(function(a, b) {
+    var sa = a.startDate || '', sb = b.startDate || '';
+    var ea = a.doneDate  || '', eb = b.doneDate  || '';
+    var dateA = sa || ea;  // 시작일 없으면 완료일로 대체
+    var dateB = sb || eb;
+    if (dateA && dateB) return dateA < dateB ? -1 : dateA > dateB ? 1 : (a.order||0)-(b.order||0);
+    if (dateA) return -1;  // A만 날짜 있으면 앞으로
+    if (dateB) return  1;  // B만 날짜 있으면 앞으로
+    return (a.order||0) - (b.order||0); // 둘 다 없으면 기존 order
+  });
+
+  // 3. order 값 재할당
+  phases.forEach(function(ph, i) { ph.order = i; });
+
+  // 4. 리렌더링 (현재 변경한 공정에 포커스 유지)
+  renderProcEditRows(phases);
+  setTimeout(function() {
+    Object.values(_phCache).forEach(function(ph) {
+      var sel = document.getElementById('ps-' + ph.id);
+      if (sel) highlightProcSel(sel, sel.value);
+    });
+    // 변경한 공정으로 스크롤
+    var el = document.getElementById('prow-' + changedPhId);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 0);
 }
 
 // 수동 select 변경 → 색상만 갱신
@@ -1654,7 +1699,22 @@ function addProcPhase(){
 function closeProcEdit(){document.getElementById('proc-edit-modal').classList.remove('on');}
 
 async function saveProcEdit(){
-  const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
+  // 저장 전 DOM의 최신 날짜값으로 order 재확정
+  Object.keys(_phCache).forEach(function(id){
+    var s=document.getElementById("pd-start-"+id);
+    var e=document.getElementById("pd-"+id);
+    if(s)_phCache[id].startDate=s.value||null;
+    if(e)_phCache[id].doneDate=e.value||null;
+  });
+  var _allPh=Object.values(_phCache);
+  _allPh.sort(function(a,b){
+    var da=(a.startDate||a.doneDate||""),db=(b.startDate||b.doneDate||"");
+    if(da&&db)return da<db?-1:da>db?1:(a.order||0)-(b.order||0);
+    if(da)return -1;if(db)return 1;
+    return(a.order||0)-(b.order||0);
+  });
+  _allPh.forEach(function(ph,i){ph.order=i;});
+  const phases=_allPh;
   const saveBtn=document.querySelector('#proc-edit-modal .submit-btn');
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='⏳ 저장 중...';}
   try{
