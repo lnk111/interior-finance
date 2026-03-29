@@ -794,13 +794,13 @@ function initAuth(){
 function checkPw(){
   const pw=document.getElementById('lock-pw').value;
   const err=document.getElementById('lock-err');
-  if(pw==='1212'){
+  if(pw==='3073'){
     // boss 비밀번호
     sessionStorage.setItem('df_auth','boss');
     document.getElementById('lock').style.display='none';
     _role='boss';
     initApp();
-  } else if(pw==='1111'){
+  } else if(pw==='1212'){
     // staff 비밀번호
     sessionStorage.setItem('df_auth','staff');
     document.getElementById('lock').style.display='none';
