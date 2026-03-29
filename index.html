@@ -27,10 +27,15 @@ body{overscroll-behavior:none;}
 .page{display:none;padding:16px 16px 24px;min-height:100%;background:var(--bg);}
 .page.on{display:block;}
 #lock{position:fixed;inset:0;z-index:999;background:linear-gradient(160deg,#1a56db 0%,#1e40af 60%,#1e3a8a 100%);display:flex;align-items:center;justify-content:center;}
-.lock-box{text-align:center;padding:40px 28px;max-width:320px;width:90%;}
-.lock-icon{font-size:48px;margin-bottom:16px;}
-.lock-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;}
-.lock-sub{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;}
+.lock-card{background:#fff;border-radius:20px;padding:48px 36px 40px;width:90%;max-width:340px;text-align:center;}
+.lock-logo{font-size:13px;font-weight:800;letter-spacing:3px;color:#1a1a1a;margin-bottom:6px;}
+.lock-sub{font-size:11px;letter-spacing:2px;color:#999;margin-bottom:40px;}
+.lock-inp{width:100%;background:#f7f6f0;border:1.5px solid #e8e4d8;border-radius:10px;padding:18px 20px;font-size:22px;text-align:center;letter-spacing:8px;color:#1a1a1a;outline:none;font-family:'Pretendard',sans-serif;transition:border .2s;}
+.lock-inp:focus{border-color:#1a1a1a;}
+.lock-inp::placeholder{letter-spacing:4px;font-size:14px;color:#bbb;}
+.lock-btn{width:100%;padding:18px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;margin-top:12px;transition:opacity .15s;}
+.lock-btn:active{opacity:.85;}
+.lock-err{font-size:12px;color:#dc2626;margin-top:10px;min-height:18px;}
 .top-bar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;margin:-16px -16px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 0 var(--border);}
 .top-bar-title{font-size:17px;font-weight:800;color:var(--accent);}
 .conn{font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:4px;}
@@ -261,11 +266,15 @@ option{background:#fff;}
 </head>
 
 <body>
-<div id="lock" style="display:none;">
-  <div class="lock-box">
-    <div class="lock-icon">🔒</div>
-    <div class="lock-title">접근 제한</div>
-    <div class="lock-sub">올바른 링크로 접속해주세요.<br>담당자에게 문의하세요.</div>
+<div id="lock" style="display:none;position:fixed;inset:0;z-index:999;background:#2b2e22;align-items:center;justify-content:center;">
+  <div class="lock-card">
+    <div class="lock-logo">DESIGN FOR</div>
+    <div class="lock-sub">ADMIN DASHBOARD</div>
+    <input class="lock-inp" id="lock-pw" type="password" placeholder="비밀번호 입력"
+      onkeydown="if(event.key==='Enter')checkPw()"
+      oninput="document.getElementById('lock-err').textContent=''">
+    <button class="lock-btn" onclick="checkPw()">로그인</button>
+    <div class="lock-err" id="lock-err"></div>
   </div>
 </div>
 <div id="fullimg-overlay" onclick="hideFullImg()"><img id="fullimg-img" src="" alt=""></div>
@@ -769,16 +778,31 @@ function onProcSelChange(phId, sel) {
 }
 
 function initAuth(){
-  const p=new URLSearchParams(location.search);
-  const code=p.get('code')||localStorage.getItem('df_role');
-  if(code==='boss'||code==='staff'){
-    _role=code;localStorage.setItem('df_role',code);
+  // 이미 인증된 세션이면 바로 입장
+  const saved=sessionStorage.getItem('df_auth');
+  if(saved==='ok'){
     document.getElementById('lock').style.display='none';
-    const w=p.get('writer');
-    if(w)document.getElementById('f-writer').value=w;
+    _role='boss';
+    initApp();
+    return;
+  }
+  // 아니면 비밀번호 화면 표시
+  document.getElementById('lock').style.display='flex';
+  setTimeout(()=>document.getElementById('lock-pw')?.focus(),100);
+}
+
+function checkPw(){
+  const pw=document.getElementById('lock-pw').value;
+  const err=document.getElementById('lock-err');
+  if(pw==='1212'){
+    sessionStorage.setItem('df_auth','ok');
+    document.getElementById('lock').style.display='none';
+    _role='boss';
     initApp();
   } else {
-    document.getElementById('lock').style.display='flex';
+    err.textContent='비밀번호가 올바르지 않습니다.';
+    document.getElementById('lock-pw').value='';
+    document.getElementById('lock-pw').focus();
   }
 }
 
