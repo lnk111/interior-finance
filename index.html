@@ -780,9 +780,9 @@ function onProcSelChange(phId, sel) {
 function initAuth(){
   // 이미 인증된 세션이면 바로 입장
   const saved=sessionStorage.getItem('df_auth');
-  if(saved==='ok'){
+  if(saved==='boss'||saved==='staff'){
     document.getElementById('lock').style.display='none';
-    _role='boss';
+    _role=saved;
     initApp();
     return;
   }
@@ -795,9 +795,16 @@ function checkPw(){
   const pw=document.getElementById('lock-pw').value;
   const err=document.getElementById('lock-err');
   if(pw==='1212'){
-    sessionStorage.setItem('df_auth','ok');
+    // boss 비밀번호
+    sessionStorage.setItem('df_auth','boss');
     document.getElementById('lock').style.display='none';
     _role='boss';
+    initApp();
+  } else if(pw==='1111'){
+    // staff 비밀번호
+    sessionStorage.setItem('df_auth','staff');
+    document.getElementById('lock').style.display='none';
+    _role='staff';
     initApp();
   } else {
     err.textContent='비밀번호가 올바르지 않습니다.';
@@ -851,6 +858,8 @@ function initApp(){
 }
 
 function goPage(name){
+  // staff는 설정·손익 페이지 접근 차단
+  if(_role==='staff'&&(name==='settings'||name==='home'))return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
   document.getElementById('pg-'+name).classList.add('on');
