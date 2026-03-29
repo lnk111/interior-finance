@@ -1342,8 +1342,18 @@ function renderSites(){
     const profit=rev-cost-as;
     return `<div class="site-card" onclick="openSiteDetail('${k}')">
       <div class="site-card-top">
-        <div><div class="site-ym">${s.year||''}.${s.month||''}</div><div class="site-name">${s.name}</div></div>
-        <div><span class="badge b-${s.status}">${STATUS_LABEL[s.status]||s.status}</span><div class="site-profit" style="color:${profit>=0?'var(--green)':'var(--red)'};margin-top:6px;">${profit>=0?'+':''}${profit.toLocaleString()}원</div></div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <div class="site-ym">${s.year||''}.${s.month||''}</div>
+            <button onclick="event.stopPropagation();openSiteModal('${k}')"
+              style="background:rgba(26,86,219,.08);border:1px solid rgba(26,86,219,.2);border-radius:6px;color:var(--accent);font-size:10px;font-weight:700;padding:2px 8px;cursor:pointer;font-family:'Pretendard',sans-serif;white-space:nowrap;">✏️ 수정</button>
+          </div>
+          <div class="site-name">${s.name}</div>
+        </div>
+        <div style="flex-shrink:0;text-align:right;">
+          <span class="badge b-${s.status}">${STATUS_LABEL[s.status]||s.status}</span>
+          <div class="site-profit" style="color:${profit>=0?'var(--green)':'var(--red)'};margin-top:6px;">${profit>=0?'+':''}${profit.toLocaleString()}원</div>
+        </div>
       </div>
       <div class="site-grid">
         <div><div class="sc-label">매출</div><div class="sc-val" style="color:var(--green);">${rev.toLocaleString()}원</div></div>
@@ -1387,11 +1397,63 @@ async function saveSite(){
   if(!name){toast('⚠️ 현장명을 입력해주세요');return;}
   const data={name,year,month,status,createdAt:_editSiteKey?(_sites[_editSiteKey]?.createdAt||Date.now()):Date.now()};
   try{
-    if(_editSiteKey)await db.ref('siteInfo/'+_editSiteKey).update(data);
-    else await db.ref('siteInfo').push(data);
+    if(_editSiteKey){
+      const oldName=_sites[_editSiteKey]?.name||'';
+      const nameChanged=oldName&&oldName!==name;
+      if(nameChanged&&!confirm('현장명을 "'+oldName+'" → "'+name+'"으로 변경할까요?\n\n거래내역·공정 데이터도 모두 함께 변경됩니다.')){return;}
+
+      // 1. siteInfo 업데이트
+      await db.ref('siteInfo/'+_editSiteKey).update(data);
+
+      // 2. 현장명이 바뀐 경우 → entries·pending·procData도 일괄 변경
+      if(nameChanged){
+        const saveBtn=document.querySelector('#site-modal .submit-btn');
+        if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='⏳ 이름 변경 중...';}
+
+        // entries: site 필드가 oldName인 것 모두 newName으로
+        const entryUpdates={};
+        Object.entries(_entries).forEach(([ek,e])=>{
+          if(e.site===oldName) entryUpdates['entries/'+ek+'/site']=name;
+        });
+
+        // pending: site 필드 + allocations 안의 site 필드
+        const pendingSnap=await db.ref('pending').once('value');
+        const pendingData=pendingSnap.val()||{};
+        Object.entries(pendingData).forEach(([pk,p])=>{
+          if(p.site===oldName) entryUpdates['pending/'+pk+'/site']=name;
+          if(Array.isArray(p.allocations)){
+            p.allocations.forEach((a,i)=>{
+              if(a.site===oldName) entryUpdates['pending/'+pk+'/allocations/'+i+'/site']=name;
+            });
+          }
+        });
+
+        // procData: encKey(oldName) → encKey(newName) 으로 복사 후 삭제
+        const oldKey=encKey(oldName), newKey=encKey(name);
+        if(oldKey!==newKey){
+          const procSnap=await db.ref('procData/'+oldKey).once('value');
+          const procData=procSnap.val();
+          if(procData){
+            entryUpdates['procData/'+newKey]=procData;
+            entryUpdates['procData/'+oldKey]=null; // null = 삭제
+          }
+        }
+
+        if(Object.keys(entryUpdates).length>0){
+          await db.ref('/').update(entryUpdates);
+        }
+
+        if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='저장';}
+        toast('✅ 현장명 변경 완료 (관련 데이터 일괄 업데이트)');
+      } else {
+        toast('✅ 수정 완료');
+      }
+    } else {
+      await db.ref('siteInfo').push(data);
+      toast('✅ 현장 등록 완료');
+    }
     closeSiteModal();
-    toast(_editSiteKey?'✅ 수정 완료':'✅ 현장 등록 완료');
-  }catch(e){toast('❌ 저장 실패');}
+  }catch(e){console.error(e);toast('❌ 저장 실패: '+e.message);}
 }
 
 async function openSiteDetail(key){
