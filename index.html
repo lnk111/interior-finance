@@ -463,6 +463,20 @@ option{background:#fff;}
       <button onclick="saveFC()" style="margin-top:12px;width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:10px;padding:12px;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">💾 저장</button>
     </div>
     <div class="card"><div style="font-size:15px;font-weight:800;margin-bottom:12px;">📥 데이터 내보내기</div><button onclick="downloadCSV()" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:13px;color:var(--text);font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">현장별 손익 CSV 다운로드</button></div>
+
+    <!-- 직원 관리 -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:800;">👥 직원 관리</div>
+        <button onclick="openStaffModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">+ 직원 추가</button>
+      </div>
+      <!-- 서브탭 -->
+      <div style="display:flex;background:var(--s2);border-radius:10px;padding:3px;gap:3px;margin-bottom:14px;">
+        <button id="staff-tab-active" onclick="switchStaffTab('active')" style="flex:1;padding:8px;border:none;background:var(--surface3);color:var(--text);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">🟢 재직중</button>
+        <button id="staff-tab-left" onclick="switchStaffTab('left')" style="flex:1;padding:8px;border:none;background:transparent;color:var(--muted);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">🔴 퇴사자</button>
+      </div>
+      <div id="staff-list"></div>
+    </div>
   </div>
 </div>
 
@@ -635,6 +649,47 @@ option{background:#fff;}
     </div>
     <button class="submit-btn" id="qu-save-btn" onclick="quSave()">⚡ 임시 저장</button>
     <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--dim);">금액·공정은 나중에 미정리 탭에서 입력하세요</div>
+  </div>
+</div>
+
+<!-- 직원 추가/수정 모달 -->
+<div id="staff-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);flex-direction:column;justify-content:flex-end;">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 44px;max-height:88vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(26,86,219,.18);">
+    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-size:16px;font-weight:800;" id="staff-modal-title">👤 직원 추가</div>
+      <button onclick="closeStaffModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+    <input type="hidden" id="staff-edit-id">
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;">이름 *</label>
+      <input class="f-input" id="staff-name" type="text" placeholder="예) 이남경" style="margin-bottom:0;">
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;">직책</label>
+      <input class="f-input" id="staff-role" type="text" placeholder="예) 팀장, 대리, 인턴" style="margin-bottom:0;">
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;">입사일</label>
+      <input class="f-input" id="staff-join" type="date" style="margin-bottom:0;">
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;">월급 (원)</label>
+      <input class="f-input" id="staff-salary" type="text" inputmode="numeric" placeholder="예) 2,500,000" oninput="fmtN(this)" style="margin-bottom:0;">
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;">메모</label>
+      <input class="f-input" id="staff-memo" type="text" placeholder="특이사항" style="margin-bottom:0;">
+    </div>
+    <div id="staff-resign-wrap" style="display:none;margin-bottom:14px;">
+      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;">퇴사일</label>
+      <input class="f-input" id="staff-resign" type="date" style="margin-bottom:0;">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button onclick="closeStaffModal()" style="flex:1;padding:14px;background:var(--s2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">취소</button>
+      <button onclick="saveStaff()" style="flex:2;padding:14px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">저장</button>
+    </div>
+    <button id="staff-resign-btn" onclick="resignStaff()" style="display:none;width:100%;padding:13px;background:none;border:1px solid #fee2e2;border-radius:12px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;font-family:'Pretendard',sans-serif;">🚪 퇴사 처리</button>
   </div>
 </div>
 
@@ -823,6 +878,7 @@ function initApp(){
     document.getElementById('nb-home').style.display='none';
     document.getElementById('nb-settings').style.display='none';
   }
+  loadStaffData();
   document.getElementById('f-date').value=today();
   const yr=new Date().getFullYear();
   const ysel=document.getElementById('g-year');
@@ -875,7 +931,7 @@ function goPage(name){
   if(name==='pending')renderPending();
   if(name==='sites')renderSites();
   if(name==='knowhow')renderKnowhow();
-  if(name==='settings')initFCSelects();
+  if(name==='settings'){initFCSelects();renderStaffList();}
 }
 
 function renderDash(){
@@ -2138,6 +2194,167 @@ function downloadCSV(){
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
   a.download='interior_finance_'+today()+'.csv';
   a.click();
+}
+
+
+// ════════════════════════════════════════════
+//  직원 관리
+// ════════════════════════════════════════════
+var _staffTab = 'active';
+var _staffData = {};
+
+// Firebase에서 직원 데이터 로드
+function loadStaffData() {
+  db.ref('staffData').on('value', function(snap) {
+    _staffData = snap.val() || {};
+    renderStaffList();
+    updateWriterTags(); // 작성자 태그 동적 업데이트
+  });
+}
+
+// 재직/퇴사 탭 전환
+function switchStaffTab(tab) {
+  _staffTab = tab;
+  var activeBtn = document.getElementById('staff-tab-active');
+  var leftBtn   = document.getElementById('staff-tab-left');
+  if (!activeBtn) return;
+  if (tab === 'active') {
+    activeBtn.style.background = 'var(--surface3)'; activeBtn.style.color = 'var(--text)';
+    leftBtn.style.background = 'transparent';       leftBtn.style.color = 'var(--muted)';
+  } else {
+    leftBtn.style.background = 'var(--surface3)';   leftBtn.style.color = 'var(--text)';
+    activeBtn.style.background = 'transparent';     activeBtn.style.color = 'var(--muted)';
+  }
+  renderStaffList();
+}
+
+// 직원 목록 렌더링
+function renderStaffList() {
+  var el = document.getElementById('staff-list');
+  if (!el) return;
+  var all = Object.entries(_staffData);
+  var filtered = all.filter(function(e) {
+    return _staffTab === 'active' ? !e[1].resignDate : !!e[1].resignDate;
+  });
+  if (!filtered.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--dim);font-size:13px;">'
+      + (_staffTab === 'active' ? '등록된 직원이 없습니다.' : '퇴사자가 없습니다.') + '</div>';
+    return;
+  }
+  // 입사일 최신순 정렬
+  filtered.sort(function(a, b) { return (b[1].joinDate||'').localeCompare(a[1].joinDate||''); });
+  el.innerHTML = filtered.map(function(entry) {
+    var k = entry[0], s = entry[1];
+    var initials = (s.name||'?').slice(0,1);
+    var salary = s.salary ? parseInt(s.salary).toLocaleString('ko-KR') + '원' : '-';
+    var joinStr = s.joinDate ? s.joinDate.replace(/-/g, '.') : '-';
+    var resignStr = s.resignDate ? s.resignDate.replace(/-/g, '.') : '';
+    // 근속 계산
+    var tenure = '';
+    if (s.joinDate) {
+      var start = new Date(s.joinDate);
+      var end = s.resignDate ? new Date(s.resignDate) : new Date();
+      var months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+      if (months >= 12) tenure = Math.floor(months/12) + '년 ' + (months%12) + '개월';
+      else tenure = months + '개월';
+    }
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">'
+      + '<div style="width:40px;height:40px;border-radius:50%;background:rgba(26,86,219,.12);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">' + initials + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+      +   '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">'
+      +     '<span style="font-size:14px;font-weight:700;">' + (s.name||'') + '</span>'
+      +     (s.role ? '<span style="font-size:10px;background:rgba(79,158,255,.12);color:var(--accent);padding:2px 7px;border-radius:10px;font-weight:600;">' + s.role + '</span>' : '')
+      +     (s.resignDate ? '<span style="font-size:10px;background:rgba(246,102,102,.12);color:var(--red);padding:2px 7px;border-radius:10px;font-weight:600;">퇴사</span>' : '')
+      +   '</div>'
+      +   '<div style="font-size:11px;color:var(--muted);">입사 ' + joinStr + (tenure ? ' · ' + tenure : '') + (resignStr ? ' · 퇴사 ' + resignStr : '') + '</div>'
+      +   '<div style="font-size:11px;color:var(--text2);margin-top:1px;">월급 ' + salary + (s.memo ? ' · ' + s.memo : '') + '</div>'
+      + '</div>'
+      + '<button onclick="openStaffModal('' + k + '')" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;font-family:'Pretendard',sans-serif;flex-shrink:0;">수정</button>'
+      + '</div>';
+  }).join('');
+}
+
+// 작성자 태그를 Firebase 직원 목록으로 동적 업데이트
+function updateWriterTags() {
+  var tw = document.getElementById('tags-writer');
+  if (!tw) return;
+  var activeStaff = Object.values(_staffData).filter(function(s) { return !s.resignDate; });
+  if (!activeStaff.length) return;
+  activeStaff.sort(function(a, b) { return (a.joinDate||'').localeCompare(b.joinDate||''); });
+  tw.innerHTML = activeStaff.map(function(s) {
+    var label = s.name + (s.role ? ' ' + s.role : '');
+    return '<div class="tag" onclick="pickTag('writer','' + label + '')">' + label + '</div>';
+  }).join('') + '<div class="tag" onclick="pickCustom('writer')">✏️ 직접</div>';
+}
+
+// 모달 열기
+function openStaffModal(key) {
+  var modal = document.getElementById('staff-modal');
+  var titleEl = document.getElementById('staff-modal-title');
+  var resignWrap = document.getElementById('staff-resign-wrap');
+  var resignBtn = document.getElementById('staff-resign-btn');
+  document.getElementById('staff-edit-id').value = key || '';
+  if (key && _staffData[key]) {
+    var s = _staffData[key];
+    titleEl.textContent = '✏️ 직원 수정';
+    document.getElementById('staff-name').value = s.name || '';
+    document.getElementById('staff-role').value = s.role || '';
+    document.getElementById('staff-join').value = s.joinDate || '';
+    document.getElementById('staff-salary').value = s.salary ? parseInt(s.salary).toLocaleString('ko-KR') : '';
+    document.getElementById('staff-memo').value = s.memo || '';
+    document.getElementById('staff-resign').value = s.resignDate || '';
+    resignWrap.style.display = 'block';
+    resignBtn.style.display = s.resignDate ? 'none' : 'block';
+  } else {
+    titleEl.textContent = '👤 직원 추가';
+    ['staff-name','staff-role','staff-memo','staff-resign'].forEach(function(id) {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('staff-join').value = today();
+    document.getElementById('staff-salary').value = '';
+    resignWrap.style.display = 'none';
+    resignBtn.style.display = 'none';
+  }
+  modal.style.display = 'flex';
+}
+
+function closeStaffModal() {
+  document.getElementById('staff-modal').style.display = 'none';
+}
+
+// 저장
+async function saveStaff() {
+  var name = document.getElementById('staff-name').value.trim();
+  if (!name) { toast('⚠️ 이름을 입력하세요'); return; }
+  var key = document.getElementById('staff-edit-id').value;
+  var data = {
+    name: name,
+    role: document.getElementById('staff-role').value.trim(),
+    joinDate: document.getElementById('staff-join').value || '',
+    salary: parseN(document.getElementById('staff-salary').value) || 0,
+    memo: document.getElementById('staff-memo').value.trim(),
+  };
+  var resignVal = document.getElementById('staff-resign').value;
+  if (resignVal) data.resignDate = resignVal;
+  try {
+    if (key) await db.ref('staffData/' + key).update(data);
+    else await db.ref('staffData').push(data);
+    closeStaffModal();
+    toast(key ? '✅ 수정 완료' : '✅ 직원 추가 완료');
+  } catch(e) { toast('❌ 저장 실패'); }
+}
+
+// 퇴사 처리
+async function resignStaff() {
+  var key = document.getElementById('staff-edit-id').value;
+  var name = document.getElementById('staff-name').value;
+  if (!confirm(name + '님을 퇴사 처리할까요?')) return;
+  var resignDate = document.getElementById('staff-resign').value || today();
+  try {
+    await db.ref('staffData/' + key).update({ resignDate: resignDate });
+    closeStaffModal();
+    toast('🚪 퇴사 처리 완료');
+  } catch(e) { toast('❌ 처리 실패'); }
 }
 
 window.onload=initAuth;
