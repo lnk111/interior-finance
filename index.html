@@ -9,6 +9,7 @@
 <title>현장 손익 관리</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
+
 :root{
   --bg:#f0f4ff;--s1:#ffffff;--s2:#f5f7ff;--s3:#eaefff;
   --border:#dde3f5;--border2:#c8d2f0;--text:#0f172a;--muted:#64748b;--dim:#94a3c0;
@@ -827,6 +828,18 @@ function onProcSelChange(phId, sel) {
 }
 
 function initAuth(){
+  // URL ?code=staff 또는 ?code=boss 자동 로그인 지원
+  const urlCode=new URLSearchParams(location.search).get('code');
+  if(urlCode==='boss'||urlCode==='3073'){
+    sessionStorage.setItem('df_auth','boss');
+    document.getElementById('lock').style.display='none';
+    _role='boss'; initApp(); return;
+  }
+  if(urlCode==='staff'||urlCode==='1212'){
+    sessionStorage.setItem('df_auth','staff');
+    document.getElementById('lock').style.display='none';
+    _role='staff'; initApp(); return;
+  }
   const saved=sessionStorage.getItem('df_auth');
   if(saved==='boss'||saved==='staff'){
     document.getElementById('lock').style.display='none';
