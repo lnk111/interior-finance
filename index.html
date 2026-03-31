@@ -732,6 +732,16 @@ function fmtFull(n){return n.toLocaleString()+'원';}
 function today(){return new Date().toISOString().slice(0,10);}
 function toast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),dur);}
 
+// ── 숫자 유틸 (직원 관리용) ──────────────────
+function parseN(s){
+  if(!s)return 0;
+  return parseInt(String(s).replace(/[^0-9]/g,''))||0;
+}
+function fmtN(inp){
+  var n=parseN(inp.value);
+  inp.value=n?n.toLocaleString('ko-KR'):'';
+}
+
 function showFullImg(src){
   document.getElementById('fullimg-img').src=src;
   document.getElementById('fullimg-overlay').classList.add('on');
@@ -741,23 +751,18 @@ function hideFullImg(){
   document.getElementById('fullimg-img').src='';
 }
 
-// ════════════════════════════════════════════
-//  ★ 공정 상태 자동 계산
-//  시작일·완료일을 오늘과 비교해 상태를 결정
-// ════════════════════════════════════════════
 function calcAutoStatus(startDate, endDate) {
   var t = new Date(); t.setHours(0,0,0,0);
-  if (!startDate) return 'wait';                      // 시작일 없음 → 대기
+  if (!startDate) return 'wait';
   var s = new Date(startDate); s.setHours(0,0,0,0);
-  if (t < s) return 'wait';                           // 시작일 전 → 대기
+  if (t < s) return 'wait';
   if (endDate) {
     var e = new Date(endDate); e.setHours(0,0,0,0);
-    if (t > e) return 'done';                         // 완료일 지남 → 완료
+    if (t > e) return 'done';
   }
-  return 'active';                                    // 그 사이 → 진행중
+  return 'active';
 }
 
-// select 색상 강조
 function highlightProcSel(sel, status) {
   var map = {
     wait:   {bg:'rgba(148,163,184,.15)', color:'#64748b', border:'#94a3b8'},
@@ -771,7 +776,6 @@ function highlightProcSel(sel, status) {
   sel.style.borderColor = c.border;
 }
 
-// 날짜 변경 → 자동 상태 갱신 + 날짜 순서로 전체 재정렬
 function autoUpdateProcSel(phId) {
   var startEl = document.getElementById('pd-start-' + phId);
   var endEl   = document.getElementById('pd-'       + phId);
@@ -780,13 +784,10 @@ function autoUpdateProcSel(phId) {
   var autoStatus = calcAutoStatus(startEl ? startEl.value : '', endEl ? endEl.value : '');
   sel.value = autoStatus;
   highlightProcSel(sel, autoStatus);
-  // 날짜가 입력된 경우 → 전체 공정을 날짜 기준 재정렬
   _reorderProcByDate(phId);
 }
 
-// 날짜 기준 전체 공정 재정렬 후 리렌더링
 function _reorderProcByDate(changedPhId) {
-  // 1. 현재 DOM의 최신 날짜값을 _phCache에 반영
   Object.keys(_phCache).forEach(function(id) {
     var s = document.getElementById('pd-start-' + id);
     var e = document.getElementById('pd-'       + id);
@@ -796,44 +797,36 @@ function _reorderProcByDate(changedPhId) {
     if (sel) _phCache[id].status    = sel.value;
   });
 
-  // 2. 날짜 기준 정렬 함수
-  //    - 시작일 있는 것끼리 → 시작일 오름차순
-  //    - 날짜 없는 것 → 원래 order 유지 (맨 뒤)
   var phases = Object.values(_phCache);
   phases.sort(function(a, b) {
     var sa = a.startDate || '', sb = b.startDate || '';
     var ea = a.doneDate  || '', eb = b.doneDate  || '';
-    var dateA = sa || ea;  // 시작일 없으면 완료일로 대체
+    var dateA = sa || ea;
     var dateB = sb || eb;
     if (dateA && dateB) return dateA < dateB ? -1 : dateA > dateB ? 1 : (a.order||0)-(b.order||0);
-    if (dateA) return -1;  // A만 날짜 있으면 앞으로
-    if (dateB) return  1;  // B만 날짜 있으면 앞으로
-    return (a.order||0) - (b.order||0); // 둘 다 없으면 기존 order
+    if (dateA) return -1;
+    if (dateB) return  1;
+    return (a.order||0) - (b.order||0);
   });
 
-  // 3. order 값 재할당
   phases.forEach(function(ph, i) { ph.order = i; });
 
-  // 4. 리렌더링 (현재 변경한 공정에 포커스 유지)
   renderProcEditRows(phases);
   setTimeout(function() {
     Object.values(_phCache).forEach(function(ph) {
       var sel = document.getElementById('ps-' + ph.id);
       if (sel) highlightProcSel(sel, sel.value);
     });
-    // 변경한 공정으로 스크롤
     var el = document.getElementById('prow-' + changedPhId);
     if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
   }, 0);
 }
 
-// 수동 select 변경 → 색상만 갱신
 function onProcSelChange(phId, sel) {
   highlightProcSel(sel, sel.value);
 }
 
 function initAuth(){
-  // 이미 인증된 세션이면 바로 입장
   const saved=sessionStorage.getItem('df_auth');
   if(saved==='boss'||saved==='staff'){
     document.getElementById('lock').style.display='none';
@@ -841,7 +834,6 @@ function initAuth(){
     initApp();
     return;
   }
-  // 아니면 비밀번호 화면 표시
   document.getElementById('lock').style.display='flex';
   setTimeout(()=>document.getElementById('lock-pw')?.focus(),100);
 }
@@ -850,13 +842,11 @@ function checkPw(){
   const pw=document.getElementById('lock-pw').value;
   const err=document.getElementById('lock-err');
   if(pw==='3073'){
-    // boss 비밀번호
     sessionStorage.setItem('df_auth','boss');
     document.getElementById('lock').style.display='none';
     _role='boss';
     initApp();
   } else if(pw==='1212'){
-    // staff 비밀번호
     sessionStorage.setItem('df_auth','staff');
     document.getElementById('lock').style.display='none';
     _role='staff';
@@ -870,11 +860,9 @@ function checkPw(){
 
 function initApp(){
   if(_role==='boss'){
-    // boss만 손익·설정 탭 표시
     document.getElementById('nb-home').style.display='';
     document.getElementById('nb-settings').style.display='';
   } else {
-    // staff는 숨김 유지
     document.getElementById('nb-home').style.display='none';
     document.getElementById('nb-settings').style.display='none';
   }
@@ -919,7 +907,6 @@ function initApp(){
 }
 
 function goPage(name){
-  // staff는 설정·손익 페이지 접근 차단
   if(_role==='staff'&&(name==='settings'||name==='home'))return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
@@ -1496,21 +1483,17 @@ async function saveSite(){
       const nameChanged=oldName&&oldName!==name;
       if(nameChanged&&!confirm('현장명을 "'+oldName+'" → "'+name+'"으로 변경할까요?\n\n거래내역·공정 데이터도 모두 함께 변경됩니다.')){return;}
 
-      // 1. siteInfo 업데이트
       await db.ref('siteInfo/'+_editSiteKey).update(data);
 
-      // 2. 현장명이 바뀐 경우 → entries·pending·procData도 일괄 변경
       if(nameChanged){
         const saveBtn=document.querySelector('#site-modal .submit-btn');
         if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='⏳ 이름 변경 중...';}
 
-        // entries: site 필드가 oldName인 것 모두 newName으로
         const entryUpdates={};
         Object.entries(_entries).forEach(([ek,e])=>{
           if(e.site===oldName) entryUpdates['entries/'+ek+'/site']=name;
         });
 
-        // pending: site 필드 + allocations 안의 site 필드
         const pendingSnap=await db.ref('pending').once('value');
         const pendingData=pendingSnap.val()||{};
         Object.entries(pendingData).forEach(([pk,p])=>{
@@ -1522,14 +1505,13 @@ async function saveSite(){
           }
         });
 
-        // procData: encKey(oldName) → encKey(newName) 으로 복사 후 삭제
         const oldKey=encKey(oldName), newKey=encKey(name);
         if(oldKey!==newKey){
           const procSnap=await db.ref('procData/'+oldKey).once('value');
           const procData=procSnap.val();
           if(procData){
             entryUpdates['procData/'+newKey]=procData;
-            entryUpdates['procData/'+oldKey]=null; // null = 삭제
+            entryUpdates['procData/'+oldKey]=null;
           }
         }
 
@@ -1586,7 +1568,6 @@ async function _finishDetailRender(key){
     });
   }
 
-  // ★ Firebase에서 불러온 뒤 날짜 기반으로 상태 자동 갱신
   phases.forEach(ph => {
     if (ph.startDate || ph.doneDate) {
       ph.status = calcAutoStatus(ph.startDate || '', ph.doneDate || '');
@@ -1779,14 +1760,10 @@ async function deleteTask(phId,taskId){
   catch(e){toast('저장 실패');}
 }
 
-// ════════════════════════════════════════════
-//  ★ 공정 편집 모달 — 자동 상태 통합 버전
-// ════════════════════════════════════════════
 function openProcEdit(){
   const phases=Object.values(_phCache).sort((a,b)=>(a.order||0)-(b.order||0));
   renderProcEditRows(phases);
   document.getElementById('proc-edit-modal').classList.add('on');
-  // 렌더 직후 모든 공정에 자동 상태 반영
   setTimeout(()=>{
     Object.values(_phCache).forEach(ph => autoUpdateProcSel(ph.id));
   }, 0);
@@ -1855,7 +1832,6 @@ function addProcPhase(){
 function closeProcEdit(){document.getElementById('proc-edit-modal').classList.remove('on');}
 
 async function saveProcEdit(){
-  // 저장 전 DOM의 최신 날짜값으로 order 재확정
   Object.keys(_phCache).forEach(function(id){
     var s=document.getElementById("pd-start-"+id);
     var e=document.getElementById("pd-"+id);
@@ -1885,7 +1861,6 @@ async function saveProcEdit(){
       const rawStart=(document.getElementById('pd-start-'+ph.id)?.value||'').trim()||null;
       const rawEnd  =(document.getElementById('pd-'+ph.id)?.value||'').trim()||null;
 
-      // ★ 핵심: 날짜가 있으면 자동 계산, 없으면 수동 select 값 사용
       const autoSt  = calcAutoStatus(rawStart||'', rawEnd||'');
       const manualSt= document.getElementById('ps-'+ph.id)?.value || ph.status || 'wait';
       const status  = (rawStart||rawEnd) ? autoSt : manualSt;
@@ -1945,7 +1920,6 @@ async function renderDesignFor(){
     } else {
       phases=DEFAULT_PROC.map((name,i)=>({id:'ph_'+i,name,status:'wait',order:i,tasks:{}}));
     }
-    // ★ 디자인포 타임라인에도 자동 상태 반영
     phases.forEach(ph=>{
       if(ph.startDate||ph.doneDate){
         ph.status=calcAutoStatus(ph.startDate||'',ph.doneDate||'');
@@ -2203,32 +2177,30 @@ function downloadCSV(){
 var _staffTab = 'active';
 var _staffData = {};
 
-// Firebase에서 직원 데이터 로드
 function loadStaffData() {
   db.ref('staffData').on('value', function(snap) {
     _staffData = snap.val() || {};
     renderStaffList();
-    updateWriterTags(); // 작성자 태그 동적 업데이트
+    updateWriterTags();
   });
 }
 
-// 재직/퇴사 탭 전환
 function switchStaffTab(tab) {
   _staffTab = tab;
   var activeBtn = document.getElementById('staff-tab-active');
   var leftBtn   = document.getElementById('staff-tab-left');
   if (!activeBtn) return;
   if (tab === 'active') {
-    activeBtn.style.background = 'var(--surface3)'; activeBtn.style.color = 'var(--text)';
-    leftBtn.style.background = 'transparent';       leftBtn.style.color = 'var(--muted)';
+    activeBtn.style.background = 'var(--s1)'; activeBtn.style.color = 'var(--text)';
+    leftBtn.style.background = 'transparent'; leftBtn.style.color = 'var(--muted)';
   } else {
-    leftBtn.style.background = 'var(--surface3)';   leftBtn.style.color = 'var(--text)';
-    activeBtn.style.background = 'transparent';     activeBtn.style.color = 'var(--muted)';
+    leftBtn.style.background = 'var(--s1)';   leftBtn.style.color = 'var(--text)';
+    activeBtn.style.background = 'transparent'; activeBtn.style.color = 'var(--muted)';
   }
   renderStaffList();
 }
 
-// 직원 목록 렌더링
+// ★ 버그 수정: innerHTML 문자열 따옴표 충돌 → createElement 방식으로 변경
 function renderStaffList() {
   var el = document.getElementById('staff-list');
   if (!el) return;
@@ -2241,15 +2213,14 @@ function renderStaffList() {
       + (_staffTab === 'active' ? '등록된 직원이 없습니다.' : '퇴사자가 없습니다.') + '</div>';
     return;
   }
-  // 입사일 최신순 정렬
   filtered.sort(function(a, b) { return (b[1].joinDate||'').localeCompare(a[1].joinDate||''); });
-  el.innerHTML = filtered.map(function(entry) {
+  el.innerHTML = '';
+  filtered.forEach(function(entry) {
     var k = entry[0], s = entry[1];
     var initials = (s.name||'?').slice(0,1);
     var salary = s.salary ? parseInt(s.salary).toLocaleString('ko-KR') + '원' : '-';
     var joinStr = s.joinDate ? s.joinDate.replace(/-/g, '.') : '-';
     var resignStr = s.resignDate ? s.resignDate.replace(/-/g, '.') : '';
-    // 근속 계산
     var tenure = '';
     if (s.joinDate) {
       var start = new Date(s.joinDate);
@@ -2258,8 +2229,10 @@ function renderStaffList() {
       if (months >= 12) tenure = Math.floor(months/12) + '년 ' + (months%12) + '개월';
       else tenure = months + '개월';
     }
-    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">'
-      + '<div style="width:40px;height:40px;border-radius:50%;background:rgba(26,86,219,.12);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">' + initials + '</div>'
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);';
+    row.innerHTML =
+      '<div style="width:40px;height:40px;border-radius:50%;background:rgba(26,86,219,.12);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">' + initials + '</div>'
       + '<div style="flex:1;min-width:0;">'
       +   '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">'
       +     '<span style="font-size:14px;font-weight:700;">' + (s.name||'') + '</span>'
@@ -2267,27 +2240,40 @@ function renderStaffList() {
       +     (s.resignDate ? '<span style="font-size:10px;background:rgba(246,102,102,.12);color:var(--red);padding:2px 7px;border-radius:10px;font-weight:600;">퇴사</span>' : '')
       +   '</div>'
       +   '<div style="font-size:11px;color:var(--muted);">입사 ' + joinStr + (tenure ? ' · ' + tenure : '') + (resignStr ? ' · 퇴사 ' + resignStr : '') + '</div>'
-      +   '<div style="font-size:11px;color:var(--text2);margin-top:1px;">월급 ' + salary + (s.memo ? ' · ' + s.memo : '') + '</div>'
-      + '</div>'
-      + '<button onclick="openStaffModal('' + k + '')" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;font-family:'Pretendard',sans-serif;flex-shrink:0;">수정</button>'
+      +   '<div style="font-size:11px;color:var(--muted);margin-top:1px;">월급 ' + salary + (s.memo ? ' · ' + s.memo : '') + '</div>'
       + '</div>';
-  }).join('');
+    var btn = document.createElement('button');
+    btn.textContent = '수정';
+    btn.style.cssText = 'background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--text);cursor:pointer;font-family:Pretendard,sans-serif;flex-shrink:0;';
+    btn.addEventListener('click', function() { openStaffModal(k); });
+    row.appendChild(btn);
+    el.appendChild(row);
+  });
 }
 
-// 작성자 태그를 Firebase 직원 목록으로 동적 업데이트
+// ★ 버그 수정: 따옴표 충돌 → addEventListener 방식으로 변경
 function updateWriterTags() {
   var tw = document.getElementById('tags-writer');
   if (!tw) return;
   var activeStaff = Object.values(_staffData).filter(function(s) { return !s.resignDate; });
   if (!activeStaff.length) return;
   activeStaff.sort(function(a, b) { return (a.joinDate||'').localeCompare(b.joinDate||''); });
-  tw.innerHTML = activeStaff.map(function(s) {
+  tw.innerHTML = '';
+  activeStaff.forEach(function(s) {
     var label = s.name + (s.role ? ' ' + s.role : '');
-    return '<div class="tag" onclick="pickTag('writer','' + label + '')">' + label + '</div>';
-  }).join('') + '<div class="tag" onclick="pickCustom('writer')">✏️ 직접</div>';
+    var div = document.createElement('div');
+    div.className = 'tag';
+    div.textContent = label;
+    div.addEventListener('click', function() { pickTag('writer', label); });
+    tw.appendChild(div);
+  });
+  var customDiv = document.createElement('div');
+  customDiv.className = 'tag';
+  customDiv.textContent = '✏️ 직접';
+  customDiv.addEventListener('click', function() { pickCustom('writer'); });
+  tw.appendChild(customDiv);
 }
 
-// 모달 열기
 function openStaffModal(key) {
   var modal = document.getElementById('staff-modal');
   var titleEl = document.getElementById('staff-modal-title');
@@ -2322,7 +2308,6 @@ function closeStaffModal() {
   document.getElementById('staff-modal').style.display = 'none';
 }
 
-// 저장
 async function saveStaff() {
   var name = document.getElementById('staff-name').value.trim();
   if (!name) { toast('⚠️ 이름을 입력하세요'); return; }
@@ -2344,7 +2329,6 @@ async function saveStaff() {
   } catch(e) { toast('❌ 저장 실패'); }
 }
 
-// 퇴사 처리
 async function resignStaff() {
   var key = document.getElementById('staff-edit-id').value;
   var name = document.getElementById('staff-name').value;
