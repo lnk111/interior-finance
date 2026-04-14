@@ -703,20 +703,19 @@ function renderRecentEntries(){
       if(e.payMethod)extraBadges+='<span style="font-size:10px;background:rgba(26,86,219,.1);color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">'+(PAY_LABEL[e.payMethod]||e.payMethod)+'</span>';
       if(e.statement)extraBadges+='<span style="font-size:10px;background:'+(e.statement==='yes'?'rgba(5,150,105,.1)':'rgba(220,38,38,.1)')+';color:'+(e.statement==='yes'?'var(--green)':'var(--red)')+';padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">'+(STMT_LABEL[e.statement]||e.statement)+'</span>';
     }
-    return '<div class="entry-row" style="position:relative;">'
-      +'<div class="entry-left">'
-      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;"><span class="e-type '+e.type+'">'+(e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS')+'</span><span style="font-size:13px;font-weight:600;">'+(e.site||'')+'</span>'+extraBadges+'</div>'
-      +'<div class="e-info">'+(e.process||'')+(e.memo?' · '+e.memo:'')+'</div>'
-      +'<div class="e-writer">👤 '+(e.writer||'')+' · '+(e.date||'')+'</div>'
-      +'</div>'
-      +'<div style="display:flex;align-items:center;gap:6px;">'
-      +'<div class="e-amount '+e.type+'">'+(e.type==='revenue'?'+':'-')+fmt(e.amount||0)+'원</div>'
-      +'<div class="kebab-wrap"><button class="kebab-btn" data-entry-key="'+k+'">⋯</button>'
+    return '<div class="entry-row" style="position:relative;display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:6px;">'
+      +'<div class="kebab-wrap" style="flex-shrink:0;"><button class="kebab-btn" data-entry-key="'+k+'">⋯</button>'
       +'<div class="kebab-menu" id="km-'+k+'" style="display:none;">'
       +'<button class="kebab-item" data-action="edit" data-entry-key="'+k+'">✏️ 수정</button>'
       +'<button class="kebab-item kebab-del" data-action="delete" data-entry-key="'+k+'">🗑️ 삭제</button>'
       +'</div></div>'
-      +'</div></div>';
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;"><span class="e-type '+e.type+'">'+(e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS')+'</span><span style="font-size:13px;font-weight:600;">'+(e.site||'')+'</span>'+extraBadges+'</div>'
+      +'<div class="e-info">'+(e.process||'')+(e.memo?' · '+e.memo:'')+'</div>'
+      +'<div class="e-writer">👤 '+(e.writer||'')+' · '+(e.date||'')+'</div>'
+      +'</div>'
+      +'<div style="flex-shrink:0;"><div class="e-amount '+e.type+'">'+(e.type==='revenue'?'+':'-')+fmt(e.amount||0)+'원</div></div>'
+      +'</div>';
   }).join('');
 }
 
@@ -838,8 +837,8 @@ async function _finishDetailRender(key){
   const entryRows=entryArr.map(([ek,e])=>{
     var extraBadges='';
     if(e.type==='revenue'){if(e.payMethod)extraBadges+='<span style="font-size:10px;background:rgba(26,86,219,.1);color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">'+(PAY_LABEL[e.payMethod]||e.payMethod)+'</span>';if(e.statement)extraBadges+='<span style="font-size:10px;background:'+(e.statement==='yes'?'rgba(5,150,105,.1)':'rgba(220,38,38,.1)')+';color:'+(e.statement==='yes'?'var(--green)':'var(--red)')+';padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">'+(STMT_LABEL[e.statement]||e.statement)+'</span>';}
-    var kebabHtml=_role==='boss'?'<div class="kebab-wrap"><button class="kebab-btn" data-entry-key="'+ek+'">⋯</button><div class="kebab-menu" id="km-'+ek+'" style="display:none;"><button class="kebab-item" data-action="edit" data-entry-key="'+ek+'">✏️ 수정</button><button class="kebab-item kebab-del" data-action="delete" data-entry-key="'+ek+'">🗑️ 삭제</button></div></div>':'';
-    return '<div class="entry-row" style="position:relative;"><div class="entry-left"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;"><span class="e-type '+e.type+'">'+(e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS')+'</span><span style="font-size:13px;font-weight:600;">'+(e.process||'')+'</span>'+extraBadges+(e.memo?'<span class="e-info"> · '+e.memo+'</span>':'')+'</div><div class="e-writer">👤 '+(e.writer||'')+' · '+(e.date||'')+'</div></div><div style="display:flex;align-items:center;gap:6px;"><div class="e-amount '+e.type+'">'+(e.type==='revenue'?'+':'-')+fmt(e.amount||0)+'원</div>'+kebabHtml+'</div></div>';
+    var kebabHtml=_role==='boss'?'<div class="kebab-wrap" style="flex-shrink:0;"><button class="kebab-btn" data-entry-key="'+ek+'">⋯</button><div class="kebab-menu" id="km-'+ek+'" style="display:none;"><button class="kebab-item" data-action="edit" data-entry-key="'+ek+'">✏️ 수정</button><button class="kebab-item kebab-del" data-action="delete" data-entry-key="'+ek+'">🗑️ 삭제</button></div></div>':'';
+    return '<div class="entry-row" style="position:relative;display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:6px;">'+kebabHtml+'<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;"><span class="e-type '+e.type+'">'+(e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS')+'</span><span style="font-size:13px;font-weight:600;">'+(e.process||'')+'</span>'+extraBadges+(e.memo?'<span class="e-info"> · '+e.memo+'</span>':'')+'</div><div class="e-writer">👤 '+(e.writer||'')+' · '+(e.date||'')+'</div></div><div style="flex-shrink:0;"><div class="e-amount '+e.type+'">'+(e.type==='revenue'?'+':'-')+fmt(e.amount||0)+'원</div></div></div>';
   }).join('');
 
   // 공정별 매입
