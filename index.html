@@ -242,11 +242,11 @@ body { margin: 0; background: #f1f5f9; }
       <div class="top-bar-title">🏠 디자인포</div>
       <div id="conn2" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
     </div>
-    <div style="display:flex;background:var(--s2);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px;">
+    <div style="display:flex;background:var(--s2);border-radius:12px;padding:4px;gap:4px;margin-bottom:16px;">
       <button id="df-tab-active" onclick="setDfTab('active')" style="flex:1;padding:10px;border:none;background:#1a56db;color:#fff;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;box-shadow:0 2px 8px rgba(26,86,219,.3);">🔨 공사중</button>
       <button id="df-tab-as" onclick="setDfTab('as')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;">🔧 AS관리</button>
     </div>
-    <div id="df-site-status" style="margin-bottom:16px;"></div>
+    <div id="df-site-status" style="display:none;"></div>
     <div id="df-timelines"></div>
   </div>
 
@@ -1171,7 +1171,14 @@ async function renderDesignFor(){
   var allSites=Object.entries(_sites);
   if(allSites.length>0){var autoSnaps=await Promise.all(allSites.map(function(e){return db.ref('procData/'+encKey(e[1].name)).once('value');}));var updates={};allSites.forEach(function(entry,idx){var key=entry[0],s=entry[1],procRaw=autoSnaps[idx].val()||{};if(Object.keys(procRaw).length===0)return;var phases=Object.values(procRaw).map(function(ph){return Object.assign({},ph,{status:calcAutoStatus(ph.startDate||'',ph.doneDate||'')});});var newStatus=calcSiteAutoStatus(phases);if(newStatus&&newStatus!==s.status)updates['siteInfo/'+key+'/status']=newStatus;});if(Object.keys(updates).length>0){await db.ref('/').update(updates);return;}}
   var cnt={active:0,as:0,contract:0};Object.values(_sites).forEach(function(s){if(cnt[s.status]!==undefined)cnt[s.status]++;});
-  document.getElementById('df-site-status').innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;">'+(cnt.contract?'<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-contract">📝 계약완료</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.contract+'</span></div>':'')+(cnt.active?'<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-active">🔨 공사중</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.active+'</span></div>':'')+(cnt.as?'<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-as">🔧 AS관리</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.as+'</span></div>':'')+'</div>';
+  // 탭 버튼에 현장 수 표시
+  var tabActive=document.getElementById('df-tab-active');
+  var tabAs=document.getElementById('df-tab-as');
+  if(tabActive)tabActive.innerHTML='🔨 공사중'+(cnt.active?'&nbsp;<span style="background:rgba(255,255,255,.3);border-radius:20px;padding:1px 8px;font-size:12px;">'+cnt.active+'</span>':'');
+  if(tabAs)tabAs.innerHTML='🔧 AS관리'+(cnt.as?'&nbsp;<span style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:12px;">'+cnt.as+'</span>':'');
+  // 탭 활성 스타일 동기화
+  if(tabActive){tabActive.style.background=_dfTab==='active'?'#1a56db':'transparent';tabActive.style.color=_dfTab==='active'?'#fff':'var(--muted)';tabActive.style.boxShadow=_dfTab==='active'?'0 2px 8px rgba(26,86,219,.3)':'none';}
+  if(tabAs){tabAs.style.background=_dfTab==='as'?'#059669':'transparent';tabAs.style.color=_dfTab==='as'?'#fff':'var(--muted)';tabAs.style.boxShadow=_dfTab==='as'?'0 2px 8px rgba(5,150,105,.3)':'none';}
   if(_dfTab==='as'){_renderDfAs();return;}_renderDfActive();
 }
 function _renderDfAs(){
