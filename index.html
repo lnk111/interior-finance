@@ -92,6 +92,16 @@
     </div>
     <div class="card" style="margin-bottom:10px;"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">📋 현재 현장 현황</div><div id="dash-site-status"></div></div>
     <div class="card"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🏆 현장 순이익 TOP 3</div><div id="top3"></div></div>
+
+    <!-- ★ 전체 현장 공정별 누적 매입 -->
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);">📊 공정별 누적 매입</div>
+        <div style="font-size:11px;color:var(--muted);" id="dash-proc-period">전체 현장 합산</div>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:12px;">어느 공정에 가장 많이 쓰고 있나요?</div>
+      <div id="dash-proc-chart"></div>
+    </div>
   </div>
 
   <!-- 거래 입력 -->
@@ -822,6 +832,88 @@ function renderDash(){
       <div style="flex:1;min-width:0;"><div class="top3-name">${s.name}</div><div class="bar-wrap"><div class="bar-inner" style="width:${Math.max(0,s.profit/max*100)}%;background:${s.profit>=0?'var(--green)':'var(--red)'};"></div></div></div>
       <div class="top3-profit" style="color:${s.profit>=0?'var(--green)':'var(--red)'}">${s.profit>=0?'+':''}${fmt(s.profit)}원</div>
     </div>`).join('')||'<div class="empty"><div class="empty-ico">📊</div>데이터 없음</div>';
+
+  // ── 전체 현장 공정별 누적 매입 집계 ─────────────
+  renderDashProcChart(yr, mo);
+}
+
+function renderDashProcChart(yr, mo) {
+  const el = document.getElementById('dash-proc-chart');
+  const periodEl = document.getElementById('dash-proc-period');
+  if (!el) return;
+
+  // 기간 필터 적용해서 집계
+  const procMap = {};
+  let totalCost = 0;
+  Object.values(_entries).forEach(e => {
+    if (e.type !== 'cost' && e.type !== 'as') return;
+    if (yr && !e.date?.startsWith(yr)) return;
+    if (mo && e.date?.slice(5,7) !== mo) return;
+    const pk = e.process || '기타';
+    procMap[pk] = (procMap[pk] || 0) + (e.amount || 0);
+    totalCost += e.amount || 0;
+  });
+
+  // 기간 텍스트
+  if (periodEl) {
+    periodEl.textContent = yr && mo ? yr+'년 '+parseInt(mo)+'월' : yr ? yr+'년 전체' : '전체 현장 합산';
+  }
+
+  const procArr = Object.entries(procMap).sort((a,b) => b[1]-a[1]);
+  if (!procArr.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px 0;"><div class="empty-ico">📊</div>매입 내역 없음</div>';
+    return;
+  }
+
+  const SHOW = 5;
+  const maxAmt = procArr[0][1];
+  const RANK_BG = ['background:#faeeda;color:#633806;','background:#d3d1c7;color:#2c2c2a;','background:#faece7;color:#4a1b0c;'];
+
+  function makeRow(pname, amt, idx) {
+    const pct   = Math.round(amt / maxAmt * 100);
+    const ratio = totalCost > 0 ? Math.round(amt / totalCost * 100) : 0;
+    const rankSt = idx < 3 ? RANK_BG[idx] : 'background:var(--s3);color:var(--muted);';
+    const barCol = idx === 0 ? '#185fa5' : idx <= 2 ? '#378add' : '#85b7eb';
+    return '<div style="margin-bottom:13px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      +   '<div style="display:flex;align-items:center;gap:7px;">'
+      +     '<div style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;' + rankSt + '">' + (idx+1) + '</div>'
+      +     '<span style="font-size:14px;font-weight:600;color:var(--text);">' + (PROC_ICONS[pname]||'') + '&nbsp;' + pname + '</span>'
+      +   '</div>'
+      +   '<div style="text-align:right;">'
+      +     '<div style="font-size:15px;font-weight:700;color:var(--text);">' + fmtFull(amt) + '</div>'
+      +     '<div style="font-size:11px;color:var(--muted);">전체 매입의 ' + ratio + '%</div>'
+      +   '</div>'
+      + '</div>'
+      + '<div style="background:var(--s3);border-radius:8px;height:12px;overflow:hidden;">'
+      +   '<div style="width:' + pct + '%;height:100%;background:' + barCol + ';border-radius:8px;"></div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  const topRows  = procArr.slice(0, SHOW).map(([n,a],i) => makeRow(n,a,i)).join('');
+  const restRows = procArr.slice(SHOW).map(([n,a],i)  => makeRow(n,a,i+SHOW)).join('');
+  const restCount = procArr.length - SHOW;
+
+  el.innerHTML = topRows
+    + (restCount > 0
+      ? '<div id="dash-proc-rest" style="display:none;">' + restRows + '</div>'
+        + '<button onclick="toggleDashProcMore(this)" data-count="' + restCount + '"'
+        + ' style="width:100%;padding:12px;border:0.5px solid var(--border);background:var(--s2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:2px;font-family:Pretendard,sans-serif;">'
+        + '+ 나머지 ' + restCount + '개 더 보기</button>'
+      : '')
+    + '<div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);margin-top:6px;">'
+    +   '<div style="font-size:13px;color:var(--muted);font-weight:600;">총 매입</div>'
+    +   '<div style="font-size:15px;font-weight:700;">' + fmtFull(totalCost) + '</div>'
+    + '</div>';
+}
+
+function toggleDashProcMore(btn) {
+  var rest = document.getElementById('dash-proc-rest');
+  if (!rest) return;
+  var open = rest.style.display === 'none';
+  rest.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '▲ 접기' : '+ 나머지 ' + btn.dataset.count + '개 더 보기';
 }
 
 function toggleDashDetail(){
@@ -1547,7 +1639,7 @@ async function _finishDetailRender(key){
     </div>`;
   }).join('');
 
-  // ── 공정별 매입 금액 집계 ─────────────────────
+  // ── 공정별 매입 집계 (A: 더보기 방식) ───────────
   const procCostMap = {};
   entryArr.forEach(([,e]) => {
     if (e.type === 'cost' || e.type === 'as') {
@@ -1557,22 +1649,39 @@ async function _finishDetailRender(key){
   });
   const procCostArr = Object.entries(procCostMap).sort((a,b) => b[1]-a[1]);
   const maxProcCost = procCostArr[0]?.[1] || 1;
-  const procChartHtml = procCostArr.length > 0 ? procCostArr.map(([pname, amt]) => {
+  const RANK_STYLE = [
+    'background:#faeeda;color:#633806;',
+    'background:#d3d1c7;color:#2c2c2a;',
+    'background:#faece7;color:#4a1b0c;'
+  ];
+  function makeProcRow(pname, amt, idx) {
     const pp = Math.round(amt / maxProcCost * 100);
     const ratio = cost > 0 ? Math.round(amt / cost * 100) : 0;
-    const bc = pp>=80?'#ef4444':pp>=50?'#f97316':pp>=25?'#1a56db':'#059669';
-    return '<div style="margin-bottom:10px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;">'
-      +'<span>'+(PROC_ICONS[pname]||'🔹')+'</span><span>'+pname+'</span>'
-      +'<span style="font-size:10px;font-weight:600;color:var(--muted);">'+ratio+'%</span>'
+    const barColor = idx===0?'#185fa5':idx===1?'#378add':idx===2?'#378add':'#85b7eb';
+    const rankSt = idx < 3 ? RANK_STYLE[idx] : 'background:var(--s3);color:var(--muted);';
+    return '<div style="margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      +'<div style="display:flex;align-items:center;gap:7px;">'
+      +'<div style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;'+rankSt+'">'+(idx+1)+'</div>'
+      +'<span style="font-size:14px;font-weight:600;color:var(--text);">'+(PROC_ICONS[pname]||'')+'&nbsp;'+pname+'</span>'
       +'</div>'
-      +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:'+bc+';">'+fmt(amt)+'원</div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:15px;font-weight:700;color:var(--text);">'+fmtFull(amt)+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);">전체 매입의 '+ratio+'%</div>'
       +'</div>'
-      +'<div style="background:var(--s3);border-radius:6px;height:8px;overflow:hidden;">'
-      +'<div style="width:'+pp+'%;height:100%;background:'+bc+';border-radius:6px;"></div>'
-      +'</div></div>';
-  }).join('') : '<div style="font-size:12px;color:var(--dim);text-align:center;padding:10px 0;">매입 내역 없음</div>';
+      +'</div>'
+      +'<div style="background:var(--s3);border-radius:8px;height:12px;overflow:hidden;">'
+      +'<div style="width:'+pp+'%;height:100%;background:'+barColor+';border-radius:8px;"></div>'
+      +'</div>'
+      +'</div>';
+  }
+  const SHOW_FIRST = 5;
+  const procTop = procCostArr.slice(0, SHOW_FIRST);
+  const procRest = procCostArr.slice(SHOW_FIRST);
+  const procTopHtml = procTop.map(([n,a],i) => makeProcRow(n,a,i)).join('');
+  const procRestHtml = procRest.length > 0
+    ? procRest.map(([n,a],i) => makeProcRow(n,a,i+SHOW_FIRST)).join('')
+    : '';
 
   // ── 결제단계별 집계 ───────────────────────────
   const stageCostMap = {};
@@ -1583,55 +1692,34 @@ async function _finishDetailRender(key){
     }
   });
   const stageOrder2 = ['계약금','착수금','중도금','잔금'];
-  const stageCostArr = Object.entries(stageCostMap).sort((a,b)=>{
-    const ia=stageOrder2.indexOf(a[0]),ib=stageOrder2.indexOf(b[0]);
-    if(ia>=0&&ib>=0)return ia-ib; if(ia>=0)return -1; if(ib>=0)return 1; return 0;
-  });
-  const maxStageAmt = stageCostArr[0]?.[1] || 1;
   const stageIcons2 = {'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
   const stageColors2 = {'계약금':'#1a56db','착수금':'#f97316','중도금':'#7c3aed','잔금':'#059669'};
-  const stageChartHtml = stageCostArr.length > 0 ? stageCostArr.map(([sname, samt]) => {
-    const sp = Math.round(samt / maxStageAmt * 100);
-    const sratio = rev > 0 ? Math.round(samt / rev * 100) : 0;
-    const sc = stageColors2[sname]||'#94a3b8';
-    return '<div style="margin-bottom:10px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-      +'<div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;">'
-      +'<span>'+(stageIcons2[sname]||'💰')+'</span><span>'+sname+'</span>'
-      +'<span style="font-size:10px;font-weight:600;color:var(--muted);">'+sratio+'%</span>'
-      +'</div>'
-      +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:'+sc+';">'+fmt(samt)+'원</div>'
-      +'</div>'
-      +'<div style="background:var(--s3);border-radius:6px;height:8px;overflow:hidden;">'
-      +'<div style="width:'+sp+'%;height:100%;background:'+sc+';border-radius:6px;"></div>'
-      +'</div></div>';
-  }).join('') : '<div style="font-size:12px;color:var(--dim);text-align:center;padding:10px 0;">매출 내역 없음</div>';
+  const maxStageAmt = stageOrder2.reduce((m,s) => Math.max(m, stageCostMap[s]||0), 1);
+  const stageCardsHtml = stageOrder2.map(stg => {
+    const a = stageCostMap[stg] || 0;
+    const sp = Math.round(a / maxStageAmt * 100);
+    const isEmpty = a === 0;
+    return '<div style="background:var(--s2);border-radius:12px;padding:12px;'+(isEmpty?'opacity:.45;':'')+'">'      +'<div style="font-size:18px;margin-bottom:6px;">'+(stageIcons2[stg]||'')+'</div>'      +'<div style="font-size:12px;color:var(--muted);margin-bottom:3px;">'+stg+'</div>'      +'<div style="font-size:15px;font-weight:700;color:'+(isEmpty?'var(--dim)':'var(--text)')+';">'        +(isEmpty?'미수금':fmtFull(a))+'</div>'      +'<div style="margin-top:7px;background:var(--s3);border-radius:4px;height:5px;">'        +'<div style="width:'+sp+'%;height:5px;border-radius:4px;background:'+(stageColors2[stg]||'#94a3b8')+';"></div>'      +'</div>'      +'</div>';
+  }).join('');
 
-  // 매입 vs 이익 비율 바
+  // ── 전체 비율 스택바 ──────────────────────────
   const totalBar = rev > 0 ? rev : (cost+as+1);
-  const costPct  = Math.round(cost/totalBar*100);
-  const asPct    = Math.round(as/totalBar*100);
-  const profitPct= Math.max(0, Math.round((rev-cost-as)/totalBar*100));
-  const stackBarHtml = '<div style="display:flex;height:10px;border-radius:8px;overflow:hidden;gap:1px;">'
-    +(cost>0?'<div style="flex:'+cost+';background:#ef4444;" title="매입"></div>':'')
-    +(as>0?'<div style="flex:'+as+';background:#f97316;" title="AS"></div>':'')
-    +((rev-cost-as)>0?'<div style="flex:'+(rev-cost-as)+';background:#059669;" title="순이익"></div>':'')
+  const costPct   = Math.round(cost/totalBar*100);
+  const asPct     = Math.round(as/totalBar*100);
+  const profitAmt = rev - cost - as;
+  const profitPct = Math.max(0, Math.round(profitAmt/totalBar*100));
+  const marginPct = rev > 0 ? (profitAmt/rev*100).toFixed(1) : '0';
+  const marginOk  = parseFloat(marginPct) >= 25;
+  const stackBarHtml = ''
+    +'<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px;">'
+    +(cost>0?'<div style="flex:'+cost+';background:#e24b4a;" title="매입"></div>':'')
+    +(as>0?'<div style="flex:'+as+';background:#ef9f27;" title="AS"></div>':'')
+    +(profitAmt>0?'<div style="flex:'+profitAmt+';background:#639922;" title="순이익"></div>':'')
     +'</div>'
-    +'<div style="display:flex;gap:12px;margin-top:5px;flex-wrap:wrap;">'
-    +'<span style="font-size:10px;color:#ef4444;font-weight:600;">■ 매입 '+costPct+'%</span>'
-    +(as>0?'<span style="font-size:10px;color:#f97316;font-weight:600;">■ AS '+asPct+'%</span>':'')
-    +'<span style="font-size:10px;color:#059669;font-weight:600;">■ 이익 '+profitPct+'%</span>'
-    +'</div>';
-
-  // 매출 단계별 스택바
-  const stageStackBar = '<div style="display:flex;height:10px;border-radius:8px;overflow:hidden;gap:1px;">'
-    +stageOrder2.map(stg=>{
-      const a=stageCostMap[stg]||0;
-      return a>0?'<div style="flex:'+a+';background:'+(stageColors2[stg]||'#94a3b8')+';" title="'+stg+'"></div>':'';
-    }).join('')
-    +'</div>'
-    +'<div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap;">'
-    +stageOrder2.filter(stg=>stageCostMap[stg]).map(stg=>'<span style="font-size:10px;color:'+(stageColors2[stg]||'#94a3b8')+';font-weight:600;">'+(stageIcons2[stg]||'')+' '+stg+' '+(rev>0?Math.round((stageCostMap[stg]||0)/rev*100):0)+'%</span>').join('')
+    +'<div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;">'
+    +'<span style="font-size:12px;color:#a32d2d;font-weight:600;">■ 매입 '+costPct+'%</span>'
+    +(as>0?'<span style="font-size:12px;color:#854f0b;font-weight:600;">■ AS '+asPct+'%</span>':'')
+    +'<span style="font-size:12px;color:#3b6d11;font-weight:600;">■ 이익 '+profitPct+'%</span>'
     +'</div>';
 
   document.getElementById('dm-body').innerHTML=`
@@ -1640,22 +1728,49 @@ async function _finishDetailRender(key){
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--red);">${fmt(cost)}원</div></div>
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmt(profit)}원</div></div>
     </div>
-    <!-- ★ 비용 분석 그래프 -->
+    <!-- ★ 순이익 배너 -->
+    <div style="background:#eaf3de;border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:13px;color:#3b6d11;font-weight:600;">순이익</div>
+        <div style="font-size:12px;color:#3b6d11;margin-top:3px;">이익률 ${marginPct}% ${marginOk?'✅ 목표 달성':'⚠️ 목표 미달'}</div>
+      </div>
+      <div style="font-size:22px;font-weight:800;color:${profitAmt>=0?'#27500a':'#791f1f'};">${profitAmt>=0?'+':''}${fmtFull(profitAmt)}</div>
+    </div>
+
+    <!-- ★ 전체 비율 -->
     <div class="card" style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-size:13px;font-weight:800;">📊 비용 분석</div>
-        <div style="display:flex;gap:6px;">
-          <button id="chart-tab-cost" onclick="switchChartTab('cost')" style="padding:5px 11px;border:none;background:#1a56db;color:#fff;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">공정별 매입</button>
-          <button id="chart-tab-stage" onclick="switchChartTab('stage')" style="padding:5px 11px;border:none;background:var(--s3);color:var(--muted);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">결제단계</button>
-        </div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:3px;">전체 비율</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">매출 100%에서 각 항목이 차지하는 비중</div>
+      ${stackBarHtml}
+    </div>
+
+    <!-- ★ 공정별 매입 — 더보기 방식 -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:3px;">공정별 매입</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">어디에 얼마나 썼나요?</div>
+      <div id="proc-top-list">${procTopHtml}</div>
+      ${procRestHtml ? `
+      <div id="proc-rest-list" style="display:none;">${procRestHtml}</div>
+      <button onclick="toggleProcMore(this)"
+        data-count="${procCostArr.length - SHOW_FIRST}"
+        style="width:100%;padding:12px;border:0.5px solid var(--border);background:var(--s2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:4px;font-family:'Pretendard',sans-serif;">
+        + 나머지 ${procRestHtml ? procCostArr.length - SHOW_FIRST : 0}개 더 보기
+      </button>` : ''}
+      <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);margin-top:4px;">
+        <div style="font-size:13px;color:var(--muted);font-weight:600;">총 매입</div>
+        <div style="font-size:15px;font-weight:700;">${fmtFull(cost)}</div>
       </div>
-      <div id="chart-summary-cost" style="margin-bottom:12px;">${stackBarHtml}</div>
-      <div id="chart-summary-stage" style="display:none;margin-bottom:12px;">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">총 매출 ${fmtFull(rev)}</div>
-        ${stageStackBar}
+    </div>
+
+    <!-- ★ 결제단계별 수금 -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:3px;">결제단계별 수금</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">고객에게 받은 금액</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${stageCardsHtml}</div>
+      <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);margin-top:12px;">
+        <div style="font-size:13px;color:var(--muted);font-weight:600;">총 수금</div>
+        <div style="font-size:15px;font-weight:700;">${fmtFull(rev)}</div>
       </div>
-      <div id="chart-body-cost">${procChartHtml}</div>
-      <div id="chart-body-stage" style="display:none;">${stageChartHtml}</div>
     </div>
 
     <div class="card" style="margin-bottom:14px;">
@@ -1682,24 +1797,19 @@ async function _finishDetailRender(key){
   `;
 }
 
-function switchChartTab(tab) {
-  var cBtn  = document.getElementById('chart-tab-cost');
-  var sBtn  = document.getElementById('chart-tab-stage');
-  var cBody = document.getElementById('chart-body-cost');
-  var sBody = document.getElementById('chart-body-stage');
-  var cSum  = document.getElementById('chart-summary-cost');
-  var sSum  = document.getElementById('chart-summary-stage');
-  if (!cBtn) return;
-  if (tab === 'cost') {
-    cBtn.style.background='#1a56db'; cBtn.style.color='#fff';
-    sBtn.style.background='var(--s3)'; sBtn.style.color='var(--muted)';
-    if(cBody)cBody.style.display='block'; if(sBody)sBody.style.display='none';
-    if(cSum)cSum.style.display='block';  if(sSum)sSum.style.display='none';
+function switchChartTab(tab) {} // 탭 방식 제거됨
+
+function toggleProcMore(btn) {
+  var rest = document.getElementById('proc-rest-list');
+  if (!rest) return;
+  var open = rest.style.display === 'none';
+  rest.style.display = open ? 'block' : 'none';
+  if (open) {
+    var n = rest.querySelectorAll('[style*="margin-bottom:12px"]').length;
+    btn.textContent = '▲ 접기';
   } else {
-    sBtn.style.background='#059669'; sBtn.style.color='#fff';
-    cBtn.style.background='var(--s3)'; cBtn.style.color='var(--muted)';
-    if(sBody)sBody.style.display='block'; if(cBody)cBody.style.display='none';
-    if(sSum)sSum.style.display='block';   if(cSum)cSum.style.display='none';
+    var total = btn.dataset.total || '';
+    btn.textContent = '+ 나머지 ' + (btn.dataset.count||'') + '개 더 보기';
   }
 }
 
