@@ -28,6 +28,8 @@
 
 /* ── 전체 레이아웃 래퍼 ── */
 body { margin: 0; background: #f1f5f9; }
+/* 모바일 df-timelines 단일컬럼 */
+#df-timelines { display: grid; grid-template-columns: 1fr; gap: 12px; }
 #app { box-sizing: border-box; }
 
 @media (min-width: 768px) {
@@ -1168,8 +1170,217 @@ async function renderDesignFor(){
   document.getElementById('df-site-status').innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px;">'+(cnt.contract?'<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-contract">📝 계약완료</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.contract+'</span></div>':'')+(cnt.active?'<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-active">🔨 공사중</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.active+'</span></div>':'')+(cnt.as?'<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-as">🔧 AS관리</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.as+'</span></div>':'')+'</div>';
   if(_dfTab==='as'){_renderDfAs();return;}_renderDfActive();
 }
-function _renderDfAs(){var asSites=Object.entries(_sites).filter(function(e){return e[1].status==='as';});var el=document.getElementById('df-timelines');if(!asSites.length){el.innerHTML='<div class="empty"><div class="empty-ico">🔧</div>AS관리 현장 없음</div>';return;}var html='';asSites.forEach(function(entry){var key=entry[0],s=entry[1],rev=0,cost=0,as=0;Object.values(_entries).forEach(function(e){if(e.site===s.name){if(e.type==='revenue')rev+=e.amount||0;else if(e.type==='cost')cost+=e.amount||0;else if(e.type==='as')as+=e.amount||0;}});var profit=rev-cost-as;html+='<div class="site-card" data-df-key="'+key+'"><div class="site-card-top"><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><div class="site-ym">'+(s.year||'')+'.'+(s.month||'')+'</div></div><div class="site-name">'+s.name+'</div></div><div style="flex-shrink:0;text-align:right;"><span class="badge b-as">🔧 AS관리</span><div class="site-profit" style="color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+(profit>=0?'+':'')+profit.toLocaleString()+'원</div></div></div><div class="site-grid"><div><div class="sc-label">매출</div><div class="sc-val" style="color:var(--green);">'+rev.toLocaleString()+'원</div></div><div><div class="sc-label">매입</div><div class="sc-val" style="color:var(--red);">'+cost.toLocaleString()+'원</div></div><div><div class="sc-label">AS비용</div><div class="sc-val" style="color:var(--orange);">'+as.toLocaleString()+'원</div></div></div></div>';});el.innerHTML=html;el.querySelectorAll("[data-df-key]").forEach(function(card){card.addEventListener("click",function(){goToSiteFromDF(card.dataset.dfKey);});});}
-async function _renderDfActive(){var activeSites=Object.entries(_sites).filter(function(e){return e[1].status==='active';});var el=document.getElementById('df-timelines');if(!activeSites.length){el.innerHTML='<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>';return;}el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">불러오는 중...</div>';const snaps=await Promise.all(activeSites.map(([,s])=>db.ref('procData/'+encKey(s.name)).once('value')));let html='';activeSites.forEach(([key,s],idx)=>{const procRaw=snaps[idx].val()||{};let phases=[];if(Object.keys(procRaw).length>0){phases=Object.entries(procRaw).map(([id,ph])=>({...ph,id})).sort((a,b)=>(a.order||0)-(b.order||0));}else{phases=DEFAULT_PROC.map((name,i)=>({id:'ph_'+i,name,status:'wait',order:i,tasks:{}}));}phases.forEach(ph=>{if(ph.startDate||ph.doneDate)ph.status=calcAutoStatus(ph.startDate||'',ph.doneDate||'');});const done=phases.filter(p=>p.status==='done').length,total=phases.length,pct=total>0?Math.round(done/total*100):0;if(pct===100)return;const activePh=phases.find(p=>p.status==='active');const tlHtml=phases.map((ph,i)=>{const next=phases[i+1],lineClass=ph.status==='done'?'done':ph.status==='active'?'half':'wait';return `<div class="tl-node-wrap" onclick="goToSiteFromDF('${key}')"><div class="tl-circle ${ph.status}" style="width:30px;height:30px;font-size:12px;">${PROC_ICONS[ph.name]||'⬜'}</div><div class="tl-label ${ph.status}" style="width:52px;">${ph.name.length>4?ph.name.slice(0,4):ph.name}</div></div>${next?`<div class="tl-line ${lineClass}" style="width:16px;"></div>`:''}`}).join('');const activeTasks=activePh?tasksToArr(activePh.tasks).filter(t=>!t.isDone):[];const activeTasksHtml=activeTasks.slice(0,3).map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);" onclick="dfToggleTask('${encKey(s.name)}','${activePh.id}','${t.id}',this)"><div style="width:20px;height:20px;border-radius:5px;border:2px solid var(--border2);background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;" id="df-cb-${activePh.id}-${t.id}"></div><div style="font-size:13px;font-weight:600;" id="df-tt-${activePh.id}-${t.id}">${t.text||''}</div></div>`).join('');html+=`<div class="card" style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;"><div><div style="font-size:15px;font-weight:800;">${s.name}</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">${s.year||''}.${s.month||''}</div></div><button onclick="goToSiteFromDF('${key}')" style="background:var(--s3);border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;font-family:'Pretendard',sans-serif;">상세 보기</button></div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="flex:1;"><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:var(--green);"></div></div></div><div style="font-size:12px;font-weight:800;color:${pct>=80?'var(--green)':pct>=40?'var(--orange)':'var(--accent)'};">${pct}%</div></div>${activePh?`<div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:8px;">🔨 ${activePh.name} 진행중</div>`:''}<div class="timeline-wrap"><div class="timeline-row">${tlHtml}</div></div>${activeTasks.length>0?`<div style="margin-top:12px;"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;">오늘 할 일</div>${activeTasksHtml}</div>`:''}</div>`;});el.innerHTML=html||'<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>';setTimeout(()=>document.querySelectorAll('.tl-circle.active').forEach(el=>el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})),300);}
+function _renderDfAs(){
+  var asSites=Object.entries(_sites).filter(function(e){return e[1].status==='as';});
+  var el=document.getElementById('df-timelines');
+  if(!asSites.length){el.innerHTML='<div class="empty"><div class="empty-ico">🔧</div>AS관리 현장 없음</div>';return;}
+
+  var html='';
+  asSites.forEach(function(entry){
+    var key=entry[0],s=entry[1];
+    var rev=0,cost=0,as=0;
+    Object.values(_entries).forEach(function(e){
+      if(e.site===s.name){
+        if(e.type==='revenue')rev+=e.amount||0;
+        else if(e.type==='cost')cost+=e.amount||0;
+        else if(e.type==='as')as+=e.amount||0;
+      }
+    });
+    var profit=rev-cost-as;
+    var margin=rev>0?Math.round(profit/rev*100):0;
+    var marginColor=margin>=25?'var(--green)':margin>=15?'var(--orange)':'var(--red)';
+    var profitColor=profit>=0?'var(--green)':'var(--red)';
+
+    html+=
+      '<div class="df-site-card" data-key="'+key+'" style="'
+        +'background:#fff;border-radius:16px;padding:18px;margin-bottom:0;'
+        +'box-shadow:0 2px 12px rgba(0,0,0,.07);cursor:pointer;'
+        +'border:1.5px solid var(--border);transition:box-shadow .2s,transform .15s;'
+        +'display:flex;flex-direction:column;gap:12px;">'
+
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        +'<div style="min-width:0;">'
+          +'<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.3;word-break:keep-all;">'+s.name+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:3px;">'+(s.year||'')+'년 '+(s.month||'')+'월</div>'
+        +'</div>'
+        +'<span class="badge b-as" style="flex-shrink:0;">🔧 AS관리</span>'
+      +'</div>'
+
+      // 공사 완료 표시
+      +'<div style="display:flex;align-items:center;gap:8px;background:rgba(5,150,105,.06);border-radius:10px;padding:10px 12px;">'
+        +'<div style="font-size:20px;">✅</div>'
+        +'<div>'
+          +'<div style="font-size:11px;color:var(--green);font-weight:700;">공사 완료</div>'
+          +'<div style="font-size:13px;font-weight:700;color:var(--text);">AS 대응 중</div>'
+        +'</div>'
+      +'</div>'
+
+      // 재무 요약
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">'
+        +'<div style="background:var(--s2);border-radius:10px;padding:8px;text-align:center;">'
+          +'<div style="font-size:10px;color:var(--muted);margin-bottom:3px;">매출</div>'
+          +'<div style="font-size:13px;font-weight:700;color:var(--green);">'+fmt(rev)+'원</div>'
+        +'</div>'
+        +'<div style="background:var(--s2);border-radius:10px;padding:8px;text-align:center;">'
+          +'<div style="font-size:10px;color:var(--muted);margin-bottom:3px;">AS비용</div>'
+          +'<div style="font-size:13px;font-weight:700;color:var(--orange);">'+fmt(as)+'원</div>'
+        +'</div>'
+        +'<div style="background:var(--s2);border-radius:10px;padding:8px;text-align:center;">'
+          +'<div style="font-size:10px;color:var(--muted);margin-bottom:3px;">이익률</div>'
+          +'<div style="font-size:13px;font-weight:700;color:'+marginColor+';">'+margin+'%</div>'
+        +'</div>'
+      +'</div>'
+
+      +'<button style="'
+        +'width:100%;padding:10px;background:var(--accent);color:#fff;'
+        +'border:none;border-radius:10px;font-size:13px;font-weight:700;'
+        +'cursor:pointer;font-family:Pretendard,sans-serif;">'
+        +'상세 보기 →'
+      +'</button>'
+
+      +'</div>';
+  });
+
+  el.innerHTML=html;
+
+  el.querySelectorAll('.df-site-card').forEach(function(card){
+    var btn=card.querySelector('button');
+    if(btn)btn.addEventListener('click',function(){goToSiteFromDF(card.dataset.key);});
+    card.addEventListener('mouseenter',function(){card.style.boxShadow='0 6px 24px rgba(0,0,0,.13)';card.style.transform='translateY(-2px)';});
+    card.addEventListener('mouseleave',function(){card.style.boxShadow='0 2px 12px rgba(0,0,0,.07)';card.style.transform='none';});
+  });
+}
+
+async function _renderDfActive(){
+  var activeSites=Object.entries(_sites).filter(function(e){return e[1].status==='active';});
+  var el=document.getElementById('df-timelines');
+  if(!activeSites.length){el.innerHTML='<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>';return;}
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">불러오는 중...</div>';
+
+  const snaps=await Promise.all(activeSites.map(([,s])=>db.ref('procData/'+encKey(s.name)).once('value')));
+  let html='';
+
+  activeSites.forEach(([key,s],idx)=>{
+    const procRaw=snaps[idx].val()||{};
+    let phases=[];
+    if(Object.keys(procRaw).length>0){
+      phases=Object.entries(procRaw).map(([id,ph])=>({...ph,id})).sort((a,b)=>(a.order||0)-(b.order||0));
+    } else {
+      phases=DEFAULT_PROC.map((name,i)=>({id:'ph_'+i,name,status:'wait',order:i,tasks:{}}));
+    }
+    phases.forEach(ph=>{if(ph.startDate||ph.doneDate)ph.status=calcAutoStatus(ph.startDate||'',ph.doneDate||'');});
+
+    const done=phases.filter(p=>p.status==='done').length;
+    const total=phases.length;
+    const pct=total>0?Math.round(done/total*100):0;
+    if(pct===100)return;
+
+    const activePh=phases.find(p=>p.status==='active');
+    const waitPh=phases.find(p=>p.status==='wait');
+    const nextPh=activePh||waitPh;
+
+    // 재무 계산
+    let rev=0,cost=0,as=0;
+    Object.values(_entries).forEach(e=>{
+      if(e.site===s.name){
+        if(e.type==='revenue')rev+=e.amount||0;
+        else if(e.type==='cost')cost+=e.amount||0;
+        else if(e.type==='as')as+=e.amount||0;
+      }
+    });
+    const profit=rev-cost-as;
+    const margin=rev>0?Math.round(profit/rev*100):0;
+    const marginColor=margin>=25?'var(--green)':margin>=15?'var(--orange)':'var(--red)';
+    const pctColor=pct>=80?'var(--green)':pct>=40?'var(--orange)':'var(--accent)';
+
+    // 미완료 업무 수
+    const pendingTasks=activePh?Object.values(activePh.tasks||{}).filter(t=>!t.isDone).length:0;
+
+    html+=
+      '<div class="df-site-card" data-key="'+key+'" style="'
+        +'background:#fff;border-radius:16px;padding:18px;margin-bottom:0;'
+        +'box-shadow:0 2px 12px rgba(0,0,0,.07);cursor:pointer;'
+        +'border:1.5px solid var(--border);transition:box-shadow .2s,transform .15s;'
+        +'display:flex;flex-direction:column;gap:12px;">'
+
+      // 헤더: 현장명 + 상태 뱃지
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        +'<div style="min-width:0;">'
+          +'<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.3;word-break:keep-all;">'+s.name+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:3px;">'+(s.year||'')+'년 '+(s.month||'')+'월</div>'
+        +'</div>'
+        +'<span class="badge b-active" style="flex-shrink:0;">🔨 공사중</span>'
+      +'</div>'
+
+      // 진행률 바
+      +'<div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+          +'<div style="font-size:12px;font-weight:700;color:var(--muted);">공정 진행률</div>'
+          +'<div style="font-size:14px;font-weight:800;color:'+pctColor+';">'+pct+'%</div>'
+        +'</div>'
+        +'<div style="background:var(--s3);border-radius:99px;height:8px;overflow:hidden;">'
+          +'<div style="width:'+pct+'%;height:100%;background:'+pctColor+';border-radius:99px;transition:width .4s;"></div>'
+        +'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:5px;">'+done+'/'+total+' 공정 완료</div>'
+      +'</div>'
+
+      // 현재 공정
+      +(nextPh
+        ?'<div style="display:flex;align-items:center;gap:8px;background:rgba(26,86,219,.06);border-radius:10px;padding:10px 12px;">'
+          +'<div style="font-size:20px;">'+( PROC_ICONS[nextPh.name]||'⚙️')+'</div>'
+          +'<div>'
+            +'<div style="font-size:11px;color:var(--accent);font-weight:700;">'+(activePh?'🔨 진행중':'⏳ 다음 공정')+'</div>'
+            +'<div style="font-size:13px;font-weight:700;color:var(--text);">'+nextPh.name+'</div>'
+            +(pendingTasks>0?'<div style="font-size:11px;color:var(--orange);margin-top:1px;">할 일 '+pendingTasks+'개 남음</div>':'')
+          +'</div>'
+        +'</div>'
+        :'')
+
+      // 재무 요약 3칸
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">'
+        +'<div style="background:var(--s2);border-radius:10px;padding:8px;text-align:center;">'
+          +'<div style="font-size:10px;color:var(--muted);margin-bottom:3px;">매출</div>'
+          +'<div style="font-size:13px;font-weight:700;color:var(--green);">'+fmt(rev)+'원</div>'
+        +'</div>'
+        +'<div style="background:var(--s2);border-radius:10px;padding:8px;text-align:center;">'
+          +'<div style="font-size:10px;color:var(--muted);margin-bottom:3px;">매입</div>'
+          +'<div style="font-size:13px;font-weight:700;color:var(--red);">'+fmt(cost)+'원</div>'
+        +'</div>'
+        +'<div style="background:var(--s2);border-radius:10px;padding:8px;text-align:center;">'
+          +'<div style="font-size:10px;color:var(--muted);margin-bottom:3px;">이익률</div>'
+          +'<div style="font-size:13px;font-weight:700;color:'+marginColor+';">'+margin+'%</div>'
+        +'</div>'
+      +'</div>'
+
+      // 상세보기 버튼
+      +'<button style="'
+        +'width:100%;padding:10px;background:var(--accent);color:#fff;'
+        +'border:none;border-radius:10px;font-size:13px;font-weight:700;'
+        +'cursor:pointer;font-family:Pretendard,sans-serif;'
+        +'display:flex;align-items:center;justify-content:center;gap:6px;">'
+        +'상세 보기 →'
+      +'</button>'
+
+      +'</div>';
+  });
+
+  el.innerHTML=html||'<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>';
+
+  // 카드 클릭 이벤트
+  el.querySelectorAll('.df-site-card').forEach(function(card){
+    card.addEventListener('click',function(ev){
+      if(ev.target.tagName==='BUTTON'||ev.target.closest('button'))return;
+      goToSiteFromDF(card.dataset.key);
+    });
+    // 상세보기 버튼
+    var btn=card.querySelector('button');
+    if(btn)btn.addEventListener('click',function(){goToSiteFromDF(card.dataset.key);});
+    // 호버 효과
+    card.addEventListener('mouseenter',function(){card.style.boxShadow='0 6px 24px rgba(0,0,0,.13)';card.style.transform='translateY(-2px)';});
+    card.addEventListener('mouseleave',function(){card.style.boxShadow='0 2px 12px rgba(0,0,0,.07)';card.style.transform='none';});
+  });
+}
+
 function goToSiteFromDF(key){goPage('sites');setTimeout(()=>openSiteDetail(key),100);}
 async function dfToggleTask(siteKey,phId,taskId,rowEl){const cbEl=rowEl.querySelector('[id^="df-cb-"]'),txtEl=rowEl.querySelector('[id^="df-tt-"]');if(cbEl){cbEl.style.background='var(--green)';cbEl.style.borderColor='var(--green)';cbEl.innerHTML='<span style="font-size:11px;font-weight:800;color:#fff;">✓</span>';}if(txtEl){txtEl.style.textDecoration='line-through';txtEl.style.color='var(--dim)';}try{await db.ref(`procData/${siteKey}/${phId}/tasks/${taskId}/isDone`).set(true);toast('✅ 완료!');}catch(e){toast('저장 실패');}}
 
