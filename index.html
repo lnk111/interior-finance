@@ -1567,7 +1567,7 @@ async function _finishDetailRender(key){
       +'<span>'+(PROC_ICONS[pname]||'🔹')+'</span><span>'+pname+'</span>'
       +'<span style="font-size:10px;font-weight:600;color:var(--muted);">'+ratio+'%</span>'
       +'</div>'
-      +'<div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:'+bc+';">'+fmt(amt)+'원</div>'
+      +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:'+bc+';">'+fmt(amt)+'원</div>'
       +'</div>'
       +'<div style="background:var(--s3);border-radius:6px;height:8px;overflow:hidden;">'
       +'<div style="width:'+pp+'%;height:100%;background:'+bc+';border-radius:6px;"></div>'
@@ -1600,7 +1600,7 @@ async function _finishDetailRender(key){
       +'<span>'+(stageIcons2[sname]||'💰')+'</span><span>'+sname+'</span>'
       +'<span style="font-size:10px;font-weight:600;color:var(--muted);">'+sratio+'%</span>'
       +'</div>'
-      +'<div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:'+sc+';">'+fmt(samt)+'원</div>'
+      +'<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:'+sc+';">'+fmt(samt)+'원</div>'
       +'</div>'
       +'<div style="background:var(--s3);border-radius:6px;height:8px;overflow:hidden;">'
       +'<div style="width:'+sp+'%;height:100%;background:'+sc+';border-radius:6px;"></div>'
@@ -2057,9 +2057,9 @@ async function renderDesignFor(){
   Object.values(_sites).forEach(function(s){ if(cnt[s.status]!==undefined) cnt[s.status]++; });
   document.getElementById('df-site-status').innerHTML =
     '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
-    (cnt.contract ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-contract">📝 계약완료</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;">'+cnt.contract+'</span></div>' : '') +
-    (cnt.active  ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-active">🔨 공사중</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;">'+cnt.active+'</span></div>' : '') +
-    (cnt.as      ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-as">🔧 AS관리</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;">'+cnt.as+'</span></div>' : '') +
+    (cnt.contract ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-contract">📝 계약완료</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.contract+'</span></div>' : '') +
+    (cnt.active  ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-active">🔨 공사중</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.active+'</span></div>' : '') +
+    (cnt.as      ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-as">🔧 AS관리</span><span style="font-family:JetBrains Mono,monospace;font-size:16px;font-weight:700;">'+cnt.as+'</span></div>' : '') +
     '</div>';
 
   if (_dfTab === 'as') {
@@ -2081,7 +2081,7 @@ function _renderDfAs() {
       if(e.site===s.name){ if(e.type==='revenue')rev+=e.amount||0; else if(e.type==='cost')cost+=e.amount||0; else if(e.type==='as')as+=e.amount||0; }
     });
     var profit = rev - cost - as;
-    html += '<div class="site-card" onclick="goToSiteFromDF(''+key+'')">'+
+    html += '<div class="site-card" data-df-key="'+key+'">'+
       '<div class="site-card-top">'+
         '<div style="flex:1;min-width:0;">'+
           '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'+
@@ -2103,6 +2103,9 @@ function _renderDfAs() {
     '</div>';
   });
   el.innerHTML = html;
+  el.querySelectorAll("[data-df-key]").forEach(function(card){
+    card.addEventListener("click", function(){ goToSiteFromDF(card.dataset.dfKey); });
+  });
 }
 
 async function _renderDfActive(){
