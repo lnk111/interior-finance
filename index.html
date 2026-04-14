@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a56db">
@@ -20,6 +20,197 @@
 .kebab-item:hover{background:var(--s2);}
 .kebab-del{color:var(--red)!important;border-top:1px solid var(--border);}
 .kebab-wrap{position:relative;flex-shrink:0;}
+
+
+/* ════════════════════════════════════════════
+   반응형 레이아웃 (태블릿 768px / PC 1024px+)
+   ════════════════════════════════════════════ */
+
+/* ── 전체 레이아웃 래퍼 ── */
+body { margin: 0; background: #f1f5f9; }
+#app { box-sizing: border-box; }
+
+@media (min-width: 768px) {
+  /* 앱 전체를 중앙 정렬 */
+  body { display: flex; justify-content: center; }
+
+  /* 네비게이션 → 왼쪽 세로 사이드바 */
+  .nav {
+    position: fixed !important;
+    left: 0; top: 0; bottom: 0;
+    width: 200px !important;
+    height: 100vh !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 24px 0 24px !important;
+    border-top: none !important;
+    border-right: 1px solid var(--border);
+    background: #fff !important;
+    box-shadow: 2px 0 12px rgba(0,0,0,.06);
+    gap: 4px !important;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  .nav-btn {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    padding: 12px 20px !important;
+    border-radius: 10px !important;
+    margin: 0 10px !important;
+    font-size: 13px !important;
+    gap: 12px !important;
+    width: calc(100% - 20px) !important;
+    height: auto !important;
+  }
+  .nav-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0;
+  }
+  .nav-btn.on {
+    background: rgba(26,86,219,.1) !important;
+    color: #1a56db !important;
+  }
+  .nav-badge {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* 앱 콘텐츠 영역 → 사이드바 오른쪽 */
+  #app {
+    margin-left: 200px !important;
+    width: calc(100vw - 200px) !important;
+    max-width: 900px !important;
+    min-height: 100vh;
+    padding: 0 24px 40px !important;
+    box-sizing: border-box;
+  }
+
+  /* top-bar 스타일 개선 */
+  .top-bar {
+    padding: 20px 0 12px !important;
+    margin-bottom: 16px !important;
+  }
+  .top-bar-title {
+    font-size: 20px !important;
+  }
+
+  /* 카드 호버 효과 */
+  .card { transition: box-shadow .2s; }
+  .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+
+  /* KPI 3컬럼 */
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* 모달 → 중앙 팝업 */
+  .modal {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+  }
+  .modal-sheet {
+    border-radius: 16px !important;
+    max-width: 520px !important;
+    width: 100% !important;
+    max-height: 88vh !important;
+    margin: 0 !important;
+  }
+  .modal-handle { display: none !important; }
+
+  /* 공정 편집 모달 */
+  .proc-edit-sheet {
+    border-radius: 16px !important;
+    max-width: 560px !important;
+    margin: auto !important;
+  }
+
+  /* 필터탭 */
+  .filter-tabs { gap: 8px !important; }
+  .ftab { padding: 8px 16px !important; font-size: 13px !important; }
+
+  /* 폼 입력 */
+  .f-input { font-size: 14px !important; }
+
+  /* 사이트 그리드 2컬럼 */
+  #sites-body { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .site-card { margin-bottom: 0 !important; }
+}
+
+@media (min-width: 1200px) {
+  #app {
+    max-width: 1100px !important;
+    padding: 0 32px 40px !important;
+  }
+
+  /* 손익 현황 KPI 3컬럼 */
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  /* 현장 카드 3컬럼 */
+  #sites-body { grid-template-columns: 1fr 1fr 1fr !important; }
+
+  /* 사이드바 넓게 */
+  .nav { width: 220px !important; }
+  #app { margin-left: 220px !important; width: calc(100vw - 220px) !important; }
+}
+
+/* ── 로그인 화면 반응형 ── */
+@media (min-width: 768px) {
+  .lock-card {
+    max-width: 380px !important;
+    border-radius: 20px !important;
+    padding: 40px !important;
+  }
+}
+
+
+/* ── 손익 현황 PC 레이아웃 ── */
+@media (min-width: 1024px) {
+  #pg-home .kpi-grid { grid-template-columns: 1fr 1fr; }
+  
+  /* 입력 폼 최대폭 */
+  #pg-entry { max-width: 640px; margin: 0 auto; }
+
+  /* 거래 입력 타입 버튼 */
+  .type-row { gap: 12px !important; }
+  .type-btn { padding: 14px 20px !important; font-size: 14px !important; }
+
+  /* 현장 상세 모달 더 넓게 */
+  #detail-modal .modal-sheet { max-width: 680px !important; }
+
+  /* 노하우 카드 2컬럼 */
+  #kh-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #kh-pinned { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .kh-card { margin-bottom: 0 !important; }
+
+  /* 디자인포 홈 타임라인 2컬럼 */
+  #df-timelines { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  #df-timelines .card { margin-bottom: 0 !important; }
+}
+
+/* ── 태블릿 레이아웃 미세 조정 ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  #app { max-width: 700px !important; }
+}
+
+/* ── 사이드바 로고 PC에서만 표시 ── */
+@media (min-width: 768px) {
+  .nav-logo { display: block !important; }
+}
+
+/* ── 스크롤바 스타일 (PC) ── */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+}
+
 </style>
 </head>
 
@@ -278,6 +469,10 @@
 
 <!-- 네비게이션 -->
 <nav class="nav">
+  <div class="nav-logo" style="padding:0 20px 16px;border-bottom:1px solid var(--border);margin-bottom:8px;display:none;">
+    <div style="font-size:16px;font-weight:900;color:#1a56db;letter-spacing:-0.5px;">DESIGN FOR</div>
+    <div style="font-size:10px;color:var(--muted);font-weight:600;margin-top:2px;">MoneyFlow</div>
+  </div>
   <button class="nav-btn on" id="nb-designfor" onclick="goPage('designfor')">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>디자인포
   </button>
@@ -670,6 +865,12 @@ document.addEventListener('click',function(e){
   if(ki){e.stopPropagation();var action=ki.dataset.action,key=ki.dataset.entryKey;document.querySelectorAll('.kebab-menu').forEach(function(m){m.style.display='none';});if(action==='delete')delEntry(key);else if(action==='edit')openEntryEditModal(key);return;}
   // ── 외부 클릭 시 닫기 ──
   if(!e.target.closest('.kebab-wrap'))document.querySelectorAll('.kebab-menu').forEach(function(m){m.style.display='none';});
+  // ── 모달 배경 클릭 닫기 (PC) ──
+  var modalBg=e.target.closest('.modal');
+  if(modalBg&&e.target===modalBg){
+    modalBg.classList.remove('on');
+    return;
+  }
   // ── 사이트 태그 ──
   const tag=e.target.closest('[data-site-name]');if(!tag)return;
   const name=tag.dataset.siteName,mode=tag.dataset.siteMode;if(!name)return;
