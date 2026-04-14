@@ -161,17 +161,44 @@
 
     <div class="f-label">날짜</div>
     <input class="f-input" id="f-date" type="date">
-    <div class="f-label">공정</div>
-    <input class="f-input" id="f-process" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('process')" style="cursor:pointer;">
-    <div class="tag-wrap" id="tags-process" style="display:none;">
-      <div class="tag" onclick="pickTag('process','철거')">철거</div><div class="tag" onclick="pickTag('process','창호')">창호</div>
-      <div class="tag" onclick="pickTag('process','전기')">전기</div><div class="tag" onclick="pickTag('process','욕실방수')">욕실방수</div>
-      <div class="tag" onclick="pickTag('process','목공')">목공</div><div class="tag" onclick="pickTag('process','타일')">타일</div>
-      <div class="tag" onclick="pickTag('process','필름')">필름</div><div class="tag" onclick="pickTag('process','욕실설비')">욕실설비</div>
-      <div class="tag" onclick="pickTag('process','바닥')">바닥</div><div class="tag" onclick="pickTag('process','도배')">도배</div>
-      <div class="tag" onclick="pickTag('process','가구')">가구</div><div class="tag" onclick="pickTag('process','조명마감')">조명마감</div>
-      <div class="tag" onclick="pickTag('process','중문')">중문</div><div class="tag" onclick="pickTag('process','실리콘')">실리콘</div>
-      <div class="tag" onclick="pickTag('process','잔마감')">잔마감</div><div class="tag" onclick="pickCustom('process')">✏️ 직접</div>
+
+    <!-- 매입/AS용 공정 (기본 표시) -->
+    <div id="process-normal">
+      <div class="f-label">공정</div>
+      <input class="f-input" id="f-process" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('process')" style="cursor:pointer;">
+      <div class="tag-wrap" id="tags-process" style="display:none;">
+        <div class="tag" onclick="pickTag('process','철거')">철거</div><div class="tag" onclick="pickTag('process','창호')">창호</div>
+        <div class="tag" onclick="pickTag('process','전기')">전기</div><div class="tag" onclick="pickTag('process','욕실방수')">욕실방수</div>
+        <div class="tag" onclick="pickTag('process','목공')">목공</div><div class="tag" onclick="pickTag('process','타일')">타일</div>
+        <div class="tag" onclick="pickTag('process','필름')">필름</div><div class="tag" onclick="pickTag('process','욕실설비')">욕실설비</div>
+        <div class="tag" onclick="pickTag('process','바닥')">바닥</div><div class="tag" onclick="pickTag('process','도배')">도배</div>
+        <div class="tag" onclick="pickTag('process','가구')">가구</div><div class="tag" onclick="pickTag('process','조명마감')">조명마감</div>
+        <div class="tag" onclick="pickTag('process','중문')">중문</div><div class="tag" onclick="pickTag('process','실리콘')">실리콘</div>
+        <div class="tag" onclick="pickTag('process','잔마감')">잔마감</div><div class="tag" onclick="pickCustom('process')">✏️ 직접</div>
+      </div>
+    </div>
+
+    <!-- 매출 전용 결제단계 (매출 선택 시 표시) -->
+    <div id="process-revenue" style="display:none;">
+      <div class="f-label">결제 단계</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <button id="pay-stage-contract" onclick="setPayStage('계약금')"
+          style="padding:13px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+          📋 계약금
+        </button>
+        <button id="pay-stage-start" onclick="setPayStage('착수금')"
+          style="padding:13px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+          🔨 착수금
+        </button>
+        <button id="pay-stage-mid" onclick="setPayStage('중도금')"
+          style="padding:13px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+          💼 중도금
+        </button>
+        <button id="pay-stage-final" onclick="setPayStage('잔금')"
+          style="padding:13px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+          ✅ 잔금
+        </button>
+      </div>
     </div>
     <div class="f-label">메모</div>
     <textarea class="f-input" id="f-memo" placeholder="자유롭게 입력하세요" rows="2" style="resize:none;line-height:1.5;font-family:inherit;"></textarea>
@@ -889,14 +916,44 @@ function resetRevenueExtra() {
 }
 
 var _curType='cost';
+var _payStage='';
+
+function setPayStage(stage){
+  _payStage=stage;
+  var stageMap={'계약금':'pay-stage-contract','착수금':'pay-stage-start','중도금':'pay-stage-mid','잔금':'pay-stage-final'};
+  Object.entries(stageMap).forEach(function(e){
+    var btn=document.getElementById(e[1]);
+    if(!btn)return;
+    var isActive=e[0]===stage;
+    btn.style.background  =isActive?'#1a56db':'#fff';
+    btn.style.color       =isActive?'#fff':'var(--text)';
+    btn.style.borderColor =isActive?'#1a56db':'var(--border2)';
+    btn.style.boxShadow   =isActive?'0 2px 8px rgba(26,86,219,.3)':'none';
+  });
+}
+
+function resetPayStage(){
+  _payStage='';
+  ['pay-stage-contract','pay-stage-start','pay-stage-mid','pay-stage-final'].forEach(function(id){
+    var btn=document.getElementById(id);
+    if(!btn)return;
+    btn.style.background='#fff';btn.style.color='var(--text)';
+    btn.style.borderColor='var(--border2)';btn.style.boxShadow='none';
+  });
+}
+
 function setType(t){
   _curType=t;
   ['cost','revenue','as'].forEach(tp=>{document.getElementById('bt-'+tp).className='type-btn'+(tp===t?' t-'+tp:'');});
-  // ★ 매출일 때만 추가 필드 표시
-  var extra = document.getElementById('revenue-extra');
-  if (extra) {
-    extra.style.display = (t === 'revenue') ? 'block' : 'none';
-    if (t !== 'revenue') resetRevenueExtra();
+  var pNormal=document.getElementById('process-normal');
+  var pRevenue=document.getElementById('process-revenue');
+  if(pNormal) pNormal.style.display=(t==='revenue')?'none':'block';
+  if(pRevenue) pRevenue.style.display=(t==='revenue')?'block':'none';
+  if(t!=='revenue') resetPayStage();
+  var extra=document.getElementById('revenue-extra');
+  if(extra){
+    extra.style.display=(t==='revenue')?'block':'none';
+    if(t!=='revenue') resetRevenueExtra();
   }
 }
 function showTags(field){
@@ -919,7 +976,7 @@ async function addEntry(){
   const site=document.getElementById('f-site').value.trim();
   const amount=parseInt(document.getElementById('f-amount').value)||0;
   const date=document.getElementById('f-date').value||today();
-  const process=document.getElementById('f-process').value.trim();
+  const process=(_curType==='revenue')?_payStage:(document.getElementById('f-process').value.trim());
   const memo=document.getElementById('f-memo').value.trim();
   const writer=document.getElementById('f-writer').value.trim();
   if(!site){toast('⚠️ 현장을 선택해주세요');return;}
@@ -934,10 +991,11 @@ async function addEntry(){
     if(_editEntryKey){await db.ref('entries/'+_editEntryKey).update(entry);_editEntryKey=null;toast('✅ 수정 완료');}
     else{await db.ref('entries').push(entry);toast('✅ 저장 완료');}
     document.getElementById('f-amount').value='';
-    document.getElementById('f-process').value='';
+    if(_curType!=='revenue') document.getElementById('f-process').value='';
     document.getElementById('f-memo').value='';
     document.getElementById('amount-display').textContent='';
     resetRevenueExtra();
+    resetPayStage();
   }catch(e){toast('❌ 저장 실패');}
 }
 
