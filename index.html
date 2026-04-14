@@ -44,25 +44,29 @@ body { margin: 0; background: #f1f5f9; }
     height: 100vh !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
+    align-items: stretch !important;
     padding: 24px 0 24px !important;
     border-top: none !important;
     border-right: 1px solid var(--border);
     background: #fff !important;
     box-shadow: 2px 0 12px rgba(0,0,0,.06);
-    gap: 4px !important;
+    gap: 2px !important;
     overflow-y: auto;
     z-index: 100;
   }
   .nav-btn {
+    flex: none !important;          /* ← 균등분할 해제 */
     flex-direction: row !important;
     justify-content: flex-start !important;
-    padding: 12px 20px !important;
+    align-items: center !important;
+    padding: 11px 16px !important;
     border-radius: 10px !important;
     margin: 0 10px !important;
     font-size: 13px !important;
-    gap: 12px !important;
+    gap: 10px !important;
     width: calc(100% - 20px) !important;
     height: auto !important;
+    min-height: 44px !important;    /* 터치 최소 높이 */
   }
   .nav-btn svg {
     width: 20px !important;
