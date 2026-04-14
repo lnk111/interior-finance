@@ -35,6 +35,10 @@
       <div class="top-bar-title">🏠 디자인포</div>
       <div id="conn2" class="conn loading"><div class="conn-dot blink"></div><span>연결중</span></div>
     </div>
+    <div style="display:flex;background:var(--s2);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px;">
+      <button id="df-tab-active" onclick="setDfTab('active')" style="flex:1;padding:10px;border:none;background:#1a56db;color:#fff;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;box-shadow:0 2px 8px rgba(26,86,219,.3);">🔨 공사중</button>
+      <button id="df-tab-as" onclick="setDfTab('as')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;">🔧 AS관리</button>
+    </div>
     <div id="df-site-status" style="margin-bottom:16px;"></div>
     <div id="df-timelines"></div>
   </div>
@@ -234,13 +238,9 @@
     </div>
     <div class="filter-tabs">
       <div class="ftab on" onclick="setSiteFilter('all',this)">전체</div>
-      <div class="ftab" onclick="setSiteFilter('consult',this)">상담중</div>
-      <div class="ftab" onclick="setSiteFilter('contract',this)">계약완료</div>
-      <div class="ftab" onclick="setSiteFilter('active',this)">공사중</div>
-      <div class="ftab" onclick="setSiteFilter('settle',this)">정산중</div>
-      <div class="ftab" onclick="setSiteFilter('balance',this)">잔금대기</div>
-      <div class="ftab" onclick="setSiteFilter('done',this)">마감</div>
-      <div class="ftab" onclick="setSiteFilter('as',this)">AS관리</div>
+      <div class="ftab" onclick="setSiteFilter('contract',this)">📝 계약완료</div>
+      <div class="ftab" onclick="setSiteFilter('active',this)">🔨 공사중</div>
+      <div class="ftab" onclick="setSiteFilter('as',this)">🔧 AS관리</div>
     </div>
     <div class="search-wrap"><span class="search-ico">🔍</span><input class="search-input" id="site-search" placeholder="현장명 검색" oninput="renderSites()"></div>
     <div id="sites-body"></div>
@@ -338,13 +338,9 @@
       <div><div class="f-label">월</div><input class="f-input" id="sm-month" type="number" placeholder="1~12" style="margin-bottom:0;"></div>
     </div>
     <div style="margin:14px 0 6px;"><div class="f-label">현장 상태</div></div>
-    <div class="status-grid">
-      <div class="status-opt on" data-s="consult" onclick="pickStatus(this)">🗣️ 상담중</div>
-      <div class="status-opt" data-s="contract" onclick="pickStatus(this)">📝 계약완료</div>
+    <div class="status-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="status-opt on" data-s="contract" onclick="pickStatus(this)">📝 계약완료</div>
       <div class="status-opt" data-s="active" onclick="pickStatus(this)">🔨 공사중</div>
-      <div class="status-opt" data-s="settle" onclick="pickStatus(this)">💰 정산중</div>
-      <div class="status-opt" data-s="balance" onclick="pickStatus(this)">⏳ 잔금대기</div>
-      <div class="status-opt" data-s="done" onclick="pickStatus(this)">✅ 마감</div>
       <div class="status-opt" data-s="as" onclick="pickStatus(this)">🔧 AS관리</div>
     </div>
     <div id="status-desc" style="font-size:12px;color:var(--muted);margin-bottom:16px;padding:8px 12px;background:var(--s2);border-radius:8px;">고객과 상담 진행 중</div>
@@ -544,8 +540,8 @@ var _firebaseConnected=false,_role='',_sites={},_entries={},_pending={},_phCache
 var _payMethod = '';    // 'cash' | 'transfer' | 'card'
 var _statement = '';   // 'yes' | 'no'
 
-const STATUS_LABEL={consult:'상담중',contract:'계약완료',active:'공사중',settle:'정산중',balance:'잔금대기',done:'마감',as:'AS관리'};
-const STATUS_DESC={consult:'고객과 상담 진행 중',contract:'계약 완료, 공사 시작 전',active:'현재 공사가 진행 중',settle:'공사 완료, 정산 처리 중',balance:'잔금 입금 대기 중',done:'모든 절차 완료',as:'공사 후 AS 진행 중'};
+const STATUS_LABEL={contract:'계약완료',active:'공사중',as:'AS관리',consult:'상담중',settle:'정산중',balance:'잔금대기',done:'마감'};
+const STATUS_DESC={contract:'계약 완료, 공사 시작 전',active:'현재 공사가 진행 중',as:'공사 후 AS 진행 중'};
 const PROC_ICONS={'현장답사':'🗺️','철거':'🔨','샷시':'🪟','전기배선':'⚡','욕실 도막방수':'💧','목공':'🪚','가스관 철거':'🔧','타일':'🟦','필름':'🎞','욕실설비':'🚿','천정돔':'⭕','폐기물 반출':'🚛','바닥':'🟫','도배':'🎨','가구':'🛋','상판시공':'🪵','조명마감':'💡','중문':'🚪','실리콘마감':'🔵','공사잔마감':'✅','A/S':'🔧','탄성코트':'🪣'};
 const DEFAULT_PROC=['현장답사','철거','샷시','전기배선','욕실 도막방수','목공','가스관 철거','타일','필름','욕실설비','천정돔','폐기물 반출','바닥','도배','가구','상판시공','조명마감','중문','실리콘마감','공사잔마감','A/S'];
 
@@ -739,7 +735,7 @@ function initApp(){
       toast('🔴 DB 오류: '+err.code);
     }
   );
-  db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDash();renderRecentEntries();});
+  db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDash();renderRecentEntries();renderSites();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
 }
@@ -1391,15 +1387,18 @@ function openSiteModal(key){
     document.getElementById('sm-name').value=s.name||'';
     document.getElementById('sm-year').value=s.year||'';
     document.getElementById('sm-month').value=s.month||'';
-    document.querySelectorAll('.status-opt').forEach(b=>b.classList.toggle('on',b.dataset.s===s.status));
-    document.getElementById('status-desc').textContent=STATUS_DESC[s.status]||'';
+    // 구 7단계 상태값을 3단계로 매핑
+    var validStatuses = ['contract','active','as'];
+    var mappedStatus = validStatuses.includes(s.status) ? s.status : 'contract';
+    document.querySelectorAll('.status-opt').forEach(b=>b.classList.toggle('on',b.dataset.s===mappedStatus));
+    document.getElementById('status-desc').textContent=STATUS_DESC[mappedStatus]||'';
   } else {
     document.getElementById('sm-name').value='';
     document.getElementById('sm-year').value='';
     document.getElementById('sm-month').value='';
     document.querySelectorAll('.status-opt').forEach(b=>b.classList.remove('on'));
     document.querySelector('.status-opt').classList.add('on');
-    document.getElementById('status-desc').textContent=STATUS_DESC['consult'];
+    document.getElementById('status-desc').textContent=STATUS_DESC['contract'];
   }
   document.getElementById('site-modal').classList.add('on');
 }
@@ -1413,7 +1412,7 @@ async function saveSite(){
   const name=document.getElementById('sm-name').value.trim();
   const year=document.getElementById('sm-year').value;
   const month=document.getElementById('sm-month').value;
-  const status=document.querySelector('.status-opt.on')?.dataset.s||'consult';
+  const status=document.querySelector('.status-opt.on')?.dataset.s||'contract';
   if(!name){toast('⚠️ 현장명을 입력해주세요');return;}
   const data={name,year,month,status,createdAt:_editSiteKey?(_sites[_editSiteKey]?.createdAt||Date.now()):Date.now()};
   try{
@@ -1823,6 +1822,8 @@ async function saveProcEdit(){
     });
 
     await db.ref('procData/'+encKey(_curSite)).update(updates);
+    // ★ 공정 저장 후 현장 상태 자동 업데이트
+    await autoUpdateSiteStatus(_curSite);
     closeProcEdit();
     if(_editSiteKey)await _finishDetailRender(_editSiteKey);
     toast('✅ 공정 저장 완료');
@@ -1849,13 +1850,140 @@ function openProcPanel(phId){
   setTimeout(()=>document.getElementById('ph-name-'+phId)?.scrollIntoView({behavior:'smooth',block:'center'}),100);
 }
 
+// ── 디자인포 탭 상태 ─────────────────────────
+var _dfTab = 'active'; // 'active' | 'as'
+
+function setDfTab(tab) {
+  _dfTab = tab;
+  var btnA = document.getElementById('df-tab-active');
+  var btnB = document.getElementById('df-tab-as');
+  if (tab === 'active') {
+    btnA.style.background = '#1a56db'; btnA.style.color = '#fff'; btnA.style.boxShadow = '0 2px 8px rgba(26,86,219,.3)';
+    btnB.style.background = 'transparent'; btnB.style.color = 'var(--muted)'; btnB.style.boxShadow = 'none';
+  } else {
+    btnB.style.background = '#059669'; btnB.style.color = '#fff'; btnB.style.boxShadow = '0 2px 8px rgba(5,150,105,.3)';
+    btnA.style.background = 'transparent'; btnA.style.color = 'var(--muted)'; btnA.style.boxShadow = 'none';
+  }
+  renderDesignFor();
+}
+
+// ── 공정 데이터로 현장 자동 상태 계산 ─────────
+function calcSiteAutoStatus(phases) {
+  if (!phases || phases.length === 0) return null;
+  var total = phases.length;
+  var doneCount = phases.filter(function(p){ return p.status === 'done'; }).length;
+  // 100% 완료 → AS관리
+  if (doneCount === total) return 'as';
+  // 하나라도 active(진행중)이거나 startDate가 오늘 이전인 게 있으면 → 공사중
+  var hasActive = phases.some(function(p){ return p.status === 'active'; });
+  if (hasActive) return 'active';
+  // startDate가 오늘 이전인 phase가 있으면 → 공사중
+  var todayStr = new Date().toISOString().slice(0,10);
+  var hasStarted = phases.some(function(p){ return p.startDate && p.startDate <= todayStr; });
+  if (hasStarted) return 'active';
+  return null; // 변경 없음
+}
+
+// ── 현장 상태 자동 업데이트 (공정 저장 후 호출) ─
+async function autoUpdateSiteStatus(siteName) {
+  var siteKey = Object.keys(_sites).find(function(k){ return _sites[k].name === siteName; });
+  if (!siteKey) return;
+  var snap = await db.ref('procData/' + encKey(siteName)).once('value');
+  var procRaw = snap.val() || {};
+  var phases = Object.values(procRaw).map(function(ph){
+    return { ...ph, status: calcAutoStatus(ph.startDate||'', ph.doneDate||'') };
+  });
+  var newStatus = calcSiteAutoStatus(phases);
+  if (!newStatus) return;
+  var curStatus = _sites[siteKey].status;
+  if (newStatus !== curStatus) {
+    await db.ref('siteInfo/' + siteKey + '/status').set(newStatus);
+  }
+}
+
 async function renderDesignFor(){
-  const activeSites=Object.entries(_sites).filter(([,s])=>s.status==='active'||s.status==='settle'||s.status==='balance');
-  const statusCnt={};
-  Object.values(_sites).forEach(s=>{statusCnt[s.status]=(statusCnt[s.status]||0)+1;});
-  document.getElementById('df-site-status').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;">${Object.entries(statusCnt).map(([s,c])=>`<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-${s}">${STATUS_LABEL[s]||s}</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;">${c}</span></div>`).join('')}</div>`;
-  if(!activeSites.length){document.getElementById('df-timelines').innerHTML='<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>';return;}
-  document.getElementById('df-timelines').innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">불러오는 중...</div>';
+  // 공정 데이터 기반 자동 상태 업데이트 먼저 수행
+  var allSites = Object.entries(_sites);
+  if (allSites.length > 0) {
+    var autoSnaps = await Promise.all(allSites.map(function(e){ return db.ref('procData/'+encKey(e[1].name)).once('value'); }));
+    var updates = {};
+    allSites.forEach(function(entry, idx){
+      var key = entry[0], s = entry[1];
+      var procRaw = autoSnaps[idx].val() || {};
+      if (Object.keys(procRaw).length === 0) return;
+      var phases = Object.values(procRaw).map(function(ph){
+        return Object.assign({}, ph, {status: calcAutoStatus(ph.startDate||'', ph.doneDate||'')});
+      });
+      var newStatus = calcSiteAutoStatus(phases);
+      if (newStatus && newStatus !== s.status) {
+        updates['siteInfo/' + key + '/status'] = newStatus;
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      await db.ref('/').update(updates);
+      return; // _sites 리스너가 다시 renderDesignFor 호출함
+    }
+  }
+
+  // 현장 수 요약
+  var cnt = { active: 0, as: 0, contract: 0 };
+  Object.values(_sites).forEach(function(s){ if(cnt[s.status]!==undefined) cnt[s.status]++; });
+  document.getElementById('df-site-status').innerHTML =
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+    (cnt.contract ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-contract">📝 계약완료</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;">'+cnt.contract+'</span></div>' : '') +
+    (cnt.active  ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-active">🔨 공사중</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;">'+cnt.active+'</span></div>' : '') +
+    (cnt.as      ? '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow);"><span class="badge b-as">🔧 AS관리</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;">'+cnt.as+'</span></div>' : '') +
+    '</div>';
+
+  if (_dfTab === 'as') {
+    _renderDfAs();
+    return;
+  }
+  _renderDfActive();
+}
+
+function _renderDfAs() {
+  var asSites = Object.entries(_sites).filter(function(e){ return e[1].status === 'as'; });
+  var el = document.getElementById('df-timelines');
+  if (!asSites.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🔧</div>AS관리 현장 없음</div>'; return; }
+  var html = '';
+  asSites.forEach(function(entry){
+    var key = entry[0], s = entry[1];
+    var rev=0, cost=0, as=0;
+    Object.values(_entries).forEach(function(e){
+      if(e.site===s.name){ if(e.type==='revenue')rev+=e.amount||0; else if(e.type==='cost')cost+=e.amount||0; else if(e.type==='as')as+=e.amount||0; }
+    });
+    var profit = rev - cost - as;
+    html += '<div class="site-card" onclick="goToSiteFromDF(''+key+'')">'+
+      '<div class="site-card-top">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'+
+            '<div class="site-ym">'+(s.year||'')+'.'+(s.month||'')+'</div>'+
+          '</div>'+
+          '<div class="site-name">'+s.name+'</div>'+
+        '</div>'+
+        '<div style="flex-shrink:0;text-align:right;">'+
+          '<span class="badge b-as">🔧 AS관리</span>'+
+          '<div class="site-profit" style="color:'+(profit>=0?'var(--green)':'var(--red)')+';">'+
+            (profit>=0?'+':'')+profit.toLocaleString()+'원</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="site-grid">'+
+        '<div><div class="sc-label">매출</div><div class="sc-val" style="color:var(--green);">'+rev.toLocaleString()+'원</div></div>'+
+        '<div><div class="sc-label">매입</div><div class="sc-val" style="color:var(--red);">'+cost.toLocaleString()+'원</div></div>'+
+        '<div><div class="sc-label">AS비용</div><div class="sc-val" style="color:var(--orange);">'+as.toLocaleString()+'원</div></div>'+
+      '</div>'+
+    '</div>';
+  });
+  el.innerHTML = html;
+}
+
+async function _renderDfActive(){
+  // 공사중 현장만 (100% 완료 제외)
+  var activeSites=Object.entries(_sites).filter(function(e){ return e[1].status==='active'; });
+  var el=document.getElementById('df-timelines');
+  if(!activeSites.length){el.innerHTML='<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>';return;}
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">불러오는 중...</div>';
   const snaps=await Promise.all(activeSites.map(([,s])=>db.ref('procData/'+encKey(s.name)).once('value')));
   let html='';
   activeSites.forEach(([key,s],idx)=>{
@@ -1867,13 +1995,13 @@ async function renderDesignFor(){
       phases=DEFAULT_PROC.map((name,i)=>({id:'ph_'+i,name,status:'wait',order:i,tasks:{}}));
     }
     phases.forEach(ph=>{
-      if(ph.startDate||ph.doneDate){
-        ph.status=calcAutoStatus(ph.startDate||'',ph.doneDate||'');
-      }
+      if(ph.startDate||ph.doneDate){ ph.status=calcAutoStatus(ph.startDate||'',ph.doneDate||''); }
     });
     const done=phases.filter(p=>p.status==='done').length;
     const total=phases.length;
     const pct=total>0?Math.round(done/total*100):0;
+    // 100% 완료면 이 뷰에서 제외
+    if(pct===100) return;
     const activePh=phases.find(p=>p.status==='active');
     const tlHtml=phases.map((ph,i)=>{
       const next=phases[i+1];
@@ -1891,19 +2019,22 @@ async function renderDesignFor(){
       </div>`).join('');
     html+=`<div class="card" style="margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-        <div><div style="font-size:15px;font-weight:800;">${s.name}</div><span class="badge b-${s.status}" style="margin-top:4px;display:inline-block;">${STATUS_LABEL[s.status]}</span></div>
+        <div>
+          <div style="font-size:15px;font-weight:800;">${s.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${s.year||''}.${s.month||''}</div>
+        </div>
         <button onclick="goToSiteFromDF('${key}')" style="background:var(--s3);border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;font-family:'Pretendard',sans-serif;">상세 보기</button>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <div style="flex:1;"><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:var(--green);"></div></div></div>
-        <div style="font-size:11px;font-weight:700;color:var(--muted);">${pct}%</div>
+        <div style="font-size:12px;font-weight:800;color:${pct>=80?'var(--green)':pct>=40?'var(--orange)':'var(--accent)'};">${pct}%</div>
       </div>
       ${activePh?`<div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:8px;">🔨 ${activePh.name} 진행중</div>`:''}
       <div class="timeline-wrap"><div class="timeline-row">${tlHtml}</div></div>
       ${activeTasks.length>0?`<div style="margin-top:12px;"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;">오늘 할 일</div>${activeTasksHtml}</div>`:''}
     </div>`;
   });
-  document.getElementById('df-timelines').innerHTML=html;
+  el.innerHTML=html||'<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>';
   setTimeout(()=>document.querySelectorAll('.tl-circle.active').forEach(el=>el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})),300);
 }
 
