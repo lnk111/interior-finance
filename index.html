@@ -114,6 +114,51 @@
     <div class="f-label">금액 (원) *</div>
     <input class="f-input" id="f-amount" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="updateAmountDisplay()">
     <div id="amount-display" style="font-size:12px;color:var(--accent);font-weight:700;text-align:right;min-height:18px;margin-bottom:8px;"></div>
+
+    <!-- ★ 매출 전용 필드: 결제수단 + 명세서 발행 -->
+    <div id="revenue-extra" style="display:none;">
+      <div style="background:linear-gradient(135deg,rgba(26,86,219,.05),rgba(26,86,219,.02));border:1.5px solid rgba(26,86,219,.18);border-radius:14px;padding:14px 14px 10px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:5px;">
+          <span>💰</span> 매출 상세 정보
+        </div>
+
+        <!-- 결제수단 -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:7px;">결제수단</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;">
+            <button id="pay-cash" onclick="setPayMethod('cash')"
+              style="padding:10px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+              💵 현금
+            </button>
+            <button id="pay-transfer" onclick="setPayMethod('transfer')"
+              style="padding:10px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+              🏦 계좌이체
+            </button>
+            <button id="pay-card" onclick="setPayMethod('card')"
+              style="padding:10px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+              💳 카드
+            </button>
+          </div>
+        </div>
+
+        <!-- 명세서 발행 -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:7px;">명세서 발행</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+            <button id="stmt-yes" onclick="setStatement('yes')"
+              style="padding:10px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+              📄 발행
+            </button>
+            <button id="stmt-no" onclick="setStatement('no')"
+              style="padding:10px 6px;border:1.5px solid var(--border2);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;color:var(--text);transition:all .15s;">
+              🚫 미발행
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ★ 매출 전용 필드 끝 -->
+
     <div class="f-label">날짜</div>
     <input class="f-input" id="f-date" type="date">
     <div class="f-label">공정</div>
@@ -449,7 +494,6 @@
       <div style="font-size:16px;font-weight:800;">⚙️ 공정 상태 수정</div>
       <button onclick="closeProcEdit()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
     </div>
-    <!-- ★ 자동 상태 안내 배너 -->
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:8px;">
       <span style="font-size:16px;flex-shrink:0;">🤖</span>
       <div>
@@ -469,10 +513,18 @@ const db=firebase.database();
 
 var _firebaseConnected=false,_role='',_sites={},_entries={},_pending={},_phCache={},_curSite='',_openPhId='',_siteFilter='all',_khFilter='all',_khImgs={problem:[],solution:[]},_editSiteKey=null,_editEntryKey=null,_pendingAllocations=[],_pendingEditKey=null,_khData={};
 
+// ★ 매출 결제수단·명세서 상태 변수
+var _payMethod = '';    // 'cash' | 'transfer' | 'card'
+var _statement = '';   // 'yes' | 'no'
+
 const STATUS_LABEL={consult:'상담중',contract:'계약완료',active:'공사중',settle:'정산중',balance:'잔금대기',done:'마감',as:'AS관리'};
 const STATUS_DESC={consult:'고객과 상담 진행 중',contract:'계약 완료, 공사 시작 전',active:'현재 공사가 진행 중',settle:'공사 완료, 정산 처리 중',balance:'잔금 입금 대기 중',done:'모든 절차 완료',as:'공사 후 AS 진행 중'};
 const PROC_ICONS={'현장답사':'🗺️','철거':'🔨','샷시':'🪟','전기배선':'⚡','욕실 도막방수':'💧','목공':'🪚','가스관 철거':'🔧','타일':'🟦','필름':'🎞','욕실설비':'🚿','천정돔':'⭕','폐기물 반출':'🚛','바닥':'🟫','도배':'🎨','가구':'🛋','상판시공':'🪵','조명마감':'💡','중문':'🚪','실리콘마감':'🔵','공사잔마감':'✅','A/S':'🔧','탄성코트':'🪣'};
 const DEFAULT_PROC=['현장답사','철거','샷시','전기배선','욕실 도막방수','목공','가스관 철거','타일','필름','욕실설비','천정돔','폐기물 반출','바닥','도배','가구','상판시공','조명마감','중문','실리콘마감','공사잔마감','A/S'];
+
+// 결제수단 라벨
+const PAY_LABEL = {cash:'💵 현금', transfer:'🏦 계좌이체', card:'💳 카드'};
+const STMT_LABEL = {yes:'📄 발행', no:'🚫 미발행'};
 
 function encKey(s){return s.replace(/[.#$/ \[\]]/g,'_');}
 function fmt(n){return Math.abs(n)>=10000?(n<0?'-':'')+Math.round(Math.abs(n)/10000)+'만':n.toLocaleString();}
@@ -575,7 +627,6 @@ function onProcSelChange(phId, sel) {
 }
 
 function initAuth(){
-  // URL ?code=staff 또는 ?code=boss 자동 로그인 지원
   const urlCode=new URLSearchParams(location.search).get('code');
   if(urlCode==='boss'||urlCode==='3073'){
     sessionStorage.setItem('df_auth','boss');
@@ -786,10 +837,67 @@ document.addEventListener('click',function(e){
 function showSiteTags(){document.getElementById('tags-site').style.display='flex';}
 function quShowSiteTags(){document.getElementById('qu-tags-site').style.display='flex';}
 
+// ★ 결제수단 선택
+function setPayMethod(method) {
+  _payMethod = method;
+  ['cash','transfer','card'].forEach(function(m) {
+    var btn = document.getElementById('pay-' + m);
+    if (!btn) return;
+    var isActive = m === method;
+    btn.style.background = isActive ? '#1a56db' : '#fff';
+    btn.style.color = isActive ? '#fff' : 'var(--text)';
+    btn.style.borderColor = isActive ? '#1a56db' : 'var(--border2)';
+    btn.style.boxShadow = isActive ? '0 2px 8px rgba(26,86,219,.3)' : 'none';
+  });
+}
+
+// ★ 명세서 발행 선택
+function setStatement(val) {
+  _statement = val;
+  ['yes','no'].forEach(function(v) {
+    var btn = document.getElementById('stmt-' + v);
+    if (!btn) return;
+    var isActive = v === val;
+    var activeColor = v === 'yes' ? '#059669' : '#dc2626';
+    btn.style.background = isActive ? activeColor : '#fff';
+    btn.style.color = isActive ? '#fff' : 'var(--text)';
+    btn.style.borderColor = isActive ? activeColor : 'var(--border2)';
+    btn.style.boxShadow = isActive ? '0 2px 8px rgba(0,0,0,.15)' : 'none';
+  });
+}
+
+// ★ 결제수단·명세서 선택 초기화
+function resetRevenueExtra() {
+  _payMethod = '';
+  _statement = '';
+  ['cash','transfer','card'].forEach(function(m) {
+    var btn = document.getElementById('pay-' + m);
+    if (!btn) return;
+    btn.style.background = '#fff';
+    btn.style.color = 'var(--text)';
+    btn.style.borderColor = 'var(--border2)';
+    btn.style.boxShadow = 'none';
+  });
+  ['yes','no'].forEach(function(v) {
+    var btn = document.getElementById('stmt-' + v);
+    if (!btn) return;
+    btn.style.background = '#fff';
+    btn.style.color = 'var(--text)';
+    btn.style.borderColor = 'var(--border2)';
+    btn.style.boxShadow = 'none';
+  });
+}
+
 var _curType='cost';
 function setType(t){
   _curType=t;
   ['cost','revenue','as'].forEach(tp=>{document.getElementById('bt-'+tp).className='type-btn'+(tp===t?' t-'+tp:'');});
+  // ★ 매출일 때만 추가 필드 표시
+  var extra = document.getElementById('revenue-extra');
+  if (extra) {
+    extra.style.display = (t === 'revenue') ? 'block' : 'none';
+    if (t !== 'revenue') resetRevenueExtra();
+  }
 }
 function showTags(field){
   ['process','writer'].forEach(f=>{if(f!==field)document.getElementById('tags-'+f).style.display='none';});
@@ -817,6 +925,11 @@ async function addEntry(){
   if(!site){toast('⚠️ 현장을 선택해주세요');return;}
   if(!amount){toast('⚠️ 금액을 입력해주세요');return;}
   const entry={type:_curType,site,amount,date,process,memo,writer,createdAt:Date.now()};
+  // ★ 매출일 때 결제수단·명세서 저장
+  if (_curType === 'revenue') {
+    if (_payMethod) entry.payMethod = _payMethod;
+    if (_statement) entry.statement = _statement;
+  }
   try{
     if(_editEntryKey){await db.ref('entries/'+_editEntryKey).update(entry);_editEntryKey=null;toast('✅ 수정 완료');}
     else{await db.ref('entries').push(entry);toast('✅ 저장 완료');}
@@ -824,6 +937,7 @@ async function addEntry(){
     document.getElementById('f-process').value='';
     document.getElementById('f-memo').value='';
     document.getElementById('amount-display').textContent='';
+    resetRevenueExtra();
   }catch(e){toast('❌ 저장 실패');}
 }
 
@@ -832,10 +946,16 @@ function renderRecentEntries(){
   const el=document.getElementById('entry-recent');
   if(!el)return;
   if(!arr.length){el.innerHTML='<div class="empty"><div class="empty-ico">📝</div>입력 내역 없음</div>';return;}
-  el.innerHTML=arr.map(([k,e])=>`
-    <div class="entry-row">
+  el.innerHTML=arr.map(([k,e])=>{
+    // ★ 매출에 결제수단·명세서 뱃지 표시
+    var extraBadges = '';
+    if (e.type === 'revenue') {
+      if (e.payMethod) extraBadges += '<span style="font-size:10px;background:rgba(26,86,219,.1);color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">' + (PAY_LABEL[e.payMethod]||e.payMethod) + '</span>';
+      if (e.statement) extraBadges += '<span style="font-size:10px;background:' + (e.statement==='yes'?'rgba(5,150,105,.1)':'rgba(220,38,38,.1)') + ';color:' + (e.statement==='yes'?'var(--green)':'var(--red)') + ';padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">' + (STMT_LABEL[e.statement]||e.statement) + '</span>';
+    }
+    return `<div class="entry-row">
       <div class="entry-left">
-        <div><span class="e-type ${e.type}">${e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS'}</span><span style="font-size:13px;font-weight:600;">${e.site||''}</span></div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;"><span class="e-type ${e.type}">${e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS'}</span><span style="font-size:13px;font-weight:600;">${e.site||''}</span>${extraBadges}</div>
         <div class="e-info">${e.process||''} ${e.memo?'· '+e.memo:''}</div>
         <div class="e-writer">👤 ${e.writer||''} · ${e.date||''}</div>
       </div>
@@ -843,7 +963,8 @@ function renderRecentEntries(){
         <div class="e-amount ${e.type}">${e.type==='revenue'?'+':'-'}${fmt(e.amount||0)}원</div>
         <button class="del-btn" onclick="delEntry('${k}')">삭제</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 async function delEntry(key){if(!confirm('삭제할까요?'))return;await db.ref('entries/'+key).remove();toast('🗑️ 삭제됨');}
 
@@ -1350,17 +1471,24 @@ async function _finishDetailRender(key){
     </div>${next?`<div class="tl-line ${lineClass}"></div>`:''}`;
   }).join('');
   entryArr.sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
-  const entryRows=entryArr.map(([ek,e])=>`
-    <div class="entry-row">
+  const entryRows=entryArr.map(([ek,e])=>{
+    // ★ 현장 상세에서도 결제수단·명세서 뱃지 표시
+    var extraBadges = '';
+    if (e.type === 'revenue') {
+      if (e.payMethod) extraBadges += '<span style="font-size:10px;background:rgba(26,86,219,.1);color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">'+(PAY_LABEL[e.payMethod]||e.payMethod)+'</span>';
+      if (e.statement) extraBadges += '<span style="font-size:10px;background:'+(e.statement==='yes'?'rgba(5,150,105,.1)':'rgba(220,38,38,.1)')+';color:'+(e.statement==='yes'?'var(--green)':'var(--red)')+';padding:2px 6px;border-radius:6px;font-weight:600;margin-left:4px;">'+(STMT_LABEL[e.statement]||e.statement)+'</span>';
+    }
+    return `<div class="entry-row">
       <div class="entry-left">
-        <div><span class="e-type ${e.type}">${e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS'}</span><span style="font-size:13px;font-weight:600;">${e.process||''}</span>${e.memo?`<span class="e-info"> · ${e.memo}</span>`:''}</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;"><span class="e-type ${e.type}">${e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS'}</span><span style="font-size:13px;font-weight:600;">${e.process||''}</span>${extraBadges}${e.memo?`<span class="e-info"> · ${e.memo}</span>`:''}</div>
         <div class="e-writer">👤 ${e.writer||''} · ${e.date||''}</div>
       </div>
       <div style="text-align:right;">
         <div class="e-amount ${e.type}">${e.type==='revenue'?'+':'-'}${fmt(e.amount||0)}원</div>
         ${_role==='boss'?`<button class="del-btn" onclick="delEntry('${ek}')">삭제</button>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   document.getElementById('dm-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--green);">${fmt(rev)}원</div></div>
@@ -1921,8 +2049,12 @@ async function deleteKnowhow(key){
 }
 
 function downloadCSV(){
-  const rows=[['현장명','유형','금액','날짜','공정','메모','입력자']];
-  Object.values(_entries).forEach(e=>rows.push([e.site||'',e.type||'',e.amount||0,e.date||'',e.process||'',e.memo||'',e.writer||'']));
+  const rows=[['현장명','유형','금액','날짜','공정','메모','입력자','결제수단','명세서']];
+  Object.values(_entries).forEach(e=>rows.push([
+    e.site||'', e.type||'', e.amount||0, e.date||'', e.process||'', e.memo||'', e.writer||'',
+    e.payMethod?(PAY_LABEL[e.payMethod]||e.payMethod):'',
+    e.statement?(STMT_LABEL[e.statement]||e.statement):''
+  ]));
   const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
@@ -1960,7 +2092,6 @@ function switchStaffTab(tab) {
   renderStaffList();
 }
 
-// ★ 버그 수정: innerHTML 문자열 따옴표 충돌 → createElement 방식으로 변경
 function renderStaffList() {
   var el = document.getElementById('staff-list');
   if (!el) return;
@@ -2011,7 +2142,6 @@ function renderStaffList() {
   });
 }
 
-// ★ 버그 수정: 따옴표 충돌 → addEventListener 방식으로 변경
 function updateWriterTags() {
   var tw = document.getElementById('tags-writer');
   if (!tw) return;
