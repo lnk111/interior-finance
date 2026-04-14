@@ -15,7 +15,7 @@
 /* ── ★ Kebab 메뉴 ── */
 .kebab-btn{background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1;transition:background .15s;flex-shrink:0;}
 .kebab-btn:hover,.kebab-btn:active{background:var(--s3);color:var(--text);}
-.kebab-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:500;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.14);min-width:110px;overflow:hidden;}
+.kebab-menu{position:fixed;z-index:9999;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.14);min-width:110px;overflow:hidden;}
 .kebab-item{display:block;width:100%;padding:11px 14px;background:none;border:none;text-align:left;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;font-family:'Pretendard',sans-serif;transition:background .1s;white-space:nowrap;}
 .kebab-item:hover{background:var(--s2);}
 .kebab-del{color:var(--red)!important;border-top:1px solid var(--border);}
@@ -655,7 +655,7 @@ function updateSiteTags(){
 document.addEventListener('click',function(e){
   // ── ★ Kebab 버튼 ──
   var kb=e.target.closest('.kebab-btn');
-  if(kb){e.stopPropagation();var key=kb.dataset.entryKey,menu=document.getElementById('km-'+key);if(!menu)return;var isOpen=menu.style.display!=='none';document.querySelectorAll('.kebab-menu').forEach(function(m){m.style.display='none';});if(!isOpen)menu.style.display='block';return;}
+  if(kb){e.stopPropagation();var key=kb.dataset.entryKey,menu=document.getElementById('km-'+key);if(!menu)return;var isOpen=menu.style.display!=='none';document.querySelectorAll('.kebab-menu').forEach(function(m){m.style.display='none';});if(!isOpen){var rect=kb.getBoundingClientRect();menu.style.top=(rect.bottom+4)+'px';menu.style.right=(window.innerWidth-rect.right)+'px';menu.style.display='block';}return;}
   // ── ★ Kebab 아이템 ──
   var ki=e.target.closest('.kebab-item');
   if(ki){e.stopPropagation();var action=ki.dataset.action,key=ki.dataset.entryKey;document.querySelectorAll('.kebab-menu').forEach(function(m){m.style.display='none';});if(action==='delete')delEntry(key);else if(action==='edit')openEntryEditModal(key);return;}
