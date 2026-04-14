@@ -1546,12 +1546,118 @@ async function _finishDetailRender(key){
       </div>
     </div>`;
   }).join('');
+
+  // ── 공정별 매입 금액 집계 ─────────────────────
+  const procCostMap = {};
+  entryArr.forEach(([,e]) => {
+    if (e.type === 'cost' || e.type === 'as') {
+      const pk = e.process || '기타';
+      procCostMap[pk] = (procCostMap[pk] || 0) + (e.amount || 0);
+    }
+  });
+  const procCostArr = Object.entries(procCostMap).sort((a,b) => b[1]-a[1]);
+  const maxProcCost = procCostArr[0]?.[1] || 1;
+  const procChartHtml = procCostArr.length > 0 ? procCostArr.map(([pname, amt]) => {
+    const pp = Math.round(amt / maxProcCost * 100);
+    const ratio = cost > 0 ? Math.round(amt / cost * 100) : 0;
+    const bc = pp>=80?'#ef4444':pp>=50?'#f97316':pp>=25?'#1a56db':'#059669';
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;">'
+      +'<span>'+(PROC_ICONS[pname]||'🔹')+'</span><span>'+pname+'</span>'
+      +'<span style="font-size:10px;font-weight:600;color:var(--muted);">'+ratio+'%</span>'
+      +'</div>'
+      +'<div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:'+bc+';">'+fmt(amt)+'원</div>'
+      +'</div>'
+      +'<div style="background:var(--s3);border-radius:6px;height:8px;overflow:hidden;">'
+      +'<div style="width:'+pp+'%;height:100%;background:'+bc+';border-radius:6px;"></div>'
+      +'</div></div>';
+  }).join('') : '<div style="font-size:12px;color:var(--dim);text-align:center;padding:10px 0;">매입 내역 없음</div>';
+
+  // ── 결제단계별 집계 ───────────────────────────
+  const stageCostMap = {};
+  entryArr.forEach(([,e]) => {
+    if (e.type === 'revenue') {
+      const sk = e.process || '기타';
+      stageCostMap[sk] = (stageCostMap[sk] || 0) + (e.amount || 0);
+    }
+  });
+  const stageOrder2 = ['계약금','착수금','중도금','잔금'];
+  const stageCostArr = Object.entries(stageCostMap).sort((a,b)=>{
+    const ia=stageOrder2.indexOf(a[0]),ib=stageOrder2.indexOf(b[0]);
+    if(ia>=0&&ib>=0)return ia-ib; if(ia>=0)return -1; if(ib>=0)return 1; return 0;
+  });
+  const maxStageAmt = stageCostArr[0]?.[1] || 1;
+  const stageIcons2 = {'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
+  const stageColors2 = {'계약금':'#1a56db','착수금':'#f97316','중도금':'#7c3aed','잔금':'#059669'};
+  const stageChartHtml = stageCostArr.length > 0 ? stageCostArr.map(([sname, samt]) => {
+    const sp = Math.round(samt / maxStageAmt * 100);
+    const sratio = rev > 0 ? Math.round(samt / rev * 100) : 0;
+    const sc = stageColors2[sname]||'#94a3b8';
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;">'
+      +'<span>'+(stageIcons2[sname]||'💰')+'</span><span>'+sname+'</span>'
+      +'<span style="font-size:10px;font-weight:600;color:var(--muted);">'+sratio+'%</span>'
+      +'</div>'
+      +'<div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:'+sc+';">'+fmt(samt)+'원</div>'
+      +'</div>'
+      +'<div style="background:var(--s3);border-radius:6px;height:8px;overflow:hidden;">'
+      +'<div style="width:'+sp+'%;height:100%;background:'+sc+';border-radius:6px;"></div>'
+      +'</div></div>';
+  }).join('') : '<div style="font-size:12px;color:var(--dim);text-align:center;padding:10px 0;">매출 내역 없음</div>';
+
+  // 매입 vs 이익 비율 바
+  const totalBar = rev > 0 ? rev : (cost+as+1);
+  const costPct  = Math.round(cost/totalBar*100);
+  const asPct    = Math.round(as/totalBar*100);
+  const profitPct= Math.max(0, Math.round((rev-cost-as)/totalBar*100));
+  const stackBarHtml = '<div style="display:flex;height:10px;border-radius:8px;overflow:hidden;gap:1px;">'
+    +(cost>0?'<div style="flex:'+cost+';background:#ef4444;" title="매입"></div>':'')
+    +(as>0?'<div style="flex:'+as+';background:#f97316;" title="AS"></div>':'')
+    +((rev-cost-as)>0?'<div style="flex:'+(rev-cost-as)+';background:#059669;" title="순이익"></div>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:12px;margin-top:5px;flex-wrap:wrap;">'
+    +'<span style="font-size:10px;color:#ef4444;font-weight:600;">■ 매입 '+costPct+'%</span>'
+    +(as>0?'<span style="font-size:10px;color:#f97316;font-weight:600;">■ AS '+asPct+'%</span>':'')
+    +'<span style="font-size:10px;color:#059669;font-weight:600;">■ 이익 '+profitPct+'%</span>'
+    +'</div>';
+
+  // 매출 단계별 스택바
+  const stageStackBar = '<div style="display:flex;height:10px;border-radius:8px;overflow:hidden;gap:1px;">'
+    +stageOrder2.map(stg=>{
+      const a=stageCostMap[stg]||0;
+      return a>0?'<div style="flex:'+a+';background:'+(stageColors2[stg]||'#94a3b8')+';" title="'+stg+'"></div>':'';
+    }).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap;">'
+    +stageOrder2.filter(stg=>stageCostMap[stg]).map(stg=>'<span style="font-size:10px;color:'+(stageColors2[stg]||'#94a3b8')+';font-weight:600;">'+(stageIcons2[stg]||'')+' '+stg+' '+(rev>0?Math.round((stageCostMap[stg]||0)/rev*100):0)+'%</span>').join('')
+    +'</div>';
+
   document.getElementById('dm-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--green);">${fmt(rev)}원</div></div>
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매입</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--red);">${fmt(cost)}원</div></div>
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">순이익</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmt(profit)}원</div></div>
     </div>
+    <!-- ★ 비용 분석 그래프 -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:800;">📊 비용 분석</div>
+        <div style="display:flex;gap:6px;">
+          <button id="chart-tab-cost" onclick="switchChartTab('cost')" style="padding:5px 11px;border:none;background:#1a56db;color:#fff;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">공정별 매입</button>
+          <button id="chart-tab-stage" onclick="switchChartTab('stage')" style="padding:5px 11px;border:none;background:var(--s3);color:var(--muted);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">결제단계</button>
+        </div>
+      </div>
+      <div id="chart-summary-cost" style="margin-bottom:12px;">${stackBarHtml}</div>
+      <div id="chart-summary-stage" style="display:none;margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">총 매출 ${fmtFull(rev)}</div>
+        ${stageStackBar}
+      </div>
+      <div id="chart-body-cost">${procChartHtml}</div>
+      <div id="chart-body-stage" style="display:none;">${stageChartHtml}</div>
+    </div>
+
     <div class="card" style="margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div style="font-size:13px;font-weight:700;">공정 현황</div>
@@ -1574,6 +1680,27 @@ async function _finishDetailRender(key){
     ${entryRows||'<div class="empty"><div class="empty-ico">📝</div>거래 내역 없음</div>'}
     ${_role==='boss'?`<button onclick="openSiteModal('${key}')" style="width:100%;margin-top:12px;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">✏️ 현장 정보 수정</button>`:''}
   `;
+}
+
+function switchChartTab(tab) {
+  var cBtn  = document.getElementById('chart-tab-cost');
+  var sBtn  = document.getElementById('chart-tab-stage');
+  var cBody = document.getElementById('chart-body-cost');
+  var sBody = document.getElementById('chart-body-stage');
+  var cSum  = document.getElementById('chart-summary-cost');
+  var sSum  = document.getElementById('chart-summary-stage');
+  if (!cBtn) return;
+  if (tab === 'cost') {
+    cBtn.style.background='#1a56db'; cBtn.style.color='#fff';
+    sBtn.style.background='var(--s3)'; sBtn.style.color='var(--muted)';
+    if(cBody)cBody.style.display='block'; if(sBody)sBody.style.display='none';
+    if(cSum)cSum.style.display='block';  if(sSum)sSum.style.display='none';
+  } else {
+    sBtn.style.background='#059669'; sBtn.style.color='#fff';
+    cBtn.style.background='var(--s3)'; cBtn.style.color='var(--muted)';
+    if(sBody)sBody.style.display='block'; if(cBody)cBody.style.display='none';
+    if(sSum)sSum.style.display='block';   if(cSum)cSum.style.display='none';
+  }
 }
 
 function toggleProcList(){
