@@ -249,3 +249,62 @@ option{background:#fff;}
 .auto-badge.wait{background:rgba(148,163,184,.15);color:#64748b;}
 .auto-badge.active{background:rgba(26,86,219,.12);color:#1a56db;}
 .auto-badge.done{background:rgba(5,150,105,.12);color:#059669;}
+
+/* ════════════════════════════════════════
+   반응형 레이아웃
+   모바일 기본 → 태블릿(768px) → PC(1024px)
+════════════════════════════════════════ */
+
+/* ── 태블릿 (768px 이상) ── */
+@media (min-width: 768px) {
+  /* 앱 전체를 가운데 정렬 + 최대 너비 제한 */
+  body { display: flex; justify-content: center; background: #e8ecf8; }
+  #app {
+    position: relative !important;
+    top: auto !important; left: auto !important; right: auto !important; bottom: auto !important;
+    width: 100% !important;
+    max-width: 680px !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 0 60px rgba(26,86,219,.15) !important;
+  }
+  .nav {
+    position: fixed !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    max-width: 680px !important;
+    width: 100% !important;
+  }
+  /* 현장 카드 2컬럼 */
+  #sites-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .site-card { margin-bottom: 0 !important; }
+  /* 모달 중앙 팝업 */
+  .modal { align-items: center; justify-content: center; }
+  .modal-sheet {
+    border-radius: 20px !important;
+    max-width: 520px !important;
+    margin: 0 auto !important;
+    max-height: 85vh !important;
+  }
+  /* 스크롤바 */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  /* 로그인 카드 */
+  .lock-card { max-width: 380px !important; }
+}
+
+/* ── PC (1024px 이상) ── */
+@media (min-width: 1024px) {
+  #app { max-width: 780px !important; }
+  .nav { max-width: 780px !important; }
+  /* 현장 카드 3컬럼 */
+  #sites-body { grid-template-columns: 1fr 1fr 1fr !important; }
+  /* KPI 3컬럼 */
+  .kpi-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+  /* 노하우 2컬럼 */
+  #kh-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .kh-card { margin-bottom: 0 !important; }
+  /* 입력 폼 넓게 */
+  .f-input { font-size: 14px !important; }
+}
