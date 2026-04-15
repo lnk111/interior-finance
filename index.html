@@ -2181,12 +2181,11 @@ function renderVatQuarters() {
   var curMonth = now.getMonth() + 1;
   var curQ = Math.ceil(curMonth / 3);
 
-  // 연도 선택 (현재 연도 기준)
   var yr = document.getElementById('g-year')?.value || String(curYear);
   if (!yr) yr = String(curYear);
 
-  // entries에서 taxInvoice=true인 매출만 집계
-  var qData = [0, 0, 0, 0]; // Q1~Q4 합계
+  // taxInvoice=true인 매출만 분기별 집계
+  var qData = [0, 0, 0, 0];
   Object.values(_entries).forEach(function(e) {
     if (e.type !== 'revenue') return;
     if (!e.taxInvoice) return;
@@ -2197,64 +2196,62 @@ function renderVatQuarters() {
     qData[q - 1] += (e.amount || 0);
   });
 
-  var quarters = [1, 2, 3, 4];
+  var qInfo = [
+    { q:1, label:'1분기', period:'1월 ~ 3월',   deadline:'4월 25일',    color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe' },
+    { q:2, label:'2분기', period:'4월 ~ 6월',   deadline:'7월 25일',    color:'#059669', bg:'#f0fdf4', border:'#86efac' },
+    { q:3, label:'3분기', period:'7월 ~ 9월',   deadline:'10월 25일',   color:'#7c3aed', bg:'#f5f3ff', border:'#c4b5fd' },
+    { q:4, label:'4분기', period:'10월 ~ 12월', deadline:'내년 1월 25일', color:'#d97706', bg:'#fffbeb', border:'#fcd34d' },
+  ];
+
   var html = '';
 
   // 현재 분기 강조 배너
-  var curQAmt = qData[curQ - 1];
-  var curQVat = Math.round(curQAmt * 0.1);
-  var curQInfo = getQuarterInfo(curMonth);
-
   if (String(curYear) === yr) {
-    html += '<div style="background:linear-gradient(135deg,#d97706,#b45309);border-radius:14px;padding:16px;margin-bottom:14px;color:#fff;">'
-      + '<div style="font-size:12px;font-weight:700;opacity:.8;margin-bottom:4px;">⚠️ 현재 분기 (' + curQInfo.label + ') 납부 예정</div>'
-      + '<div style="font-size:32px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:4px;">' + curQVat.toLocaleString() + '원</div>'
-      + '<div style="font-size:13px;opacity:.9;">마감일 <b>' + curQInfo.deadline + '</b> · 기업은행 입금</div>'
-      + '<div style="font-size:11px;opacity:.7;margin-top:4px;">세금계산서 발행 매출 ' + curQAmt.toLocaleString() + '원의 10%</div>'
-      + '</div>';
+    var curInfo = qInfo[curQ - 1];
+    var curAmt = qData[curQ - 1];
+    var curVat = Math.round(curAmt * 0.1);
+    html += '<div style="background:linear-gradient(135deg,#d97706,#b45309);border-radius:14px;padding:16px;margin-bottom:14px;color:#fff;">';
+    html += '<div style="font-size:12px;font-weight:700;opacity:.8;margin-bottom:4px;">⚠️ 현재 분기 (' + curInfo.label + ') 납부 예정</div>';
+    html += '<div style="font-size:32px;font-weight:800;font-family:monospace;margin-bottom:4px;">' + curVat.toLocaleString() + '원</div>';
+    html += '<div style="font-size:13px;opacity:.9;">마감일 <b>' + curInfo.deadline + '</b> · 기업은행 입금</div>';
+    html += '<div style="font-size:11px;opacity:.7;margin-top:4px;">세금계산서 발행 매출 ' + curAmt.toLocaleString() + '원의 10%</div>';
+    html += '</div>';
   }
 
-  // 4분기 카드
+  // 4분기 카드 2x2 그리드
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-  quarters.forEach(function(q) {
-    var info = getQuarterInfo((q - 1) * 3 + 1);
-    var amt = qData[q - 1];
+  qInfo.forEach(function(info) {
+    var amt = qData[info.q - 1];
     var vat = Math.round(amt * 0.1);
-    var isCur = (q === curQ && String(curYear) === yr);
-    var isPast = (q < curQ && String(curYear) === yr) || (parseInt(yr) < curYear);
+    var isCur = (info.q === curQ && String(curYear) === yr);
+    var isPast = (info.q < curQ && String(curYear) === yr) || (parseInt(yr) < curYear);
     var isEmpty = (amt === 0);
 
     var cardBg = isCur ? info.bg : (isPast ? '#f8fafc' : '#fff');
-    var borderStyle = isCur ? ('2px solid ' + info.color) : '1px solid var(--border)';
+    var borderStyle = isCur ? ('2px solid ' + info.color) : '1px solid #dde3f5';
     var opacity = (isPast && !isCur) ? '0.7' : '1';
 
-    html += '<div style="background:' + cardBg + ';border:' + borderStyle + ';border-radius:12px;padding:12px;opacity:' + opacity + ';">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-      +   '<span style="font-size:11px;font-weight:800;color:' + info.color + ';background:' + info.bg + ';padding:2px 8px;border-radius:20px;border:1px solid ' + info.border + ';">' + info.label + '</span>'
-      +   (isCur ? '<span style="font-size:10px;font-weight:700;color:#d97706;">진행중</span>' : '')
-      +   (isPast && !isEmpty ? '<span style="font-size:10px;color:var(--muted);">완료</span>' : '')
-      + '</div>'
-      + '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">' + info.period + '</div>'
-      + '<div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:' + (isEmpty ? 'var(--dim)' : '#0f172a') + ';margin-bottom:2px;">'
-      +   (isEmpty ? '-' : vat.toLocaleString() + '원')
-      + '</div>'
-      + '<div style="font-size:10px;color:var(--muted);">마감 ' + info.deadline + '</div>'
-      + '</div>';
+    html += '<div style="background:' + cardBg + ';border:' + borderStyle + ';border-radius:12px;padding:12px;opacity:' + opacity + ';">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+    html += '<span style="font-size:11px;font-weight:800;color:' + info.color + ';background:' + info.bg + ';padding:2px 8px;border-radius:20px;border:1px solid ' + info.border + ';">' + info.label + '</span>';
+    if (isCur) html += '<span style="font-size:10px;font-weight:700;color:#d97706;">진행중</span>';
+    if (isPast && !isEmpty) html += '<span style="font-size:10px;color:#64748b;">완료</span>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:#64748b;margin-bottom:6px;">' + info.period + '</div>';
+    html += '<div style="font-family:monospace;font-size:18px;font-weight:800;color:' + (isEmpty ? '#94a3c0' : '#0f172a') + ';margin-bottom:2px;">';
+    html += (isEmpty ? '-' : vat.toLocaleString() + '원');
+    html += '</div>';
+    html += '<div style="font-size:10px;color:#64748b;">마감 ' + info.deadline + '</div>';
+    html += '</div>';
   });
   html += '</div>';
 
   // 안내 문구
-  html += '<div style="margin-top:12px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid var(--border);">'
-    + '<div style="font-size:11px;color:var(--muted);line-height:1.6;">'
-    + '📌 거래 입력 시 <b>📄 세금계산서 발행</b> 체크한 매출만 집계됩니다<br>'
-    + '💡 기업은행에 미리 적립해두면 납부일에 당황하지 않아요!'
-    + '</div>'
-    + '</div>';
+  html += '<div style="margin-top:12px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #dde3f5;">';
+  html += '<div style="font-size:11px;color:#64748b;line-height:1.6;">';
+  html += '📌 거래 입력 시 <b>📄 세금계산서 발행</b> 체크한 매출만 집계됩니다<br>';
+  html += '💡 기업은행에 미리 적립해두면 납부일에 당황하지 않아요!';
+  html += '</div></div>';
 
   el.innerHTML = html;
 }
-
-window.onload=initAuth;
-</script>
-</body>
-</html>
