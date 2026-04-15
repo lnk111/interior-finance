@@ -257,13 +257,12 @@ option{background:#fff;}
 
 /* ── 태블릿 (768px 이상) ── */
 @media (min-width: 768px) {
-  /* 앱 전체를 가운데 정렬 + 최대 너비 제한 */
   body { display: flex; justify-content: center; background: #e8ecf8; }
   #app {
     position: relative !important;
     top: auto !important; left: auto !important; right: auto !important; bottom: auto !important;
     width: 100% !important;
-    max-width: 680px !important;
+    max-width: 900px !important;
     height: 100vh !important;
     overflow-y: auto !important;
     box-shadow: 0 0 60px rgba(26,86,219,.15) !important;
@@ -272,22 +271,22 @@ option{background:#fff;}
     position: fixed !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
-    max-width: 680px !important;
+    max-width: 900px !important;
     width: 100% !important;
   }
-  /* 현장 카드 2컬럼 - 잘림 방지 */
+  /* 현장 카드 2컬럼 */
   #sites-body {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 12px !important;
   }
-  .site-card { margin-bottom: 0 !important; min-width: 0 !important; }
+  .site-card { margin-bottom: 0 !important; min-width: 0 !important; overflow: hidden !important; }
   .site-profit { font-size: 14px !important; }
   /* 모달 중앙 팝업 */
   .modal { align-items: center; justify-content: center; }
   .modal-sheet {
     border-radius: 20px !important;
-    max-width: 520px !important;
+    max-width: 560px !important;
     margin: 0 auto !important;
     max-height: 85vh !important;
   }
@@ -295,31 +294,33 @@ option{background:#fff;}
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-  /* 로그인 카드 */
   .lock-card { max-width: 380px !important; }
 }
 
 /* ── PC (1024px 이상) ── */
 @media (min-width: 1024px) {
-  #app { max-width: 860px !important; }
-  .nav { max-width: 860px !important; }
-  /* 현장 카드 3컬럼 - 오른쪽 잘림 방지 */
+  #app { max-width: 1100px !important; }
+  .nav { max-width: 1100px !important; }
+  /* 현장 카드 3컬럼 */
   #sites-body {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 12px !important;
-    overflow: visible !important;
+    gap: 14px !important;
+    overflow: hidden !important;
   }
-  .site-card { margin-bottom: 0 !important; min-width: 0 !important; }
-  /* 현장 카드 내부 텍스트 말줄임 */
-  .site-name { font-size: 13px !important; }
-  .site-profit { font-size: 13px !important; }
+  .site-card {
+    margin-bottom: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    word-break: break-all !important;
+  }
+  .site-name { font-size: 13px !important; word-break: break-word !important; }
+  .site-profit { font-size: 13px !important; white-space: nowrap !important; }
   .sc-val { font-size: 11px !important; }
   /* KPI 3컬럼 */
   .kpi-grid { grid-template-columns: 1fr 1fr 1fr !important; }
   /* 노하우 2컬럼 */
   #kh-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .kh-card { margin-bottom: 0 !important; }
-  /* 입력 폼 */
   .f-input { font-size: 14px !important; }
 }
