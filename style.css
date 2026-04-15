@@ -275,9 +275,14 @@ option{background:#fff;}
     max-width: 680px !important;
     width: 100% !important;
   }
-  /* 현장 카드 2컬럼 */
-  #sites-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .site-card { margin-bottom: 0 !important; }
+  /* 현장 카드 2컬럼 - 잘림 방지 */
+  #sites-body {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .site-card { margin-bottom: 0 !important; min-width: 0 !important; }
+  .site-profit { font-size: 14px !important; }
   /* 모달 중앙 팝업 */
   .modal { align-items: center; justify-content: center; }
   .modal-sheet {
@@ -296,15 +301,25 @@ option{background:#fff;}
 
 /* ── PC (1024px 이상) ── */
 @media (min-width: 1024px) {
-  #app { max-width: 780px !important; }
-  .nav { max-width: 780px !important; }
-  /* 현장 카드 3컬럼 */
-  #sites-body { grid-template-columns: 1fr 1fr 1fr !important; }
+  #app { max-width: 860px !important; }
+  .nav { max-width: 860px !important; }
+  /* 현장 카드 3컬럼 - 오른쪽 잘림 방지 */
+  #sites-body {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    overflow: visible !important;
+  }
+  .site-card { margin-bottom: 0 !important; min-width: 0 !important; }
+  /* 현장 카드 내부 텍스트 말줄임 */
+  .site-name { font-size: 13px !important; }
+  .site-profit { font-size: 13px !important; }
+  .sc-val { font-size: 11px !important; }
   /* KPI 3컬럼 */
   .kpi-grid { grid-template-columns: 1fr 1fr 1fr !important; }
   /* 노하우 2컬럼 */
   #kh-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .kh-card { margin-bottom: 0 !important; }
-  /* 입력 폼 넓게 */
+  /* 입력 폼 */
   .f-input { font-size: 14px !important; }
 }
