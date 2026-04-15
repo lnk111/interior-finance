@@ -870,18 +870,33 @@ function renderRecentEntries(){
   const el=document.getElementById('entry-recent');
   if(!el)return;
   if(!arr.length){el.innerHTML='<div class="empty"><div class="empty-ico">📝</div>입력 내역 없음</div>';return;}
-  el.innerHTML=arr.map(([k,e])=>`
-    <div class="entry-row">
-      <div class="entry-left">
-        <div><span class="e-type ${e.type}">${e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS'}</span><span style="font-size:13px;font-weight:600;">${e.site||''}</span></div>
-        <div class="e-info">${e.process||''} ${e.memo?'· '+e.memo:''}</div>
-        <div class="e-writer">👤 ${e.writer||''} · ${e.date||''}</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="e-amount ${e.type}">${e.type==='revenue'?'+':'-'}${fmt(e.amount||0)}원</div>
-        <button class="del-btn" onclick="delEntry('${k}')">삭제</button>
-      </div>
-    </div>`).join('');
+  el.innerHTML='';
+  arr.forEach(function([k,e]){
+    var row=document.createElement('div');
+    row.className='entry-row';
+    row.style.position='relative';
+    var typeLabel=e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS';
+    var amtSign=e.type==='revenue'?'+':'-';
+    row.innerHTML=
+      '<div class="entry-left">'+
+        '<div><span class="e-type '+e.type+'">'+typeLabel+'</span>'+
+        '<span style="font-size:13px;font-weight:600;">'+( e.site||'')+'</span></div>'+
+        '<div class="e-info">'+(e.process||'')+( e.memo?' · '+e.memo:'')+'</div>'+
+        '<div class="e-writer">👤 '+(e.writer||'')+' · '+(e.date||'')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<div class="e-amount '+e.type+'">'+amtSign+fmt(e.amount||0)+'원</div>'+
+        '<button class="kebab-btn" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;" data-entry-key="'+k+'">⋯</button>'+
+      '</div>';
+    el.appendChild(row);
+  });
+  // 케밥 메뉴 이벤트
+  el.querySelectorAll('.kebab-btn').forEach(function(btn){
+    btn.addEventListener('click',function(ev){
+      ev.stopPropagation();
+      showEntryMenu(btn.dataset.entryKey, btn);
+    });
+  });
 }
 async function delEntry(key){if(!confirm('삭제할까요?'))return;await db.ref('entries/'+key).remove();toast('🗑️ 삭제됨');}
 
@@ -1388,17 +1403,33 @@ async function _finishDetailRender(key){
     </div>${next?`<div class="tl-line ${lineClass}"></div>`:''}`;
   }).join('');
   entryArr.sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
-  const entryRows=entryArr.map(([ek,e])=>`
-    <div class="entry-row">
-      <div class="entry-left">
-        <div><span class="e-type ${e.type}">${e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS'}</span><span style="font-size:13px;font-weight:600;">${e.process||''}</span>${e.memo?`<span class="e-info"> · ${e.memo}</span>`:''}</div>
-        <div class="e-writer">👤 ${e.writer||''} · ${e.date||''}</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="e-amount ${e.type}">${e.type==='revenue'?'+':'-'}${fmt(e.amount||0)}원</div>
-        ${_role==='boss'?`<button class="del-btn" onclick="delEntry('${ek}')">삭제</button>`:''}
-      </div>
-    </div>`).join('');
+  const entryRows=entryArr.map(([ek,e])=>{
+    var tl=e.type==='revenue'?'매출':e.type==='cost'?'매입':'AS';
+    var sign=e.type==='revenue'?'+':'-';
+    var memo=e.memo?'<span class="e-info"> · '+e.memo+'</span>':'';
+    var btns=_role==='boss'
+      ?'<button class="kebab-btn" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;" data-entry-key="'+ek+'">⋯</button>'
+      :'';
+    return '<div class="entry-row" style="position:relative;">'
+      +'<div class="entry-left">'
+      +'<div><span class="e-type '+e.type+'">'+tl+'</span>'
+      +'<span style="font-size:13px;font-weight:600;">'+(e.process||'')+'</span>'+memo+'</div>'
+      +'<div class="e-writer">👤 '+(e.writer||'')+' · '+(e.date||'')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<div class="e-amount '+e.type+'">'+sign+fmt(e.amount||0)+'원</div>'
+      +btns
+      +'</div></div>';
+  }).join('');
+  // 케밥 메뉴 이벤트 - setTimeout으로 DOM 렌더 후 바인딩
+  setTimeout(function(){
+    document.querySelectorAll('#dm-body .kebab-btn').forEach(function(btn){
+      btn.addEventListener('click',function(ev){
+        ev.stopPropagation();
+        showEntryMenu(btn.dataset.entryKey, btn);
+      });
+    });
+  }, 100);
   document.getElementById('dm-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
       <div class="card-sm" style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">매출</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--green);">${fmt(rev)}원</div></div>
@@ -2364,6 +2395,78 @@ function renderVatQuarters() {
   html += '</div></div>';
 
   el.innerHTML = html;
+}
+
+
+// ════════════════════════════════════════════
+//  거래내역 수정/삭제 케밥 메뉴
+// ════════════════════════════════════════════
+var _activeMenu = null;
+
+function showEntryMenu(entryKey, btnEl) {
+  // 기존 메뉴 닫기
+  if(_activeMenu){ _activeMenu.remove(); _activeMenu=null; }
+
+  var menu = document.createElement('div');
+  menu.style.cssText = 'position:fixed;z-index:500;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(26,86,219,.15);overflow:hidden;min-width:130px;';
+
+  var editBtn = document.createElement('button');
+  editBtn.style.cssText = 'width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text);cursor:pointer;font-family:Pretendard,sans-serif;display:flex;align-items:center;gap:8px;';
+  editBtn.innerHTML = '✏️ 수정';
+  editBtn.addEventListener('click', function(){ _activeMenu.remove(); _activeMenu=null; openEditEntry(entryKey); });
+
+  var delBtn = document.createElement('button');
+  delBtn.style.cssText = 'width:100%;padding:13px 16px;background:none;border:none;font-size:14px;font-weight:700;color:var(--red);cursor:pointer;font-family:Pretendard,sans-serif;display:flex;align-items:center;gap:8px;';
+  delBtn.innerHTML = '🗑️ 삭제';
+  delBtn.addEventListener('click', function(){ _activeMenu.remove(); _activeMenu=null; delEntry(entryKey); });
+
+  menu.appendChild(editBtn);
+  menu.appendChild(delBtn);
+  document.body.appendChild(menu);
+  _activeMenu = menu;
+
+  // 위치 계산
+  var rect = btnEl.getBoundingClientRect();
+  var menuW = 130, menuH = 100;
+  var top = rect.bottom + 4;
+  var left = rect.right - menuW;
+  if(top + menuH > window.innerHeight) top = rect.top - menuH - 4;
+  if(left < 8) left = 8;
+  menu.style.top = top + 'px';
+  menu.style.left = left + 'px';
+
+  // 외부 클릭 시 닫기
+  setTimeout(function(){
+    document.addEventListener('click', function closeMenu(){
+      if(_activeMenu){ _activeMenu.remove(); _activeMenu=null; }
+      document.removeEventListener('click', closeMenu);
+    }, { once: true });
+  }, 10);
+}
+
+function openEditEntry(key) {
+  var e = _entries[key];
+  if(!e){ toast('항목을 찾을 수 없어요'); return; }
+  _editEntryKey = key;
+  // 폼에 기존 데이터 채우기
+  setType(e.type||'cost');
+  document.getElementById('f-site-inp').value = e.site||'';
+  document.getElementById('f-site').value = e.site||'';
+  document.getElementById('f-amount').value = e.amount||'';
+  document.getElementById('f-date').value = e.date||today();
+  document.getElementById('f-process').value = e.process||'';
+  document.getElementById('f-memo').value = e.memo||'';
+  document.getElementById('f-writer').value = e.writer||'';
+  updateAmountDisplay();
+  // 입력 탭으로 이동
+  goPage('entry');
+  // 수정 안내
+  setTimeout(function(){
+    toast('✏️ 수정 모드 — 내용 변경 후 입력 완료를 눌러주세요', 3000);
+    // 제출 버튼 텍스트 변경
+    var btn = document.getElementById('f-submit');
+    if(btn) btn.textContent = '✏️ 수정 완료';
+  }, 300);
 }
 
 function goToSiteFromDF(key){ openSiteDetail(key); }
