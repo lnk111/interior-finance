@@ -763,6 +763,7 @@ async function renderCalendar(){
     const phases=Object.values(procRaw).sort((a,b)=>(a.order||0)-(b.order||0));
     phases.forEach(ph=>{
       if(!ph.startDate&&!ph.doneDate)return;
+      if(ph.name==='A/S')return; // A/S 공정 제외
       const sd=ph.startDate||ph.doneDate;
       const ed=ph.doneDate||ph.startDate;
       // 이 공정이 속한 모든 날짜에 등록
