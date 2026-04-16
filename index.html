@@ -209,20 +209,18 @@
     <!-- 범례 -->
     <div id="cal-legend" style="margin-bottom:12px;"></div>
     <!-- 달력 그리드 -->
-    <div style="background:#fff;border-radius:14px;padding:12px;box-shadow:var(--shadow);margin-bottom:14px;">
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;">
-        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--red);padding:4px 0;">일</div>
-        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0;">월</div>
-        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0;">화</div>
-        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0;">수</div>
-        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0;">목</div>
-        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0;">금</div>
-        <div style="text-align:center;font-size:11px;font-weight:700;color:#3b82f6;padding:4px 0;">토</div>
+    <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);">
+        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--red);padding:6px 0;">일</div>
+        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:6px 0;">월</div>
+        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:6px 0;">화</div>
+        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:6px 0;">수</div>
+        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:6px 0;">목</div>
+        <div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:6px 0;">금</div>
+        <div style="text-align:center;font-size:11px;font-weight:700;color:#3b82f6;padding:6px 0;">토</div>
       </div>
-      <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;"></div>
+      <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);"></div>
     </div>
-    <!-- 공정 타임라인 (월간) -->
-    <div id="cal-timeline" style="margin-bottom:14px;"></div>
   </div>
 
   <!-- 노하우 -->
@@ -671,11 +669,9 @@ function calNextMonth(){
 async function renderCalendar(){
   document.getElementById('cal-title').textContent=_calYear+'년 '+_calMonth+'월';
 
-  // 모든 현장의 공정 데이터 로드
   const siteEntries=Object.entries(_sites);
   if(!siteEntries.length){
-    document.getElementById('cal-grid').innerHTML='';
-    document.getElementById('cal-timeline').innerHTML='<div class="empty"><div class="empty-ico">📅</div>등록된 현장이 없어요</div>';
+    document.getElementById('cal-grid').innerHTML='<div style="grid-column:span 7;padding:40px;text-align:center;color:var(--muted);">등록된 현장이 없어요</div>';
     document.getElementById('cal-legend').innerHTML='';
     return;
   }
@@ -692,18 +688,35 @@ async function renderCalendar(){
   const colorMap={};
   siteEntries.forEach(([key],idx)=>{colorMap[key]=CAL_COLORS[idx%CAL_COLORS.length];});
 
-  // 달력 날짜별 이벤트 수집
-  // dateMap[YYYY-MM-DD] = [{siteName, color, type:'site'|'proc', label}]
-  const dateMap={};
-  function addEvent(dateStr,obj){if(!dateStr)return;if(!dateMap[dateStr])dateMap[dateStr]=[];dateMap[dateStr].push(obj);}
+  // 날짜별 이벤트 수집 (바 스타일: 시작일~완료일 범위)
+  // barMap[YYYY-MM-DD] = [{siteName, color, label, phaseStatus, startDate, endDate}]
+  const barMap={};
+  function addBar(dateStr,obj){if(!dateStr)return;if(!barMap[dateStr])barMap[dateStr]=[];barMap[dateStr].push(obj);}
 
-  siteEntries.forEach(([key,s],idx)=>{
+  siteEntries.forEach(([key,s])=>{
     const color=colorMap[key];
     const procRaw=_calProcCache[key]||{};
     const phases=Object.values(procRaw).sort((a,b)=>(a.order||0)-(b.order||0));
     phases.forEach(ph=>{
-      if(ph.startDate)addEvent(ph.startDate,{siteName:s.name,color,type:'proc',label:(PROC_ICONS[ph.name]||'🔨')+' '+ph.name,phaseStatus:ph.status||'wait'});
-      if(ph.doneDate&&ph.doneDate!==ph.startDate)addEvent(ph.doneDate,{siteName:s.name,color,type:'proc',label:'✅ '+ph.name+' 완료',phaseStatus:'done'});
+      if(!ph.startDate&&!ph.doneDate)return;
+      const sd=ph.startDate||ph.doneDate;
+      const ed=ph.doneDate||ph.startDate;
+      // 이 공정이 속한 모든 날짜에 등록
+      let cur=new Date(sd);
+      const end=new Date(ed);
+      while(cur<=end){
+        const ds=cur.toISOString().slice(0,10);
+        const isFirst=ds===sd;
+        const isLast=ds===ed;
+        addBar(ds,{
+          siteName:s.name,color,
+          label:ph.name,
+          phaseStatus:ph.status||'wait',
+          startDate:sd,endDate:ed,
+          isFirst,isLast,isSingle:sd===ed
+        });
+        cur.setDate(cur.getDate()+1);
+      }
     });
   });
 
@@ -717,52 +730,62 @@ async function renderCalendar(){
   // 빈 칸
   for(let i=0;i<firstDay;i++){
     const cell=document.createElement('div');
-    cell.style.cssText='min-height:52px;padding:2px;';
+    cell.style.cssText='min-height:72px;border-right:0.5px solid #f0f0f0;border-bottom:0.5px solid #f0f0f0;padding:4px 2px;';
     grid.appendChild(cell);
   }
 
   for(let d=1;d<=lastDate;d++){
     const dateStr=_calYear+'-'+String(_calMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const events=dateMap[dateStr]||[];
+    const bars=barMap[dateStr]||[];
     const isToday=dateStr===todayStr;
     const dow=(firstDay+d-1)%7;
     const isSun=dow===0,isSat=dow===6;
+    const isLastCol=dow===6;
+    const isLastRow=d>lastDate-7;
 
     const cell=document.createElement('div');
-    cell.style.cssText='min-height:52px;padding:2px;border-radius:8px;cursor:'+(events.length?'pointer':'default')+';'+(isToday?'background:rgba(26,86,219,.08);border:1.5px solid var(--accent);':'');
-    if(events.length)cell.addEventListener('click',function(){openCalDay(dateStr,events);});
+    cell.style.cssText='min-height:72px;border-right:'+(isLastCol?'none':'0.5px solid #f0f0f0')+';border-bottom:'+(isLastRow?'none':'0.5px solid #f0f0f0')+';padding:4px 2px;'+(isToday?'background:rgba(26,86,219,.05);':'');
+    if(bars.length)cell.style.cursor='pointer';
+    if(bars.length)cell.addEventListener('click',function(){openCalDay(dateStr,bars);});
 
+    // 날짜 숫자
+    const numWrap=document.createElement('div');
+    numWrap.style.cssText='display:flex;justify-content:center;margin-bottom:3px;';
     const numEl=document.createElement('div');
-    numEl.style.cssText='font-size:12px;font-weight:'+(isToday?'800':'600')+';color:'+(isToday?'var(--accent)':isSun?'var(--red)':isSat?'#3b82f6':'var(--text)')+';margin-bottom:2px;text-align:center;';
+    if(isToday){
+      numEl.style.cssText='width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;';
+    } else {
+      numEl.style.cssText='font-size:11px;font-weight:600;color:'+(isSun?'var(--red)':isSat?'#3b82f6':'var(--text)')+';padding:2px;';
+    }
     numEl.textContent=d;
-    cell.appendChild(numEl);
+    numWrap.appendChild(numEl);
+    cell.appendChild(numWrap);
 
-    // 이벤트 도트 (최대 3개)
-    if(events.length){
-      const dotWrap=document.createElement('div');
-      dotWrap.style.cssText='display:flex;flex-wrap:wrap;gap:2px;justify-content:center;';
-      const shown=events.slice(0,3);
-      shown.forEach(ev=>{
-        const dot=document.createElement('div');
-        dot.style.cssText='width:6px;height:6px;border-radius:50%;background:'+ev.color+';flex-shrink:0;';
-        dotWrap.appendChild(dot);
+    // 이벤트 바 (최대 3개 표시, 나머지는 +N)
+    if(bars.length){
+      const shown=bars.slice(0,3);
+      shown.forEach(bar=>{
+        const barEl=document.createElement('div');
+        // 시작일: 왼쪽 라운드, 종료일: 오른쪽 라운드, 중간: 사각형
+        const rLeft=bar.isFirst||bar.isSingle?'3px':'0';
+        const rRight=bar.isLast||bar.isSingle?'3px':'0';
+        // 라벨은 시작일에만 표시
+        barEl.style.cssText='background:'+bar.color+';border-radius:'+rLeft+' '+rRight+' '+rRight+' '+rLeft+';padding:1px 4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;font-weight:700;color:#fff;line-height:15px;height:15px;';
+        barEl.textContent=(bar.isFirst||bar.isSingle)?bar.label:'';
+        cell.appendChild(barEl);
       });
-      if(events.length>3){
+      if(bars.length>3){
         const more=document.createElement('div');
-        more.style.cssText='font-size:9px;color:var(--muted);width:100%;text-align:center;';
-        more.textContent='+'+(events.length-3);
-        dotWrap.appendChild(more);
+        more.style.cssText='font-size:9px;color:var(--muted);text-align:center;margin-top:1px;';
+        more.textContent='+'+(bars.length-3)+' 더보기';
+        cell.appendChild(more);
       }
-      cell.appendChild(dotWrap);
     }
     grid.appendChild(cell);
   }
 
   // 범례
   renderCalLegend(siteEntries,colorMap);
-
-  // 타임라인 (이번 달 공정 목록)
-  renderCalTimeline(siteEntries,colorMap);
 }
 
 function renderCalLegend(siteEntries,colorMap){
@@ -771,89 +794,45 @@ function renderCalLegend(siteEntries,colorMap){
   el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:6px;">'+
     siteEntries.map(([key,s])=>`
       <div style="display:flex;align-items:center;gap:5px;background:#fff;border-radius:20px;padding:4px 10px;border:1px solid var(--border);font-size:11px;font-weight:600;">
-        <div style="width:8px;height:8px;border-radius:50%;background:${colorMap[key]};flex-shrink:0;"></div>
-        ${s.name.length>10?s.name.slice(0,10)+'..':s.name}
+        <div style="width:8px;height:8px;border-radius:2px;background:${colorMap[key]};flex-shrink:0;"></div>
+        ${s.name.length>12?s.name.slice(0,12)+'..':s.name}
       </div>`).join('')+
   '</div>';
 }
 
-function renderCalTimeline(siteEntries,colorMap){
-  const el=document.getElementById('cal-timeline');
-  const ym=_calYear+'-'+String(_calMonth).padStart(2,'0');
-  const rows=[];
-
-  siteEntries.forEach(([key,s])=>{
-    const procRaw=_calProcCache[key]||{};
-    const phases=Object.values(procRaw).filter(ph=>{
-      const sd=(ph.startDate||'');
-      const ed=(ph.doneDate||'');
-      return sd.startsWith(ym)||ed.startsWith(ym);
-    }).sort((a,b)=>(a.startDate||a.doneDate||'').localeCompare(b.startDate||b.doneDate||''));
-
-    if(phases.length){
-      rows.push({siteName:s.name,color:colorMap[key],phases});
-    }
-  });
-
-  if(!rows.length){
-    el.innerHTML='<div style="background:#fff;border-radius:14px;padding:20px;text-align:center;color:var(--muted);font-size:13px;box-shadow:var(--shadow);">이번 달 등록된 공정이 없어요<br><span style="font-size:11px;">현장 관리에서 공정 날짜를 입력해보세요</span></div>';
-    return;
-  }
-
-  let html='<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:var(--shadow);">';
-  html+='<div style="font-size:13px;font-weight:800;color:var(--muted);margin-bottom:12px;">이번 달 공정 일정</div>';
-
-  rows.forEach(row=>{
-    html+=`<div style="margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-        <div style="width:8px;height:8px;border-radius:50%;background:${row.color};flex-shrink:0;"></div>
-        <div style="font-size:13px;font-weight:700;">${row.siteName}</div>
-      </div>`;
-    row.phases.forEach(ph=>{
-      const statusColor=ph.status==='done'?'#059669':ph.status==='active'?'#1a56db':'#94a3b8';
-      const statusLabel=ph.status==='done'?'완료':ph.status==='active'?'진행중':'대기';
-      html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:10px;margin-bottom:4px;border-left:3px solid ${row.color};">
-        <div style="font-size:14px;">${PROC_ICONS[ph.name]||'🔨'}</div>
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;">${ph.name}</div>
-          <div style="font-size:10px;color:var(--muted);">${ph.startDate?ph.startDate.slice(5)+' 시작':''}${ph.doneDate?' ~ '+ph.doneDate.slice(5)+' 완료':''}</div>
-        </div>
-        <span style="font-size:10px;font-weight:700;color:${statusColor};background:${statusColor}1a;padding:2px 7px;border-radius:10px;">${statusLabel}</span>
-      </div>`;
-    });
-    html+='</div>';
-  });
-  html+='</div>';
-  el.innerHTML=html;
-}
-
-function openCalDay(dateStr,events){
+function openCalDay(dateStr,bars){
   const modal=document.getElementById('cal-day-modal');
   const title=document.getElementById('cal-day-title');
   const body=document.getElementById('cal-day-body');
-  const d=new Date(dateStr);
+  const d=new Date(dateStr+'T00:00:00');
   const dayNames=['일','월','화','수','목','금','토'];
   title.textContent=dateStr.slice(5).replace('-','월 ')+'일 ('+dayNames[d.getDay()]+')';
 
-  // 현장별로 그룹핑
+  // 현장별 그룹핑 + 중복 공정 제거
   const grouped={};
-  events.forEach(ev=>{
-    if(!grouped[ev.siteName])grouped[ev.siteName]={color:ev.color,events:[]};
-    grouped[ev.siteName].events.push(ev);
+  bars.forEach(bar=>{
+    if(!grouped[bar.siteName])grouped[bar.siteName]={color:bar.color,phases:[]};
+    const already=grouped[bar.siteName].phases.some(p=>p.label===bar.label);
+    if(!already)grouped[bar.siteName].phases.push(bar);
   });
 
   let html='';
   Object.entries(grouped).forEach(([siteName,g])=>{
-    html+=`<div style="margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${g.color};"></div>
+    html+=`<div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:10px;height:10px;border-radius:2px;background:${g.color};flex-shrink:0;"></div>
         <div style="font-size:14px;font-weight:700;">${siteName}</div>
       </div>`;
-    g.events.forEach(ev=>{
-      const statusColor=ev.phaseStatus==='done'?'#059669':ev.phaseStatus==='active'?'#1a56db':'#94a3b8';
-      html+=`<div style="padding:10px 12px;background:var(--s2);border-radius:10px;margin-bottom:4px;border-left:3px solid ${g.color};display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:13px;font-weight:600;">${ev.label}</div>
-        <span style="font-size:10px;color:${statusColor};font-weight:700;">${ev.phaseStatus==='done'?'완료':ev.phaseStatus==='active'?'진행중':'대기'}</span>
+    g.phases.forEach(bar=>{
+      const statusColor=bar.phaseStatus==='done'?'#059669':bar.phaseStatus==='active'?'#1a56db':'#94a3b8';
+      const statusLabel=bar.phaseStatus==='done'?'완료':bar.phaseStatus==='active'?'진행중':'대기';
+      const dateRange=bar.startDate===bar.endDate?bar.startDate.slice(5):bar.startDate.slice(5)+' ~ '+bar.endDate.slice(5);
+      html+=`<div style="padding:10px 12px;background:var(--s2);border-radius:10px;margin-bottom:6px;border-left:3px solid ${g.color};">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+          <div style="font-size:13px;font-weight:700;">${PROC_ICONS[bar.label]||'🔨'} ${bar.label}</div>
+          <span style="font-size:10px;font-weight:700;color:${statusColor};background:${statusColor}20;padding:2px 8px;border-radius:10px;">${statusLabel}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);">📅 ${dateRange}</div>
       </div>`;
     });
     html+='</div>';
