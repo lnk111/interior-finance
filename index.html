@@ -9,6 +9,22 @@
 <title>현장 손익 관리</title>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+/* 스와이프 네비게이션 */
+nav.nav {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  display: flex !important;
+  justify-content: flex-start !important;
+}
+nav.nav::-webkit-scrollbar { display: none; }
+nav.nav .nav-btn {
+  flex: 0 0 auto !important;
+  min-width: 64px !important;
+  width: auto !important;
+}
+</style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
@@ -198,10 +214,7 @@
   <div class="page" id="pg-calendar">
     <div class="top-bar">
       <div class="top-bar-title">📅 현장 달력</div>
-      <div style="display:flex;gap:6px;">
-        <button onclick="openCalScheduleModal(null)" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;">+ 일정 추가</button>
-        <button onclick="exportICS()" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📤</button>
-      </div>
+      <button onclick="exportICS()" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📤 구글 캘린더</button>
     </div>
     <!-- 월 이동 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:var(--shadow);">
@@ -278,7 +291,7 @@
 </div>
 
 <!-- 네비게이션 -->
-<nav class="nav">
+<nav class="nav" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;white-space:nowrap;display:flex;justify-content:flex-start;padding:0 4px;">
   <button class="nav-btn on" id="nb-designfor" onclick="goPage('designfor')">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>디자인포
   </button>
@@ -305,6 +318,9 @@
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>설정
   </button>
 </nav>
+
+<!-- 달력 페이지 플로팅 버튼 -->
+<button id="cal-fab" onclick="openCalScheduleModal(null)" style="display:none;position:fixed;right:20px;bottom:80px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(26,86,219,.4);z-index:200;align-items:center;justify-content:center;font-family:'Pretendard',sans-serif;line-height:1;">+</button>
 
 <!-- 날짜 클릭 팝업 모달 -->
 <!-- 일정 추가/수정 모달 -->
@@ -685,6 +701,12 @@ function goPage(name){
   document.getElementById('pg-'+name).classList.add('on');
   document.getElementById('nb-'+name).classList.add('on');
   document.getElementById('app').scrollTop=0;
+  // FAB 버튼: 달력 탭일 때만 표시
+  const fab=document.getElementById('cal-fab');
+  if(fab)fab.style.display=(name==='calendar'?'flex':'none');
+  // 선택된 nav-btn이 화면에 보이도록 스크롤
+  const activeBtn=document.getElementById('nb-'+name);
+  if(activeBtn)activeBtn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   if(name==='designfor')renderDesignFor();
   if(name==='home')renderDash();
   if(name==='pending')renderPending();
