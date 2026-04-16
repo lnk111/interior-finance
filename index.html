@@ -198,7 +198,10 @@
   <div class="page" id="pg-calendar">
     <div class="top-bar">
       <div class="top-bar-title">📅 현장 달력</div>
-      <button onclick="exportICS()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;">📤 구글 캘린더</button>
+      <div style="display:flex;gap:6px;">
+        <button onclick="openCalScheduleModal(null)" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;">+ 일정 추가</button>
+        <button onclick="exportICS()" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📤</button>
+      </div>
     </div>
     <!-- 월 이동 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:var(--shadow);">
@@ -304,6 +307,38 @@
 </nav>
 
 <!-- 날짜 클릭 팝업 모달 -->
+<!-- 일정 추가/수정 모달 -->
+<div class="modal" id="cal-schedule-modal">
+  <div class="modal-sheet" style="max-height:92vh;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="modal-title" id="csm-title" style="margin-bottom:0;">📅 일정 추가</div>
+      <button onclick="closeCalScheduleModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+    <input type="hidden" id="csm-edit-id">
+    <div class="f-label">제목 *</div>
+    <input class="f-input" id="csm-title-inp" type="text" placeholder="예) 동탄 현장 미팅">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div>
+        <div class="f-label">날짜 *</div>
+        <input class="f-input" id="csm-date" type="date" style="margin-bottom:0;">
+      </div>
+      <div>
+        <div class="f-label">시간</div>
+        <input class="f-input" id="csm-time" type="time" style="margin-bottom:0;">
+      </div>
+    </div>
+    <div class="f-label" style="margin-top:14px;">메모</div>
+    <textarea class="f-input" id="csm-memo" rows="2" placeholder="내용을 입력하세요" style="resize:none;line-height:1.5;font-family:inherit;"></textarea>
+    <div class="f-label">참석자</div>
+    <div id="csm-attendee-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;min-height:36px;padding:8px;background:var(--s2);border-radius:10px;border:1px solid var(--border);"></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">직원 목록에서 선택하세요</div>
+    <div id="csm-staff-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+    <button class="submit-btn" onclick="saveCalSchedule()">저장</button>
+    <button id="csm-del-btn" style="display:none;width:100%;padding:13px;background:none;border:1px solid #fee2e2;border-radius:var(--r);color:var(--red);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;font-family:'Pretendard',sans-serif;" onclick="deleteCalSchedule()">🗑️ 삭제</button>
+  </div>
+</div>
+
 <div class="modal" id="cal-day-modal">
   <div class="modal-sheet" style="max-height:80vh;">
     <div class="modal-handle"></div>
@@ -532,6 +567,8 @@ var _firebaseConnected=false,_role='',_sites={},_entries={},_pending={},_phCache
 // ── 달력 상태 ──
 var _calYear=new Date().getFullYear(), _calMonth=new Date().getMonth()+1;
 var _calProcCache={}; // siteKey -> phases
+var _calSchedules={}; // Firebase scheduleData
+var _csmAttendees=[]; // 현재 선택된 참석자
 
 const STATUS_LABEL={consult:'상담중',contract:'계약완료',active:'공사중',settle:'정산중',balance:'잔금대기',done:'마감',as:'AS관리'};
 const STATUS_DESC={consult:'고객과 상담 진행 중',contract:'계약 완료, 공사 시작 전',active:'현재 공사가 진행 중',settle:'공사 완료, 정산 처리 중',balance:'잔금 입금 대기 중',done:'모든 절차 완료',as:'공사 후 AS 진행 중'};
@@ -635,6 +672,10 @@ function initApp(){
   db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDash();renderRecentEntries();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
+  db.ref('scheduleData').on('value',snap=>{
+    _calSchedules=snap.val()||{};
+    if(document.getElementById('pg-calendar').classList.contains('on'))renderCalendar();
+  });
 }
 
 function goPage(name){
@@ -721,6 +762,20 @@ async function renderCalendar(){
     });
   });
 
+  // 수동 추가 일정도 barMap에 추가
+  Object.entries(_calSchedules).forEach(([id,sc])=>{
+    if(!sc.date)return;
+    const timeLabel=sc.time?' '+sc.time:'';
+    addBar(sc.date,{
+      siteName:'📌 일정',color:'#6366f1',
+      label:(sc.time?sc.time+' ':'')+sc.title,
+      phaseStatus:'schedule',
+      startDate:sc.date,endDate:sc.date,
+      isFirst:true,isLast:true,isSingle:true,
+      scheduleId:id,scheduleData:sc
+    });
+  });
+
   // 달력 그리드 렌더
   const firstDay=new Date(_calYear,_calMonth-1,1).getDay();
   const lastDate=new Date(_calYear,_calMonth,0).getDate();
@@ -745,9 +800,8 @@ async function renderCalendar(){
     const isLastRow=d>lastDate-7;
 
     const cell=document.createElement('div');
-    cell.style.cssText='min-height:72px;border-right:'+(isLastCol?'none':'0.5px solid #f0f0f0')+';border-bottom:'+(isLastRow?'none':'0.5px solid #f0f0f0')+';padding:4px 2px;'+(isToday?'background:rgba(26,86,219,.05);':'');
-    if(bars.length)cell.style.cursor='pointer';
-    if(bars.length)cell.addEventListener('click',function(){openCalDay(dateStr,bars);});
+    cell.style.cssText='min-height:72px;border-right:'+(isLastCol?'none':'0.5px solid #f0f0f0')+';border-bottom:'+(isLastRow?'none':'0.5px solid #f0f0f0')+';padding:4px 2px;cursor:pointer;'+(isToday?'background:rgba(26,86,219,.05);':'');
+    cell.addEventListener('click',function(){openCalDay(dateStr,bars);});
 
     // 날짜 숫자
     const numWrap=document.createElement('div');
@@ -820,15 +874,40 @@ function openCalDay(dateStr,bars){
   const dayNames=['일','월','화','수','목','금','토'];
   title.textContent=dateStr.slice(5).replace('-','월 ')+'일 ('+dayNames[d.getDay()]+')';
 
+  // 수동 일정 분리
+  const schedules=bars.filter(b=>b.phaseStatus==='schedule');
+  const procBars=bars.filter(b=>b.phaseStatus!=='schedule');
+
   // 현장별 그룹핑 + 중복 공정 제거
   const grouped={};
-  bars.forEach(bar=>{
+  procBars.forEach(bar=>{
     if(!grouped[bar.siteName])grouped[bar.siteName]={color:bar.color,phases:[]};
     const already=grouped[bar.siteName].phases.some(p=>p.label===bar.label);
     if(!already)grouped[bar.siteName].phases.push(bar);
   });
 
   let html='';
+
+  // 수동 일정 표시
+  if(schedules.length){
+    html+='<div style="margin-bottom:14px;">';
+    html+='<div style="font-size:11px;font-weight:700;color:#6366f1;margin-bottom:8px;letter-spacing:.4px;">📌 추가 일정</div>';
+    schedules.forEach(bar=>{
+      const sc=bar.scheduleData||{};
+      const attendeeStr=sc.attendees&&sc.attendees.length?'👥 '+sc.attendees.join(', '):'';
+      html+=`<div style="padding:10px 12px;background:#f0f0ff;border-radius:10px;margin-bottom:6px;border-left:3px solid #6366f1;cursor:pointer;" onclick="openCalScheduleModal('${bar.scheduleId}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+          <div style="font-size:13px;font-weight:700;color:#4338ca;">${sc.title||''}</div>
+          ${sc.time?`<span style="font-size:11px;font-weight:700;color:#6366f1;background:#e0e7ff;padding:2px 8px;border-radius:10px;">${sc.time}</span>`:''}
+        </div>
+        ${sc.memo?`<div style="font-size:11px;color:#64748b;margin-bottom:3px;">${sc.memo}</div>`:''}
+        ${attendeeStr?`<div style="font-size:11px;color:#6366f1;">${attendeeStr}</div>`:''}
+      </div>`;
+    });
+    html+='</div>';
+  }
+
+  // 공정 일정 표시
   Object.entries(grouped).forEach(([siteName,g])=>{
     html+=`<div style="margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -849,8 +928,116 @@ function openCalDay(dateStr,bars){
     });
     html+='</div>';
   });
-  body.innerHTML=html||'<div style="text-align:center;color:var(--muted);padding:20px;">일정 없음</div>';
+
+  if(!html)html='<div style="text-align:center;color:var(--muted);padding:20px;">일정 없음</div>';
+
+  // 일정 추가 버튼
+  html+=`<button onclick="document.getElementById('cal-day-modal').classList.remove('on');openCalScheduleModal(null,'${dateStr}')" style="width:100%;padding:12px;background:var(--s2);border:1.5px dashed var(--border2);border-radius:10px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;margin-top:4px;">+ 이 날 일정 추가</button>`;
+
+  body.innerHTML=html;
   modal.classList.add('on');
+}
+
+// ════════════════════════════════════════════
+//  📅 일정 추가/수정/삭제
+// ════════════════════════════════════════════
+
+function openCalScheduleModal(editId, prefillDate){
+  _csmAttendees=[];
+  const modal=document.getElementById('cal-schedule-modal');
+  document.getElementById('csm-edit-id').value=editId||'';
+  document.getElementById('csm-title').textContent=editId?'✏️ 일정 수정':'📅 일정 추가';
+  document.getElementById('csm-del-btn').style.display=editId?'block':'none';
+
+  if(editId&&_calSchedules[editId]){
+    const sc=_calSchedules[editId];
+    document.getElementById('csm-title-inp').value=sc.title||'';
+    document.getElementById('csm-date').value=sc.date||'';
+    document.getElementById('csm-time').value=sc.time||'';
+    document.getElementById('csm-memo').value=sc.memo||'';
+    _csmAttendees=[...(sc.attendees||[])];
+  } else {
+    document.getElementById('csm-title-inp').value='';
+    document.getElementById('csm-date').value=prefillDate||today();
+    document.getElementById('csm-time').value='';
+    document.getElementById('csm-memo').value='';
+    _csmAttendees=[];
+  }
+
+  renderCsmStaffList();
+  renderCsmAttendeeTags();
+  modal.classList.add('on');
+}
+
+function closeCalScheduleModal(){
+  document.getElementById('cal-schedule-modal').classList.remove('on');
+}
+
+function renderCsmStaffList(){
+  const el=document.getElementById('csm-staff-list');
+  if(!el)return;
+  const activeStaff=Object.values(_staffData).filter(s=>!s.resignDate);
+  if(!activeStaff.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);">등록된 직원이 없어요 (설정에서 추가)</div>';return;}
+  el.innerHTML='';
+  activeStaff.forEach(s=>{
+    const label=s.name+(s.role?' '+s.role:'');
+    const isSelected=_csmAttendees.includes(label);
+    const btn=document.createElement('button');
+    btn.style.cssText='padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;transition:all .15s;border:'+(isSelected?'none':'1px solid var(--border)')+';background:'+(isSelected?'var(--accent)':'var(--s2)')+';color:'+(isSelected?'#fff':'var(--text)')+';';
+    btn.textContent=(isSelected?'✓ ':'')+label;
+    btn.addEventListener('click',()=>toggleCsmAttendee(label));
+    el.appendChild(btn);
+  });
+}
+
+function toggleCsmAttendee(label){
+  const idx=_csmAttendees.indexOf(label);
+  if(idx>=0)_csmAttendees.splice(idx,1);
+  else _csmAttendees.push(label);
+  renderCsmStaffList();
+  renderCsmAttendeeTags();
+}
+
+function renderCsmAttendeeTags(){
+  const el=document.getElementById('csm-attendee-tags');
+  if(!el)return;
+  if(!_csmAttendees.length){
+    el.innerHTML='<span style="font-size:12px;color:var(--dim);">선택된 참석자 없음</span>';
+    return;
+  }
+  el.innerHTML=_csmAttendees.map(a=>`
+    <div style="display:flex;align-items:center;gap:5px;background:var(--accent);color:#fff;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">
+      ${a}
+      <button onclick="toggleCsmAttendee('${a}')" style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:13px;padding:0;line-height:1;">✕</button>
+    </div>`).join('');
+}
+
+async function saveCalSchedule(){
+  const title=document.getElementById('csm-title-inp').value.trim();
+  if(!title){toast('⚠️ 제목을 입력해주세요');return;}
+  const editId=document.getElementById('csm-edit-id').value;
+  const data={
+    title,
+    date:document.getElementById('csm-date').value||today(),
+    time:document.getElementById('csm-time').value||'',
+    memo:document.getElementById('csm-memo').value.trim(),
+    attendees:_csmAttendees,
+    createdAt:editId?(_calSchedules[editId]?.createdAt||Date.now()):Date.now()
+  };
+  try{
+    if(editId)await db.ref('scheduleData/'+editId).update(data);
+    else await db.ref('scheduleData').push(data);
+    closeCalScheduleModal();
+    toast(editId?'✅ 일정 수정 완료':'✅ 일정 추가 완료');
+  }catch(e){toast('❌ 저장 실패');}
+}
+
+async function deleteCalSchedule(){
+  const editId=document.getElementById('csm-edit-id').value;
+  if(!editId||!confirm('이 일정을 삭제할까요?'))return;
+  await db.ref('scheduleData/'+editId).remove();
+  closeCalScheduleModal();
+  toast('🗑️ 삭제됨');
 }
 
 // ════════════════════════════════════════════
