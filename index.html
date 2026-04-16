@@ -785,8 +785,19 @@ async function renderCalendar(){
     grid.appendChild(cell);
   }
 
-  // 범례
-  renderCalLegend(siteEntries,colorMap);
+  // 범례 — 이번 달에 실제 바가 있는 현장만
+  const ym=_calYear+'-'+String(_calMonth).padStart(2,'0');
+  const activeSiteKeys=new Set();
+  Object.keys(barMap).forEach(ds=>{
+    if(ds.startsWith(ym)){
+      barMap[ds].forEach(bar=>{
+        const found=siteEntries.find(([,s])=>s.name===bar.siteName);
+        if(found)activeSiteKeys.add(found[0]);
+      });
+    }
+  });
+  const activeSiteEntries=siteEntries.filter(([key])=>activeSiteKeys.has(key));
+  renderCalLegend(activeSiteEntries,colorMap);
 }
 
 function renderCalLegend(siteEntries,colorMap){
