@@ -694,6 +694,7 @@ async function renderCalendar(){
   function addBar(dateStr,obj){if(!dateStr)return;if(!barMap[dateStr])barMap[dateStr]=[];barMap[dateStr].push(obj);}
 
   siteEntries.forEach(([key,s])=>{
+    if(s.status==='as')return; // AS 현장 제외
     const color=colorMap[key];
     const procRaw=_calProcCache[key]||{};
     const phases=Object.values(procRaw).sort((a,b)=>(a.order||0)-(b.order||0));
