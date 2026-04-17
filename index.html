@@ -554,6 +554,77 @@ nav.nav .nav-btn {
   </div>
 </div>
 
+
+<!-- 거래 수정 모달 -->
+<div class="modal" id="edit-entry-modal">
+  <div class="modal-sheet" style="max-height:92vh;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:17px;font-weight:800;">✏️ 거래 수정</div>
+      <button onclick="closeEditEntryModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+    <div class="type-row" style="margin-bottom:14px;">
+      <button class="type-btn t-cost" id="eem-bt-cost" onclick="setEemType('cost')">📦 매입</button>
+      <button class="type-btn" id="eem-bt-revenue" onclick="setEemType('revenue')">💰 매출</button>
+      <button class="type-btn" id="eem-bt-as" onclick="setEemType('as')">🔧 AS</button>
+    </div>
+    <div class="f-label">현장 *</div>
+    <input class="f-input" id="eem-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="eemShowSiteTags()" style="cursor:pointer;">
+    <input type="hidden" id="eem-site">
+    <div class="tag-wrap" id="eem-tags-site" style="display:none;"></div>
+    <div class="f-label">금액 (원) *</div>
+    <input class="f-input" id="eem-amount" type="number" inputmode="numeric" placeholder="0" onfocus="this.select()" oninput="eemUpdateAmountDisplay()">
+    <div id="eem-amount-display" style="font-size:12px;color:var(--accent);font-weight:700;text-align:right;min-height:18px;margin-bottom:8px;"></div>
+    <div class="f-label">날짜</div>
+    <input class="f-input" id="eem-date" type="date">
+    <div class="f-label">공정</div>
+    <input class="f-input" id="eem-process" type="text" placeholder="선택 또는 직접입력" readonly onfocus="eemShowProcessTags()" style="cursor:pointer;">
+    <div class="tag-wrap" id="eem-tags-process" style="display:none;">
+      <div class="tag" onclick="eemPickProcess('철거')">철거</div>
+      <div class="tag" onclick="eemPickProcess('창호')">창호</div>
+      <div class="tag" onclick="eemPickProcess('전기')">전기</div>
+      <div class="tag" onclick="eemPickProcess('욕실방수')">욕실방수</div>
+      <div class="tag" onclick="eemPickProcess('목공')">목공</div>
+      <div class="tag" onclick="eemPickProcess('타일')">타일</div>
+      <div class="tag" onclick="eemPickProcess('필름')">필름</div>
+      <div class="tag" onclick="eemPickProcess('욕실설비')">욕실설비</div>
+      <div class="tag" onclick="eemPickProcess('바닥')">바닥</div>
+      <div class="tag" onclick="eemPickProcess('도배')">도배</div>
+      <div class="tag" onclick="eemPickProcess('가구')">가구</div>
+      <div class="tag" onclick="eemPickProcess('조명마감')">조명마감</div>
+      <div class="tag" onclick="eemPickProcess('중문')">중문</div>
+      <div class="tag" onclick="eemPickProcess('실리콘')">실리콘</div>
+      <div class="tag" onclick="eemPickProcess('잔마감')">잔마감</div>
+      <div class="tag" onclick="eemPickProcess('직접')">✏️ 직접</div>
+    </div>
+    <div class="f-label">메모</div>
+    <textarea class="f-input" id="eem-memo" placeholder="자유롭게 입력하세요" rows="2" style="resize:none;line-height:1.5;font-family:inherit;"></textarea>
+    <!-- 사진 표시 영역 (이미 저장된 사진 없으면 숨김) -->
+    <div id="eem-photo-wrap" style="display:none;margin-bottom:14px;">
+      <div class="f-label">첨부 사진</div>
+      <div id="eem-photo-preview" style="border-radius:12px;overflow:hidden;cursor:pointer;">
+        <img id="eem-photo-img" style="width:100%;max-height:180px;object-fit:cover;display:block;">
+        <div style="text-align:center;font-size:11px;color:var(--muted);padding:6px;background:var(--s2);">탭하면 전체화면</div>
+      </div>
+    </div>
+    <div id="eem-tax-wrap" style="display:none;margin-bottom:14px;">
+      <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="eemToggleTax()">
+        <div id="eem-tax-cb" style="width:28px;height:28px;border-radius:8px;border:2px solid #d97706;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;font-size:16px;"></div>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#92400e;">📄 세금계산서 발행</div>
+          <div style="font-size:12px;color:#b45309;margin-top:2px;">체크하면 부가세(10%)가 자동 계산됩니다</div>
+        </div>
+      </div>
+    </div>
+    <div class="f-label">입력자</div>
+    <input class="f-input" id="eem-writer" type="text" placeholder="선택 또는 직접입력" readonly onfocus="eemShowWriterTags()" style="cursor:pointer;">
+    <div class="tag-wrap" id="eem-tags-writer" style="display:none;"></div>
+    <button class="submit-btn" onclick="saveEditEntry()">✅ 수정 완료</button>
+    <button onclick="closeEditEntryModal()" style="width:100%;padding:13px;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;margin-top:8px;">취소</button>
+  </div>
+</div>
+
+  
 <!-- 공정 편집 모달 -->
 <div id="proc-edit-modal">
   <div class="proc-edit-sheet">
@@ -1518,19 +1589,194 @@ function renderVatQuarters(){
   el.innerHTML=html;
 }
 
+
 var _activeMenu=null;
+var _eemType='cost';
+var _eemTaxInvoice=false;
+var _eemKey=null;
+
 function showEntryMenu(entryKey,btnEl){
   if(_activeMenu){_activeMenu.remove();_activeMenu=null;}
-  var menu=document.createElement('div');menu.style.cssText='position:fixed;z-index:500;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(26,86,219,.15);overflow:hidden;min-width:130px;';
-  var editBtn=document.createElement('button');editBtn.style.cssText='width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text);cursor:pointer;font-family:Pretendard,sans-serif;display:flex;align-items:center;gap:8px;';editBtn.innerHTML='✏️ 수정';editBtn.addEventListener('click',function(){_activeMenu.remove();_activeMenu=null;openEditEntry(entryKey);});
-  var delBtn=document.createElement('button');delBtn.style.cssText='width:100%;padding:13px 16px;background:none;border:none;font-size:14px;font-weight:700;color:var(--red);cursor:pointer;font-family:Pretendard,sans-serif;display:flex;align-items:center;gap:8px;';delBtn.innerHTML='🗑️ 삭제';delBtn.addEventListener('click',function(){_activeMenu.remove();_activeMenu=null;delEntry(entryKey);});
+  var menu=document.createElement('div');
+  menu.style.cssText='position:fixed;z-index:500;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(26,86,219,.15);overflow:hidden;min-width:130px;';
+  var editBtn=document.createElement('button');
+  editBtn.style.cssText='width:100%;padding:13px 16px;background:none;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text);cursor:pointer;font-family:Pretendard,sans-serif;display:flex;align-items:center;gap:8px;';
+  editBtn.innerHTML='✏️ 수정';
+  editBtn.addEventListener('click',function(){_activeMenu.remove();_activeMenu=null;openEditEntry(entryKey);});
+  var delBtn=document.createElement('button');
+  delBtn.style.cssText='width:100%;padding:13px 16px;background:none;border:none;font-size:14px;font-weight:700;color:var(--red);cursor:pointer;font-family:Pretendard,sans-serif;display:flex;align-items:center;gap:8px;';
+  delBtn.innerHTML='🗑️ 삭제';
+  delBtn.addEventListener('click',function(){_activeMenu.remove();_activeMenu=null;delEntry(entryKey);});
   menu.appendChild(editBtn);menu.appendChild(delBtn);document.body.appendChild(menu);_activeMenu=menu;
-  var rect=btnEl.getBoundingClientRect();var menuW=130,menuH=100;var top=rect.bottom+4;var left=rect.right-menuW;if(top+menuH>window.innerHeight)top=rect.top-menuH-4;if(left<8)left=8;menu.style.top=top+'px';menu.style.left=left+'px';
+  var rect=btnEl.getBoundingClientRect();var menuW=130,menuH=100;var top=rect.bottom+4;var left=rect.right-menuW;
+  if(top+menuH>window.innerHeight)top=rect.top-menuH-4;if(left<8)left=8;
+  menu.style.top=top+'px';menu.style.left=left+'px';
   setTimeout(function(){document.addEventListener('click',function closeMenu(){if(_activeMenu){_activeMenu.remove();_activeMenu=null;}document.removeEventListener('click',closeMenu);},{once:true});},10);
 }
 
-function openEditEntry(key){var e=_entries[key];if(!e){toast('항목을 찾을 수 없어요');return;}_editEntryKey=key;setType(e.type||'cost');document.getElementById('f-site-inp').value=e.site||'';document.getElementById('f-site').value=e.site||'';document.getElementById('f-amount').value=e.amount||'';document.getElementById('f-date').value=e.date||today();document.getElementById('f-process').value=e.process||'';document.getElementById('f-memo').value=e.memo||'';document.getElementById('f-writer').value=e.writer||'';updateAmountDisplay();goPage('entry');setTimeout(function(){toast('✏️ 수정 모드 — 내용 변경 후 입력 완료를 눌러주세요',3000);var btn=document.getElementById('f-submit');if(btn)btn.textContent='✏️ 수정 완료';},300);}
+function openEditEntry(key){
+  var e=_entries[key];if(!e){toast('항목을 찾을 수 없어요');return;}
+  _eemKey=key;
+  _eemType=e.type||'cost';
+  _eemTaxInvoice=!!(e.taxInvoice);
 
+  // 타입 버튼
+  ['cost','revenue','as'].forEach(function(tp){
+    var btn=document.getElementById('eem-bt-'+tp);
+    if(btn)btn.className='type-btn'+(tp===_eemType?' t-'+tp:'');
+  });
+
+  // 현장
+  document.getElementById('eem-site-inp').value=e.site||'';
+  document.getElementById('eem-site').value=e.site||'';
+
+  // 금액
+  document.getElementById('eem-amount').value=e.amount||'';
+  eemUpdateAmountDisplay();
+
+  // 날짜/공정/메모/입력자
+  document.getElementById('eem-date').value=e.date||today();
+  document.getElementById('eem-process').value=e.process||'';
+  document.getElementById('eem-memo').value=e.memo||'';
+  document.getElementById('eem-writer').value=e.writer||'';
+
+  // 세금계산서
+  var taxWrap=document.getElementById('eem-tax-wrap');
+  if(taxWrap)taxWrap.style.display=(_eemType==='revenue')?'block':'none';
+  var cb=document.getElementById('eem-tax-cb');
+  if(cb){
+    if(_eemTaxInvoice){cb.style.background='#d97706';cb.style.borderColor='#d97706';cb.textContent='✓';cb.style.color='#fff';}
+    else{cb.style.background='#fff';cb.style.borderColor='#d97706';cb.textContent='';}
+  }
+
+  // 사진 (pending에서 온 경우 imageBase64 있을 수 있음)
+  var photoWrap=document.getElementById('eem-photo-wrap');
+  var photoImg=document.getElementById('eem-photo-img');
+  if(e.imageBase64&&photoWrap&&photoImg){
+    photoWrap.style.display='block';
+    photoImg.src=e.imageBase64;
+    photoImg.onclick=function(){showFullImg(e.imageBase64);};
+  } else if(photoWrap){
+    photoWrap.style.display='none';
+  }
+
+  // 현장 태그 동기화
+  eemSyncTags();
+
+  // 입력자 태그 동기화
+  eemSyncWriterTags();
+
+  // 모달 오픈
+  document.getElementById('edit-entry-modal').classList.add('on');
+}
+
+function closeEditEntryModal(){
+  document.getElementById('edit-entry-modal').classList.remove('on');
+  _eemKey=null;
+  document.getElementById('eem-tags-site').style.display='none';
+  document.getElementById('eem-tags-process').style.display='none';
+  document.getElementById('eem-tags-writer').style.display='none';
+}
+
+function setEemType(t){
+  _eemType=t;
+  ['cost','revenue','as'].forEach(function(tp){
+    var btn=document.getElementById('eem-bt-'+tp);
+    if(btn)btn.className='type-btn'+(tp===t?' t-'+tp:'');
+  });
+  var taxWrap=document.getElementById('eem-tax-wrap');
+  if(taxWrap)taxWrap.style.display=(t==='revenue')?'block':'none';
+  if(t!=='revenue'){_eemTaxInvoice=false;var cb=document.getElementById('eem-tax-cb');if(cb){cb.style.background='#fff';cb.style.borderColor='#d97706';cb.textContent='';}}
+}
+
+function eemUpdateAmountDisplay(){
+  var v=parseInt(document.getElementById('eem-amount').value)||0;
+  document.getElementById('eem-amount-display').textContent=v>0?fmtFull(v):'';
+}
+
+function eemToggleTax(){
+  _eemTaxInvoice=!_eemTaxInvoice;
+  var cb=document.getElementById('eem-tax-cb');if(!cb)return;
+  if(_eemTaxInvoice){cb.style.background='#d97706';cb.style.borderColor='#d97706';cb.textContent='✓';cb.style.color='#fff';cb.style.fontWeight='800';}
+  else{cb.style.background='#fff';cb.style.borderColor='#d97706';cb.textContent='';}
+}
+
+function eemShowSiteTags(){
+  document.getElementById('eem-tags-site').style.display='flex';
+}
+function eemShowProcessTags(){
+  var tw=document.getElementById('eem-tags-process');
+  tw.style.display=tw.style.display==='none'?'flex':'none';
+}
+function eemShowWriterTags(){
+  var tw=document.getElementById('eem-tags-writer');
+  tw.style.display=tw.style.display==='none'?'flex':'none';
+}
+function eemPickProcess(val){
+  if(val==='직접'){var v=prompt('공정명 입력:');if(v)document.getElementById('eem-process').value=v;}
+  else document.getElementById('eem-process').value=val;
+  document.getElementById('eem-tags-process').style.display='none';
+}
+
+function eemSyncTags(){
+  var names=Object.values(_sites).map(function(s){return s.name;});
+  var tw=document.getElementById('eem-tags-site');if(!tw)return;
+  tw.innerHTML='';
+  names.forEach(function(n){
+    var div=document.createElement('div');div.className='tag';div.textContent=n;
+    div.addEventListener('click',function(){
+      document.getElementById('eem-site-inp').value=n;
+      document.getElementById('eem-site').value=n;
+      document.getElementById('eem-tags-site').style.display='none';
+    });
+    tw.appendChild(div);
+  });
+}
+
+function eemSyncWriterTags(){
+  var tw=document.getElementById('eem-tags-writer');if(!tw)return;
+  tw.innerHTML='';
+  var activeStaff=Object.values(_staffData).filter(function(s){return!s.resignDate;});
+  activeStaff.forEach(function(s){
+    var label=s.name+(s.role?' '+s.role:'');
+    var div=document.createElement('div');div.className='tag';div.textContent=label;
+    div.addEventListener('click',function(){
+      document.getElementById('eem-writer').value=label;
+      document.getElementById('eem-tags-writer').style.display='none';
+    });
+    tw.appendChild(div);
+  });
+  var customDiv=document.createElement('div');customDiv.className='tag';customDiv.textContent='✏️ 직접';
+  customDiv.addEventListener('click',function(){
+    var v=prompt('입력자 이름:');
+    if(v){document.getElementById('eem-writer').value=v;}
+    document.getElementById('eem-tags-writer').style.display='none';
+  });
+  tw.appendChild(customDiv);
+}
+
+async function saveEditEntry(){
+  var key=_eemKey;if(!key){toast('오류: 수정 키 없음');return;}
+  var site=document.getElementById('eem-site').value.trim();
+  var amount=parseInt(document.getElementById('eem-amount').value)||0;
+  if(!site){toast('⚠️ 현장을 선택해주세요');return;}
+  if(!amount){toast('⚠️ 금액을 입력해주세요');return;}
+  var entry={
+    type:_eemType,site,amount,
+    date:document.getElementById('eem-date').value||today(),
+    process:document.getElementById('eem-process').value.trim(),
+    memo:document.getElementById('eem-memo').value.trim(),
+    writer:document.getElementById('eem-writer').value.trim(),
+    taxInvoice:(_eemType==='revenue'&&_eemTaxInvoice),
+    createdAt:_entries[key]?.createdAt||Date.now()
+  };
+  try{
+    await db.ref('entries/'+key).update(entry);
+    closeEditEntryModal();
+    toast('✅ 수정 완료');
+  }catch(e){toast('❌ 저장 실패');}
+}
+  
 function goToSiteFromDF(key){openSiteDetail(key);}
 window.onload=initAuth;
 </script>
