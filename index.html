@@ -1599,6 +1599,7 @@ async function renderDesignFor(){
   if(tabWrap){tabWrap.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;"><button id="df-tab-active" onclick="dfSwitchTab('active')" style="padding:14px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;">🔨 공사중 <span style="background:rgba(255,255,255,.25);border-radius:20px;padding:2px 10px;font-size:13px;">${activeSites.length}</span></button><button id="df-tab-as" onclick="dfSwitchTab('as')" style="padding:14px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;">🔧 AS관리 <span style="background:var(--s3);border-radius:20px;padding:2px 10px;font-size:13px;">${asSites.length}</span></button></div>`;}
   window._dfCurrentTab=window._dfCurrentTab||'active';
   await dfRenderTabContent(window._dfCurrentTab,activeSites,asSites);
+  renderVatToss2();
 }
 
 window._dfCurrentTab='active';
@@ -1730,6 +1731,43 @@ function renderVatToss(){
   }).join('');
 }
 
+function renderVatToss2(){
+  var now=new Date();var curYear=now.getFullYear();var curMonth=now.getMonth()+1;var curQ=Math.ceil(curMonth/3);
+  var yr=String(curYear);
+  var qData=[0,0,0,0];var qCount=[0,0,0,0];
+  Object.values(_entries).forEach(function(e){
+    if(e.type!=='revenue'||!e.taxInvoice||!e.date||!e.date.startsWith(yr))return;
+    var q=Math.ceil(parseInt(e.date.slice(5,7))/3);
+    qData[q-1]+=(e.amount||0);qCount[q-1]++;
+  });
+  var qInfo=[
+    {q:1,label:'1분기',period:'1~3월',deadline:'4월 25일',dd:yr+'-04-25'},
+    {q:2,label:'2분기',period:'4~6월',deadline:'7월 25일',dd:yr+'-07-25'},
+    {q:3,label:'3분기',period:'7~9월',deadline:'10월 25일',dd:yr+'-10-25'},
+    {q:4,label:'4분기',period:'10~12월',deadline:'내년 1/25',dd:(parseInt(yr)+1)+'-01-25'}
+  ];
+  var ci=qInfo[curQ-1];var amt=qData[curQ-1];var vat=Math.round(amt*0.1);
+  var diff=Math.ceil((new Date(ci.dd)-new Date().setHours(0,0,0,0))/(864e5));
+  var dday=diff>0?'D-'+diff:diff===0?'D-Day':'납부기한 초과';
+  var el=function(id){return document.getElementById(id);};
+  if(el('vat-main-amt2'))el('vat-main-amt2').textContent=vat.toLocaleString()+'원';
+  if(el('vat-deadline-label2'))el('vat-deadline-label2').textContent=ci.deadline;
+  if(el('vat-dday2')){el('vat-dday2').textContent=dday;el('vat-dday2').style.color=diff<=30?'var(--red)':'#d97706';}
+  if(el('vat-taxable-rev2'))el('vat-taxable-rev2').textContent=amt>0?amt.toLocaleString()+'원':'없음';
+  if(el('vat-invoice-count2'))el('vat-invoice-count2').textContent=qCount[curQ-1]+'건';
+  if(el('vat-amount-row2'))el('vat-amount-row2').textContent=vat.toLocaleString()+'원';
+  var grid=el('vat-q-grid2');if(!grid)return;
+  grid.innerHTML=qInfo.map(function(info){
+    var a=qData[info.q-1];var v=Math.round(a*0.1);
+    var isCur=info.q===curQ&&String(curYear)===yr;
+    var isPast=info.q<curQ&&String(curYear)===yr||parseInt(yr)<curYear;
+    return '<div style="border-radius:10px;padding:11px 12px;background:'+(isCur?'#fffbeb':isPast?'#f8fafc':'#fff')+';border:'+(isCur?'1.5px solid #d97706':'0.5px solid var(--border)')+';opacity:'+(isPast&&!isCur?'.6':'1')+';">'+
+      '<div style="font-size:10px;color:'+(isCur?'#92400e':'var(--muted)')+';margin-bottom:4px;font-weight:700;">'+info.label+' · '+info.period+'</div>'+
+      '<div style="font-size:15px;font-weight:800;color:'+(a===0?'var(--dim)':isCur?'#78350f':'var(--text)')+';">'+(a===0?'-':v.toLocaleString()+'원')+'</div>'+
+      '<div style="font-size:10px;color:'+(isCur?'#d97706':'var(--muted)')+';margin-top:3px;">'+(isPast&&a>0?'✓ 완료':isCur?'납부 예정':'마감 '+info.deadline)+'</div>'+
+    '</div>';
+  }).join('');
+}
 
 var _activeMenu=null;
 var _eemType='cost';
