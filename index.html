@@ -102,16 +102,51 @@ nav.nav .nav-btn {
     </div>
     <div class="card" style="margin-bottom:10px;"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">📋 현재 현장 현황</div><div id="dash-site-status"></div></div>
     <div class="card"><div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🏆 현장 순이익 TOP 3</div><div id="top3"></div></div>
-    <div class="card" style="margin-top:4px;border:2px solid #fcd34d;background:#fffbeb;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <div style="font-size:28px;">🏦</div>
-        <div>
-          <div style="font-size:17px;font-weight:800;color:#92400e;">부가세 납부 관리</div>
-          <div style="font-size:12px;color:#b45309;margin-top:2px;">세금계산서 발행 매출의 10% · 기업은행 입금</div>
-        </div>
+    <div style="background:#fff;border-radius:16px;border:0.5px solid var(--border);padding:20px;margin-top:4px;box-shadow:var(--shadow);">
+  <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">다가오는 달에 내야 할 세금은</div>
+  <div style="font-size:30px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace;margin-bottom:6px;" id="vat-main-amt">-</div>
+  <div style="font-size:13px;color:var(--muted);">납부 마감 <span id="vat-deadline-label" style="color:#d97706;font-weight:700;"></span> · <span id="vat-dday" style="color:#d97706;font-weight:700;"></span></div>
+  <div style="height:0.5px;background:var(--border);margin:16px 0;"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:18px;">🧾</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">세금계산서 포함 매출</div>
+        <div style="font-size:15px;font-weight:700;" id="vat-taxable-rev">-</div>
       </div>
-      <div id="vat-quarters"></div>
     </div>
+    <div style="color:var(--dim);">›</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:18px;">📋</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">발행 건수</div>
+        <div style="font-size:15px;font-weight:700;" id="vat-invoice-count">-</div>
+      </div>
+    </div>
+    <div style="color:var(--dim);">›</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:18px;">🏦</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">부가세 (10%)</div>
+        <div style="font-size:15px;font-weight:700;color:#d97706;" id="vat-amount-row">-</div>
+      </div>
+    </div>
+    <div style="color:var(--dim);">›</div>
+  </div>
+  <div style="height:0.5px;background:var(--border);margin:4px 0 12px;"></div>
+  <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">분기별 납부 현황</div>
+  <div id="vat-q-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+  <button onclick="toggleVatDetail()" style="width:100%;padding:13px;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-family:'Pretendard',sans-serif;">
+    <span id="vat-more-label">세금 내역 더 보기</span> <span id="vat-more-arrow">∨</span>
+  </button>
+  <div id="vat-detail-wrap" style="display:none;padding:10px 12px;background:var(--s2);border-radius:10px;border:0.5px solid var(--border);">
+    <div style="font-size:11px;color:var(--muted);line-height:1.7;">📌 거래 입력 시 <b>📄 세금계산서 발행</b> 체크한 매출만 집계됩니다<br>💡 기업은행에 미리 적립해두면 납부일에 당황하지 않아요!</div>
+  </div>
+</div>
   </div>
 
   <!-- 거래 입력 -->
@@ -149,6 +184,23 @@ nav.nav .nav-btn {
     <div id="amount-display" style="font-size:12px;color:var(--accent);font-weight:700;text-align:right;min-height:18px;margin-bottom:8px;"></div>
     <div class="f-label">날짜</div>
     <input class="f-input" id="f-date" type="date">
+    <div id="revenue-extra-wrap" style="display:none;">
+  <div style="height:1px;background:var(--border);margin:4px 0 14px;"></div>
+  <div class="f-label">결제 단계</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;" id="tags-stage">
+    <button onclick="pickStage(this)" data-stage="계약금" style="padding:8px 14px;border-radius:20px;border:1.5px solid #1a56db;background:#1a56db;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">📋 계약금</button>
+    <button onclick="pickStage(this)" data-stage="착수금" style="padding:8px 14px;border-radius:20px;border:1.5px solid var(--border2);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">🔨 착수금</button>
+    <button onclick="pickStage(this)" data-stage="중도금" style="padding:8px 14px;border-radius:20px;border:1.5px solid var(--border2);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">💼 중도금</button>
+    <button onclick="pickStage(this)" data-stage="잔금" style="padding:8px 14px;border-radius:20px;border:1.5px solid var(--border2);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">✅ 잔금</button>
+  </div>
+  <div class="f-label">결제 방법</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;" id="tags-paymethod">
+    <button onclick="pickPayMethod(this)" data-pay="현금" style="padding:8px 14px;border-radius:20px;border:1.5px solid #059669;background:#059669;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">💵 현금</button>
+    <button onclick="pickPayMethod(this)" data-pay="계좌이체" style="padding:8px 14px;border-radius:20px;border:1.5px solid var(--border2);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">🏦 계좌이체</button>
+    <button onclick="pickPayMethod(this)" data-pay="신용카드" style="padding:8px 14px;border-radius:20px;border:1.5px solid var(--border2);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">💳 신용카드</button>
+  </div>
+  <div style="height:1px;background:var(--border);margin:0 0 14px;"></div>
+</div>
     <div class="f-label">공정</div>
     <input class="f-input" id="f-process" type="text" placeholder="선택 또는 직접입력" readonly onfocus="showTags('process')" style="cursor:pointer;">
     <div class="tag-wrap" id="tags-process" style="display:none;">
@@ -1225,9 +1277,28 @@ document.addEventListener('click',function(e){
 function showSiteTags(){document.getElementById('tags-site').style.display='flex';}
 function quShowSiteTags(){document.getElementById('qu-tags-site').style.display='flex';}
 
+var _payStage='계약금', _payMethod='현금';
+function pickStage(el){
+  document.querySelectorAll('#tags-stage button').forEach(function(t){t.style.background='#fff';t.style.borderColor='var(--border2)';t.style.color='var(--muted)';});
+  el.style.background='#1a56db';el.style.borderColor='#1a56db';el.style.color='#fff';
+  _payStage=el.dataset.stage;
+}
+function pickPayMethod(el){
+  document.querySelectorAll('#tags-paymethod button').forEach(function(t){t.style.background='#fff';t.style.borderColor='var(--border2)';t.style.color='var(--muted)';});
+  el.style.background='#059669';el.style.borderColor='#059669';el.style.color='#fff';
+  _payMethod=el.dataset.pay;
+}
+function toggleVatDetail(){
+  var w=document.getElementById('vat-detail-wrap');
+  var open=w.style.display==='none';
+  w.style.display=open?'block':'none';
+  document.getElementById('vat-more-label').textContent=open?'세금 내역 접기':'세금 내역 더 보기';
+  document.getElementById('vat-more-arrow').textContent=open?'∧':'∨';
+}
 var _curType='cost';
 function setType(t){
   _curType=t;['cost','revenue','as'].forEach(tp=>{document.getElementById('bt-'+tp).className='type-btn'+(tp===t?' t-'+tp:'');});
+  var revWrap=document.getElementById('revenue-extra-wrap');if(revWrap)revWrap.style.display=(t==='revenue')?'block':'none';
   const wrap=document.getElementById('tax-invoice-wrap');
   if(wrap){wrap.style.display=(t==='revenue')?'block':'none';if(t!=='revenue'){_taxInvoice=false;const cb=document.getElementById('tax-invoice-cb');if(cb){cb.style.background='#fff';cb.style.borderColor='#d97706';cb.textContent='';}}}
 }
@@ -1239,6 +1310,7 @@ function updateAmountDisplay(){const v=parseInt(document.getElementById('f-amoun
 async function addEntry(){
   const site=document.getElementById('f-site').value.trim();const amount=parseInt(document.getElementById('f-amount').value)||0;const date=document.getElementById('f-date').value||today();const process=document.getElementById('f-process').value.trim();const memo=document.getElementById('f-memo').value.trim();const writer=document.getElementById('f-writer').value.trim();
   if(!site){toast('⚠️ 현장을 선택해주세요');return;}if(!amount){toast('⚠️ 금액을 입력해주세요');return;}
+  if(_curType==='revenue'){entry.payStage=_payStage;entry.payMethod=_payMethod;}
   const entry={type:_curType,site,amount,date,process,memo,writer,taxInvoice:(_curType==='revenue'&&_taxInvoice),createdAt:Date.now()};
   try{
     if(_editEntryKey){await db.ref('entries/'+_editEntryKey).update(entry);_editEntryKey=null;toast('✅ 수정 완료');}
@@ -1580,18 +1652,43 @@ async function resignStaff(){var key=document.getElementById('staff-edit-id').va
 var _taxInvoice=false;
 function toggleTaxInvoice(){_taxInvoice=!_taxInvoice;var cb=document.getElementById('tax-invoice-cb');if(!cb)return;if(_taxInvoice){cb.style.background='#d97706';cb.style.borderColor='#d97706';cb.textContent='✓';cb.style.color='#fff';cb.style.fontWeight='800';cb.style.fontSize='16px';cb.style.display='flex';cb.style.alignItems='center';cb.style.justifyContent='center';}else{cb.style.background='#fff';cb.style.borderColor='#d97706';cb.textContent='';}}
 
-function renderVatQuarters(){
-  var el=document.getElementById('vat-quarters');if(!el)return;
+function renderVatQuarters(){renderVatToss();}
+function renderVatToss(){
   var now=new Date();var curYear=now.getFullYear();var curMonth=now.getMonth()+1;var curQ=Math.ceil(curMonth/3);
   var yr=document.getElementById('g-year')?.value||String(curYear);if(!yr)yr=String(curYear);
-  var qData=[0,0,0,0];Object.values(_entries).forEach(function(e){if(e.type!=='revenue')return;if(!e.taxInvoice)return;if(!e.date)return;if(!e.date.startsWith(yr))return;var m=parseInt(e.date.slice(5,7));var q=Math.ceil(m/3);qData[q-1]+=(e.amount||0);});
-  var qInfo=[{q:1,label:'1분기',period:'1월 ~ 3월',deadline:'4월 25일',color:'#3b82f6',bg:'#eff6ff',border:'#bfdbfe'},{q:2,label:'2분기',period:'4월 ~ 6월',deadline:'7월 25일',color:'#059669',bg:'#f0fdf4',border:'#86efac'},{q:3,label:'3분기',period:'7월 ~ 9월',deadline:'10월 25일',color:'#7c3aed',bg:'#f5f3ff',border:'#c4b5fd'},{q:4,label:'4분기',period:'10월 ~ 12월',deadline:'내년 1월 25일',color:'#d97706',bg:'#fffbeb',border:'#fcd34d'}];
-  var html='';
-  if(String(curYear)===yr){var curInfo=qInfo[curQ-1];var curAmt=qData[curQ-1];var curVat=Math.round(curAmt*0.1);html+='<div style="background:linear-gradient(135deg,#d97706,#b45309);border-radius:14px;padding:16px;margin-bottom:14px;color:#fff;"><div style="font-size:12px;font-weight:700;opacity:.8;margin-bottom:4px;">⚠️ 현재 분기 ('+curInfo.label+') 납부 예정</div><div style="font-size:32px;font-weight:800;font-family:monospace;margin-bottom:4px;">'+curVat.toLocaleString()+'원</div><div style="font-size:13px;opacity:.9;">마감일 <b>'+curInfo.deadline+'</b> · 기업은행 입금</div><div style="font-size:11px;opacity:.7;margin-top:4px;">세금계산서 발행 매출 '+curAmt.toLocaleString()+'원의 10%</div></div>';}
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-  qInfo.forEach(function(info){var amt=qData[info.q-1];var vat=Math.round(amt*0.1);var isCur=(info.q===curQ&&String(curYear)===yr);var isPast=(info.q<curQ&&String(curYear)===yr)||(parseInt(yr)<curYear);var isEmpty=(amt===0);var cardBg=isCur?info.bg:(isPast?'#f8fafc':'#fff');var borderStyle=isCur?('2px solid '+info.color):'1px solid #dde3f5';var opacity=(isPast&&!isCur)?'0.7':'1';html+='<div style="background:'+cardBg+';border:'+borderStyle+';border-radius:12px;padding:12px;opacity:'+opacity+';"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:11px;font-weight:800;color:'+info.color+';background:'+info.bg+';padding:2px 8px;border-radius:20px;border:1px solid '+info.border+';">'+info.label+'</span>'+(isCur?'<span style="font-size:10px;font-weight:700;color:#d97706;">진행중</span>':'')+(isPast&&!isEmpty?'<span style="font-size:10px;color:#64748b;">완료</span>':'')+'</div><div style="font-size:11px;color:#64748b;margin-bottom:6px;">'+info.period+'</div><div style="font-family:monospace;font-size:18px;font-weight:800;color:'+(isEmpty?'#94a3c0':'#0f172a')+';margin-bottom:2px;">'+(isEmpty?'-':vat.toLocaleString()+'원')+'</div><div style="font-size:10px;color:#64748b;">마감 '+info.deadline+'</div></div>';});
-  html+='</div><div style="margin-top:12px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #dde3f5;"><div style="font-size:11px;color:#64748b;line-height:1.6;">📌 거래 입력 시 <b>📄 세금계산서 발행</b> 체크한 매출만 집계됩니다<br>💡 기업은행에 미리 적립해두면 납부일에 당황하지 않아요!</div></div>';
-  el.innerHTML=html;
+  var qData=[0,0,0,0];var qCount=[0,0,0,0];
+  Object.values(_entries).forEach(function(e){
+    if(e.type!=='revenue'||!e.taxInvoice||!e.date||!e.date.startsWith(yr))return;
+    var q=Math.ceil(parseInt(e.date.slice(5,7))/3);
+    qData[q-1]+=(e.amount||0);qCount[q-1]++;
+  });
+  var qInfo=[
+    {q:1,label:'1분기',period:'1~3월',deadline:'4월 25일',dd:yr+'-04-25'},
+    {q:2,label:'2분기',period:'4~6월',deadline:'7월 25일',dd:yr+'-07-25'},
+    {q:3,label:'3분기',period:'7~9월',deadline:'10월 25일',dd:yr+'-10-25'},
+    {q:4,label:'4분기',period:'10~12월',deadline:'내년 1/25',dd:(parseInt(yr)+1)+'-01-25'}
+  ];
+  var ci=qInfo[curQ-1];var amt=qData[curQ-1];var vat=Math.round(amt*0.1);
+  var diff=Math.ceil((new Date(ci.dd)-new Date().setHours(0,0,0,0))/(864e5));
+  var dday=diff>0?'D-'+diff:diff===0?'D-Day':'납부기한 초과';
+  var el=function(id){return document.getElementById(id);};
+  if(el('vat-main-amt'))el('vat-main-amt').textContent=vat.toLocaleString()+'원';
+  if(el('vat-deadline-label'))el('vat-deadline-label').textContent=ci.deadline;
+  if(el('vat-dday')){el('vat-dday').textContent=dday;el('vat-dday').style.color=diff<=30?'var(--red)':'#d97706';}
+  if(el('vat-taxable-rev'))el('vat-taxable-rev').textContent=amt>0?amt.toLocaleString()+'원':'없음';
+  if(el('vat-invoice-count'))el('vat-invoice-count').textContent=qCount[curQ-1]+'건';
+  if(el('vat-amount-row'))el('vat-amount-row').textContent=vat.toLocaleString()+'원';
+  var grid=el('vat-q-grid');if(!grid)return;
+  grid.innerHTML=qInfo.map(function(info){
+    var a=qData[info.q-1];var v=Math.round(a*0.1);
+    var isCur=info.q===curQ&&String(curYear)===yr;
+    var isPast=info.q<curQ&&String(curYear)===yr||parseInt(yr)<curYear;
+    return '<div style="border-radius:10px;padding:11px 12px;background:'+(isCur?'#fffbeb':isPast?'#f8fafc':'#fff')+';border:'+(isCur?'1.5px solid #d97706':'0.5px solid var(--border)')+';opacity:'+(isPast&&!isCur?.6:1)+';">'+
+      '<div style="font-size:10px;color:'+(isCur?'#92400e':'var(--muted)')+';margin-bottom:4px;font-weight:700;">'+info.label+' · '+info.period+'</div>'+
+      '<div style="font-size:15px;font-weight:800;color:'+(a===0?'var(--dim)':isCur?'#78350f':'var(--text)')+';">'+(a===0?'-':v.toLocaleString()+'원')+'</div>'+
+      '<div style="font-size:10px;color:'+(isCur?'#d97706':'var(--muted)')+';margin-top:3px;">'+(isPast&&a>0?'✓ 완료':isCur?'납부 예정':'마감 '+info.deadline)+'</div>'+
+    '</div>';
+  }).join('');
 }
 
 
