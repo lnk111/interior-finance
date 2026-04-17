@@ -51,6 +51,45 @@ nav.nav .nav-btn {
     <div id="df-site-status" style="margin-bottom:16px;"></div>
     <div id="df-tab-wrap"></div>
     <div id="df-timelines"></div>
+    <div style="background:#fff;border-radius:16px;border:0.5px solid var(--border);padding:20px;margin-top:4px;box-shadow:var(--shadow);">
+  <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">다가오는 달에 내야 할 세금은</div>
+  <div style="font-size:30px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace;margin-bottom:6px;" id="vat-main-amt2">-</div>
+  <div style="font-size:13px;color:var(--muted);">납부 마감 <span id="vat-deadline-label2" style="color:#d97706;font-weight:700;"></span> · <span id="vat-dday2" style="color:#d97706;font-weight:700;"></span></div>
+  <div style="height:0.5px;background:var(--border);margin:16px 0;"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:18px;">🧾</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">세금계산서 포함 매출</div>
+        <div style="font-size:15px;font-weight:700;" id="vat-taxable-rev2">-</div>
+      </div>
+    </div>
+    <div style="color:var(--dim);">›</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:18px;">📋</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">발행 건수</div>
+        <div style="font-size:15px;font-weight:700;" id="vat-invoice-count2">-</div>
+      </div>
+    </div>
+    <div style="color:var(--dim);">›</div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:18px;">🏦</div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">부가세 (10%)</div>
+        <div style="font-size:15px;font-weight:700;color:#d97706;" id="vat-amount-row2">-</div>
+      </div>
+    </div>
+    <div style="color:var(--dim);">›</div>
+  </div>
+  <div style="height:0.5px;background:var(--border);margin:4px 0 12px;"></div>
+  <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">분기별 납부 현황</div>
+  <div id="vat-q-grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+</div>
   </div>
 
   <!-- 손익 현황 -->
