@@ -12,17 +12,13 @@
 <style>
 /* 스와이프 네비게이션 */
 nav.nav {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  overflow-x: visible !important;
   display: flex !important;
-  justify-content: flex-start !important;
+  justify-content: stretch !important;
 }
-nav.nav::-webkit-scrollbar { display: none; }
 nav.nav .nav-btn {
-  flex: 0 0 25% !important;
+  flex: 1 1 0 !important;
   min-width: 0 !important;
-  width: 25% !important;
   box-sizing: border-box;
 }
 </style>
@@ -121,10 +117,19 @@ nav.nav .nav-btn {
   <!-- 거래 입력 -->
   <div class="page" id="pg-entry">
     <div class="top-bar"><div class="top-bar-title">거래 입력</div></div>
-<button onclick="openQuickModal()" style="width:100%;padding:18px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:var(--r);font-size:17px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;box-shadow:0 4px 14px rgba(26,86,219,.3);margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:10px;">
-  <span style="font-size:22px;">⚡</span> 빠른 기록
-  <span style="font-size:12px;font-weight:600;opacity:.8;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:10px;">사진 선택사항</span>
-</button>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+  <button onclick="openQuickModal()" style="padding:18px 10px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;box-shadow:0 4px 14px rgba(26,86,219,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+    <span style="font-size:26px;">⚡</span>
+    빠른 입력
+    <span style="font-size:11px;font-weight:600;opacity:.8;">사진 선택사항</span>
+  </button>
+  <button onclick="goPage('pending')" style="position:relative;padding:18px 10px;background:#fff;color:#1e293b;border:2px solid #e2e8f0;border-radius:var(--r);font-size:15px;font-weight:800;cursor:pointer;font-family:'Pretendard',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+    <span style="font-size:26px;">📋</span>
+    미정리
+    <span id="entry-pending-badge" style="display:none;position:absolute;top:10px;right:10px;background:#ef4444;color:#fff;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:800;min-width:22px;text-align:center;">0</span>
+    <span style="font-size:11px;font-weight:600;color:#94a3b8;">탭해서 정리하기</span>
+  </button>
+</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
       <div style="flex:1;height:1px;background:var(--border);"></div>
       <div style="font-size:11px;color:var(--muted);font-weight:600;">상세 직접 입력</div>
@@ -291,20 +296,12 @@ nav.nav .nav-btn {
   </div>
 </div>
 
-<!-- 네비게이션 -->
-<nav class="nav" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;white-space:nowrap;display:flex;justify-content:flex-start;padding:0 4px;">
+<nav class="nav">
   <button class="nav-btn on" id="nb-designfor" onclick="goPage('designfor')">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>디자인포
   </button>
-  <button class="nav-btn" id="nb-home" onclick="goPage('home')" style="display:none;">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>손익
-  </button>
   <button class="nav-btn" id="nb-entry" onclick="goPage('entry')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>입력
-  </button>
-  <button class="nav-btn" id="nb-pending" onclick="goPage('pending')">
-    <div class="nav-badge" id="pending-badge" style="display:none;">0</div>
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>미정리
   </button>
   <button class="nav-btn" id="nb-sites" onclick="goPage('sites')">
     <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>현장
@@ -315,9 +312,10 @@ nav.nav .nav-btn {
   <button class="nav-btn" id="nb-knowhow" onclick="goPage('knowhow')">
     <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 3-1.5 5-4 6.5V18a1 1 0 01-1 1H10a1 1 0 01-1-1v-2.5C6.5 14 5 12 5 9a7 7 0 017-7z"/><line x1="10" y1="22" x2="14" y2="22"/></svg>노하우
   </button>
-  <button class="nav-btn" id="nb-settings" onclick="goPage('settings')" style="display:none;">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>설정
-  </button>
+  <!-- boss 전용 숨김 버튼 (goPage 라우팅용, UI에 안보임) -->
+  <button class="nav-btn" id="nb-home" onclick="goPage('home')" style="display:none;"></button>
+  <button class="nav-btn" id="nb-pending" onclick="goPage('pending')" style="display:none;"></button>
+  <button class="nav-btn" id="nb-settings" onclick="goPage('settings')" style="display:none;"></button>
 </nav>
 
 <!-- 달력 페이지 플로팅 버튼 -->
@@ -1277,7 +1275,14 @@ async function quSave(){
   catch(e){toast('❌ 저장 실패');}
 }
 
-function updatePendingBadge(){const cnt=Object.values(_pending).filter(p=>p.status!=='done').length;const badge=document.getElementById('pending-badge');if(!badge)return;if(cnt>0){badge.style.display='flex';badge.textContent=cnt;}else badge.style.display='none';}
+function updatePendingBadge(){
+  const cnt=Object.values(_pending).filter(p=>p.status!=='done').length;
+  const badge=document.getElementById('pending-badge');
+  if(badge){if(cnt>0){badge.style.display='flex';badge.textContent=cnt;}else badge.style.display='none';}
+  // 입력탭 미정리 버튼 뱃지 동기화
+  const badge2=document.getElementById('entry-pending-badge');
+  if(badge2){if(cnt>0){badge2.style.display='block';badge2.textContent=cnt;}else badge2.style.display='none';}
+}
 
 function renderPending(){
   const el=document.getElementById('pending-body');if(!el)return;
