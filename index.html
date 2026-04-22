@@ -1616,7 +1616,10 @@ async function dfRenderTabContent(tab,activeSites,asSites){
   const sites=tab==='active'?activeSites:asSites;const container=document.getElementById('df-timelines');if(!container)return;
   if(!sites.length){container.innerHTML=`<div class="empty"><div class="empty-ico">${tab==='active'?'🏗️':'🔧'}</div>${tab==='active'?'공사중 현장 없음':'AS관리 현장 없음'}</div>`;return;}
   container.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">불러오는 중...</div>';
-  const snaps=await Promise.all(sites.map(([,s])=>db.ref('procData/'+encKey(s.name)).once('value')));let html='';
+  const snaps=await Promise.all(sites.map(([key,s])=>{
+    if(_calProcCache[key])return Promise.resolve({val:()=>_calProcCache[key]});
+    return db.ref('procData/'+encKey(s.name)).once('value').then(snap=>{_calProcCache[key]=snap.val()||{};return snap;});
+  }));let html='';
   sites.forEach(([key,s],idx)=>{
     const procRaw=snaps[idx].val()||{};let phases=[];
     if(Object.keys(procRaw).length>0){phases=Object.entries(procRaw).map(([id,ph])=>({...ph,id})).sort((a,b)=>(a.order||0)-(b.order||0));}
