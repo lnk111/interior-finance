@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a56db">
 <title>현장 손익 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
@@ -842,11 +844,11 @@ function initApp(){
     var data=snap.val();_sites=data||{};
     var siteCount=data?Object.keys(data).length:0;
     ['conn','conn2','conn3'].forEach(function(id){var el=document.getElementById(id);if(!el)return;if(!_firebaseConnected)return;el.className='conn ok';el.innerHTML=siteCount>0?'<div class="conn-dot"></div><span>연결됨 ('+siteCount+'개 현장)</span>':'<div class="conn-dot"></div><span>연결됨</span>';});
-    renderSites();renderDash();renderDesignFor();updateSiteTags();updatePendingBadge();
+    renderSites();renderDashDebounced();renderDesignFor();updateSiteTags();updatePendingBadge();
     // 달력 페이지가 열려있으면 갱신
     if(document.getElementById('pg-calendar').classList.contains('on'))renderCalendar();
   },function(err){document.getElementById('sites-body').innerHTML='<div class="empty"><div class="empty-ico">🔴</div><div>Firebase 오류: '+err.code+'</div></div>';toast('🔴 DB 오류: '+err.code);});
-  db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDash();renderRecentEntries();});
+  db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDashDebounced();renderRecentEntries();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
   db.ref('scheduleData').on('value',snap=>{
@@ -1690,6 +1692,8 @@ async function saveStaff(){var name=document.getElementById('staff-name').value.
 async function resignStaff(){var key=document.getElementById('staff-edit-id').value;var name=document.getElementById('staff-name').value;if(!confirm(name+'님을 퇴사 처리할까요?'))return;var resignDate=document.getElementById('staff-resign').value||today();try{await db.ref('staffData/'+key).update({resignDate});closeStaffModal();toast('🚪 퇴사 처리 완료');}catch(e){toast('❌ 처리 실패');}}
 
 var _taxInvoice=false;
+var _dashDebounce=null;
+function renderDashDebounced(){clearTimeout(_dashDebounce);_dashDebounce=setTimeout(renderDash,80);}
 function toggleTaxInvoice(){_taxInvoice=!_taxInvoice;var cb=document.getElementById('tax-invoice-cb');if(!cb)return;if(_taxInvoice){cb.style.background='#d97706';cb.style.borderColor='#d97706';cb.textContent='✓';cb.style.color='#fff';cb.style.fontWeight='800';cb.style.fontSize='16px';cb.style.display='flex';cb.style.alignItems='center';cb.style.justifyContent='center';}else{cb.style.background='#fff';cb.style.borderColor='#d97706';cb.textContent='';}}
 
 function renderVatQuarters(){renderVatToss();}
