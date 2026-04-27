@@ -1885,10 +1885,11 @@ function openEditEntry(key){
   // 사진 (pending에서 온 경우 imageBase64 있을 수 있음)
   var photoWrap=document.getElementById('eem-photo-wrap');
   var photoImg=document.getElementById('eem-photo-img');
-  if(e.imageBase64&&photoWrap&&photoImg){
+  var imgSrc=e.imageBase64||(e.fromPending&&_pending[e.fromPending]?.imageBase64)||null;
+  if(imgSrc&&photoWrap&&photoImg){
     photoWrap.style.display='block';
-    photoImg.src=e.imageBase64;
-    photoImg.onclick=function(){showFullImg(e.imageBase64);};
+    photoImg.src=imgSrc;
+    photoImg.onclick=function(){showFullImg(imgSrc);};
   } else if(photoWrap){
     photoWrap.style.display='none';
   }
