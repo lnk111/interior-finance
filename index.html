@@ -547,7 +547,11 @@ nav.nav .nav-btn {
     <div class="img-preview-wrap" id="kh-preview-solution"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
       <div><div class="f-label">현장</div><input class="f-input" id="kh-site" type="text" placeholder="선택사항" style="margin-bottom:0;"></div>
-      <div><div class="f-label">작성자</div><input class="f-input" id="kh-writer" type="text" placeholder="이름" style="margin-bottom:0;"></div>
+      <div>
+        <div class="f-label">작성자</div>
+        <input class="f-input" id="kh-writer" type="text" placeholder="이름" readonly onfocus="showKhWriterTags()" style="margin-bottom:0;cursor:pointer;">
+        <div class="tag-wrap" id="tags-kh-writer" style="display:none;"></div>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin:14px 0;">
       <input type="checkbox" id="kh-pinned-chk" style="width:18px;height:18px;cursor:pointer;">
@@ -1689,6 +1693,30 @@ function renderStaffList(){
   });
 }
 
+function showKhWriterTags(){
+  var tw=document.getElementById('tags-kh-writer');if(!tw)return;
+  tw.innerHTML='';
+  var activeStaff=Object.values(_staffData).filter(function(s){return!s.resignDate;});
+  activeStaff.forEach(function(s){
+    var label=s.name+(s.role?' '+s.role:'');
+    var div=document.createElement('div');div.className='tag';div.textContent=label;
+    div.addEventListener('click',function(){
+      document.getElementById('kh-writer').value=label;
+      tw.style.display='none';
+    });
+    tw.appendChild(div);
+  });
+  var customDiv=document.createElement('div');customDiv.className='tag';customDiv.textContent='✏️ 직접';
+  customDiv.addEventListener('click',function(){
+    var v=prompt('작성자 이름:');
+    if(v)document.getElementById('kh-writer').value=v;
+    tw.style.display='none';
+  });
+  tw.appendChild(customDiv);
+  tw.style.display='flex';
+}
+function updateWriterTags(){var tw=document.getElementById('tags-writer');
+  
 function updateWriterTags(){var tw=document.getElementById('tags-writer');if(!tw)return;var activeStaff=Object.values(_staffData).filter(function(s){return!s.resignDate;});if(!activeStaff.length)return;activeStaff.sort(function(a,b){return(a.joinDate||'').localeCompare(b.joinDate||'');});tw.innerHTML='';activeStaff.forEach(function(s){var label=s.name+(s.role?' '+s.role:'');var div=document.createElement('div');div.className='tag';div.textContent=label;div.addEventListener('click',function(){pickTag('writer',label);});tw.appendChild(div);});var customDiv=document.createElement('div');customDiv.className='tag';customDiv.textContent='✏️ 직접';customDiv.addEventListener('click',function(){pickCustom('writer');});tw.appendChild(customDiv);}
 
 function openStaffModal(key){var modal=document.getElementById('staff-modal');var titleEl=document.getElementById('staff-modal-title');var resignWrap=document.getElementById('staff-resign-wrap');var resignBtn=document.getElementById('staff-resign-btn');document.getElementById('staff-edit-id').value=key||'';if(key&&_staffData[key]){var s=_staffData[key];titleEl.textContent='✏️ 직원 수정';document.getElementById('staff-name').value=s.name||'';document.getElementById('staff-role').value=s.role||'';document.getElementById('staff-join').value=s.joinDate||'';document.getElementById('staff-salary').value=s.salary?parseInt(s.salary).toLocaleString('ko-KR'):'';document.getElementById('staff-memo').value=s.memo||'';document.getElementById('staff-resign').value=s.resignDate||'';resignWrap.style.display='block';resignBtn.style.display=s.resignDate?'none':'block';}else{titleEl.textContent='👤 직원 추가';['staff-name','staff-role','staff-memo','staff-resign'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('staff-join').value=today();document.getElementById('staff-salary').value='';resignWrap.style.display='none';resignBtn.style.display='none';}modal.style.display='flex';}
