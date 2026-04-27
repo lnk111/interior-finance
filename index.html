@@ -1479,11 +1479,19 @@ function pdmRecalc(){
 
 async function pdmComplete(){
   const key=_pendingEditKey;if(!key)return;
-  const total=parseInt(document.getElementById('pdm-total')?.value)||0;const process=document.getElementById('pdm-process')?.value.trim()||'';const memo=document.getElementById('pdm-memo')?.value.trim()||'';
+  const total=parseInt(document.getElementById('pdm-total')?.value)||0;
+  const process=document.getElementById('pdm-process')?.value.trim()||'';
+  const memo=document.getElementById('pdm-memo')?.value.trim()||'';
   const updates={status:'done',totalAmount:total,type:_pdmType,process,memo,allocations:_pendingAllocations.filter(a=>a.site&&a.amount),completedAt:Date.now()};
-  const batch=[];_pendingAllocations.filter(a=>a.site&&a.amount).forEach(a=>{batch.push(db.ref('entries').push({type:_pdmType,site:a.site,amount:parseInt(a.amount)||0,date:_pending[key]?.date||today(),process,memo,writer:_pending[key]?.writer||'',fromPending:key,imageBase64:_pending[key]?.imageBase64||null,createdAt:Date.now()}));});
-  try{await Promise.all([db.ref('pending/'+key).update(updates),...batch]);document.getElementById('pending-detail-modal').classList.remove('on');toast('✅ 완료 처리! 현장별 매입 내역이 저장됐어요 😊');}
-  catch(e){toast('❌ 저장 실패');}
+  const batch=[];
+  _pendingAllocations.filter(a=>a.site&&a.amount).forEach(a=>{
+    batch.push(db.ref('entries').push({type:_pdmType,site:a.site,amount:parseInt(a.amount)||0,date:_pending[key]?.date||today(),process,memo,writer:_pending[key]?.writer||'',fromPending:key,imageBase64:_pending[key]?.imageBase64||null,createdAt:Date.now()}));
+  });
+  try{
+    await Promise.all([db.ref('pending/'+key).update(updates),...batch]);
+    document.getElementById('pending-detail-modal').classList.remove('on');
+    toast('✅ 완료 처리! 현장별 매입 내역이 저장됐어요 😊');
+  }catch(e){toast('❌ 저장 실패');}
 }
 async function pdmSaveDraft(){const key=_pendingEditKey;if(!key)return;const total=parseInt(document.getElementById('pdm-total')?.value)||0;const process=document.getElementById('pdm-process')?.value.trim()||'';const memo=document.getElementById('pdm-memo')?.value.trim()||'';await db.ref('pending/'+key).update({status:'progress',totalAmount:total||null,type:_pdmType,process,memo,allocations:_pendingAllocations});document.getElementById('pending-detail-modal').classList.remove('on');toast('💾 임시 저장됨');}
 async function pdmDelete(){if(!confirm('이 기록을 삭제할까요?'))return;await db.ref('pending/'+_pendingEditKey).remove();document.getElementById('pending-detail-modal').classList.remove('on');toast('🗑️ 삭제됨');}
