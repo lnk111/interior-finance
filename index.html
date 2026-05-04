@@ -612,6 +612,11 @@ nav.nav .nav-btn {
       <div class="tag-wrap" id="qu-tags-site" style="display:none;margin-bottom:0;"></div>
     </div>
     <div style="margin-bottom:14px;">
+      <div class="f-label">작성자 *</div>
+      <input class="f-input" id="qu-writer-inp" type="text" placeholder="눌러서 선택하세요" readonly onfocus="quShowWriterTags()" style="margin-bottom:6px;cursor:pointer;">
+      <div class="tag-wrap" id="qu-tags-writer" style="display:none;margin-bottom:0;"></div>
+    </div>
+    <div style="margin-bottom:14px;">
       <div class="f-label">메모 (선택)</div>
       <input class="f-input" id="qu-memo" placeholder="간단히 메모..." style="margin-bottom:0;">
     </div>
@@ -1424,7 +1429,7 @@ function quRemoveFile(){_quFile=null;_quBase64=null;document.getElementById('qu-
 function checkQuReady(){const site=document.getElementById('qu-site-inp').value;const btn=document.getElementById('qu-save-btn');btn.disabled=!site;}
 async function quSave(){
   const site=document.getElementById('qu-site-inp').value;const memo=document.getElementById('qu-memo').value.trim();if(!site){toast('⚠️ 현장을 선택해주세요');return;}
-  const record={site,memo,imageBase64:_quBase64,writer:document.getElementById('f-writer').value||'',date:today(),createdAt:Date.now(),status:'temp',totalAmount:null,type:null,vendor:'',allocations:[]};
+  const record={site,memo,imageBase64:_quBase64,writer:document.getElementById('qu-writer-inp').value||document.getElementById('f-writer').value||'',date:today(),createdAt:Date.now(),status:'temp',totalAmount:null,type:null,vendor:'',allocations:[]};
   try{await db.ref('pending').push(record);toast('✅ 임시 저장! 나중에 미정리 탭에서 완료하세요 😊');closeQuickModal();quRemoveFile();document.getElementById('qu-site-inp').value='';document.getElementById('qu-site-display').textContent='현장을 선택해주세요';document.getElementById('qu-memo').value='';document.getElementById('qu-save-btn').disabled=true;}
   catch(e){toast('❌ 저장 실패');}
 }
@@ -1736,6 +1741,29 @@ function renderStaffList(){
   });
 }
 
+function quShowWriterTags(){
+  var tw=document.getElementById('qu-tags-writer');if(!tw)return;
+  tw.innerHTML='';
+  var activeStaff=Object.values(_staffData).filter(function(s){return!s.resignDate;});
+  activeStaff.forEach(function(s){
+    var label=s.name+(s.role?' '+s.role:'');
+    var div=document.createElement('div');div.className='tag';div.textContent=label;
+    div.addEventListener('click',function(){
+      document.getElementById('qu-writer-inp').value=label;
+      tw.style.display='none';
+    });
+    tw.appendChild(div);
+  });
+  var customDiv=document.createElement('div');customDiv.className='tag';customDiv.textContent='✏️ 직접';
+  customDiv.addEventListener('click',function(){
+    var v=prompt('작성자 이름:');
+    if(v)document.getElementById('qu-writer-inp').value=v;
+    tw.style.display='none';
+  });
+  tw.appendChild(customDiv);
+  tw.style.display='flex';
+}
+  
 function showKhWriterTags(){
   var tw=document.getElementById('tags-kh-writer');if(!tw)return;
   tw.innerHTML='';
