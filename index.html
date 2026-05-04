@@ -787,7 +787,14 @@ nav.nav .nav-btn {
       </div>
       <div>
         <div class="f-label">날짜</div>
-        <input class="f-input" id="as-date-inp" type="date" style="margin-bottom:0;">
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button id="as-btn-date" onclick="setAsDateMode('date')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">📅 날짜 선택</button>
+          <button id="as-btn-tbd" onclick="setAsDateMode('tbd')" style="flex:1;padding:8px;border-radius:8px;border:0.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif;">🕐 날짜 조율중</button>
+        </div>
+        <div id="as-date-input-wrap">
+          <input class="f-input" id="as-date-inp" type="date" style="margin-bottom:0;">
+        </div>
+        <div id="as-date-tbd-wrap" style="display:none;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;font-size:13px;color:#92400e;font-weight:700;">🕐 날짜 조율중</div>
       </div>
     </div>
     <button class="submit-btn" style="margin-top:14px;" onclick="saveAs()">저장</button>
@@ -2314,6 +2321,23 @@ function selectAsManagerDirect(){
   document.getElementById('as-manager-dd').style.display='none';
   document.getElementById('as-manager-direct').value='';
 }
+
+function setAsDateMode(mode){
+  var btnDate=document.getElementById('as-btn-date');
+  var btnTbd=document.getElementById('as-btn-tbd');
+  var dateWrap=document.getElementById('as-date-input-wrap');
+  var tbdWrap=document.getElementById('as-date-tbd-wrap');
+  if(mode==='date'){
+    btnDate.style.background='var(--accent)';btnDate.style.color='#fff';btnDate.style.border='none';
+    btnTbd.style.background='#fff';btnTbd.style.color='var(--muted)';btnTbd.style.border='0.5px solid var(--border)';
+    dateWrap.style.display='block';tbdWrap.style.display='none';
+  } else {
+    btnTbd.style.background='var(--accent)';btnTbd.style.color='#fff';btnTbd.style.border='none';
+    btnDate.style.background='#fff';btnDate.style.color='var(--muted)';btnDate.style.border='0.5px solid var(--border)';
+    dateWrap.style.display='none';tbdWrap.style.display='block';
+    document.getElementById('as-date-inp').value='';
+  }
+}
   
 async function saveAs(){
   var site=document.getElementById('as-site-inp').value.trim();
@@ -2325,7 +2349,7 @@ async function saveAs(){
     phone:document.getElementById('as-phone-inp').value.trim(),
     manager:document.getElementById('as-manager-inp').value.trim(),
     worker:document.getElementById('as-worker-inp').value.trim(),
-    date:document.getElementById('as-date-inp').value||today(),
+    date:document.getElementById('as-date-tbd-wrap').style.display==='block'?'날짜 조율중':(document.getElementById('as-date-inp').value||today()),
     done:_asEditKey?(_asData[_asEditKey]?.done||false):false,
     createdAt:_asEditKey?(_asData[_asEditKey]?.createdAt||Date.now()):Date.now()
   };
