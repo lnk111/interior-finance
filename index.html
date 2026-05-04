@@ -745,8 +745,17 @@ nav.nav .nav-btn {
       <button onclick="closeAsModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
     </div>
     <div class="f-label">현장 *</div>
-    <input class="f-input" id="as-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="showAsModalSiteTags()" style="cursor:pointer;">
-    <div class="tag-wrap" id="as-tags-site" style="display:none;"></div>
+    <input class="f-input" id="as-site-inp" type="text" placeholder="현장을 선택하거나 직접 입력하세요" oninput="filterAsModalSites(this.value)" onfocus="showAsModalSiteDropdown()">
+    <div id="as-site-dropdown" style="display:none;border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;">
+      <div id="as-site-list" style="max-height:180px;overflow-y:auto;"></div>
+      <div style="border-top:0.5px solid var(--border);padding:10px 14px;background:var(--s2);">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">목록에 없으면 직접 입력 후 확인</div>
+        <div style="display:flex;gap:6px;">
+          <input id="as-site-direct" type="text" placeholder="현장명 직접 입력..." class="f-input" style="flex:1;margin-bottom:0;font-size:13px;">
+          <button onclick="selectAsDirectSite()" style="padding:0 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;white-space:nowrap;">확인</button>
+        </div>
+      </div>
+    </div>
     <div class="f-label">AS 내용 *</div>
     <textarea class="f-input" id="as-content-inp" rows="3" placeholder="AS 내용을 입력하세요" style="resize:none;line-height:1.5;font-family:inherit;"></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -2214,14 +2223,42 @@ function openAsModal(key){
 
 function closeAsModal(){
   document.getElementById('as-modal').classList.remove('on');
+  document.getElementById('as-site-dropdown').style.display='none';
   _asEditKey=null;
 }
 
-function showAsModalSiteTags(){
-  var tw=document.getElementById('as-tags-site');if(!tw)return;
+function renderAsModalSiteList(names){
+  var el=document.getElementById('as-site-list');if(!el)return;
+  if(!names.length){el.innerHTML='<div style="padding:12px 14px;font-size:13px;color:var(--muted);">검색 결과 없음</div>';return;}
+  el.innerHTML=names.map(function(n){
+    return '<div onclick="selectAsModalSite(\''+n.replace(/'/g,"\\'")+'\')" style="padding:12px 14px;font-size:14px;border-bottom:0.5px solid var(--border);cursor:pointer;color:var(--text);" onmouseenter="this.style.background=\'var(--s2)\'" onmouseleave="this.style.background=\'transparent\'">'+n+'</div>';
+  }).join('');
+}
+
+function showAsModalSiteDropdown(){
   var names=Object.values(_sites).map(function(s){return s.name;});
-  tw.innerHTML=names.map(function(n){return '<div class="tag" onclick="document.getElementById(\'as-site-inp\').value=\''+n.replace(/'/g,"\\'")+'\';">'+n+'</div>';}).join('');
-  tw.style.display='flex';
+  renderAsModalSiteList(names);
+  document.getElementById('as-site-dropdown').style.display='block';
+}
+
+function filterAsModalSites(val){
+  var names=Object.values(_sites).map(function(s){return s.name;});
+  var filtered=val?names.filter(function(n){return n.toLowerCase().includes(val.toLowerCase());}):names;
+  document.getElementById('as-site-dropdown').style.display='block';
+  renderAsModalSiteList(filtered);
+}
+
+function selectAsModalSite(name){
+  document.getElementById('as-site-inp').value=name;
+  document.getElementById('as-site-dropdown').style.display='none';
+}
+
+function selectAsDirectSite(){
+  var v=document.getElementById('as-site-direct').value.trim();
+  if(!v){toast('⚠️ 현장명을 입력해주세요');return;}
+  document.getElementById('as-site-inp').value=v;
+  document.getElementById('as-site-dropdown').style.display='none';
+  document.getElementById('as-site-direct').value='';
 }
 
 async function saveAs(){
