@@ -2163,6 +2163,8 @@ async function saveEditEntry(){
 function renderAsTab(container,asSites){
   var asArr=Object.entries(_asData).sort(function(a,b){return(b[1].createdAt||0)-(a[1].createdAt||0);});
   var pendingCount=asArr.filter(function(a){return!a[1].done;}).length;
+  var siteNames=[...new Set(asArr.map(function(a){return a[1].site;}))];
+
   var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
     +'<div>'
     +'<div style="font-size:22px;font-weight:800;color:'+(pendingCount>0?'var(--red)':'var(--green)')+';">미처리 '+pendingCount+'건</div>'
@@ -2170,32 +2172,75 @@ function renderAsTab(container,asSites){
     +'</div>'
     +'<button onclick="openAsModal(null)" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">+ AS 등록</button>'
     +'</div>'
-    +'<div style="display:flex;gap:6px;margin-bottom:14px;">'
+    +'<div style="display:flex;gap:6px;margin-bottom:10px;">'
     +'<button onclick="setAsFilter(\'all\',this)" id="asf-all" style="padding:6px 14px;border-radius:20px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">전체</button>'
     +'<button onclick="setAsFilter(\'pending\',this)" id="asf-pending" style="padding:6px 14px;border-radius:20px;border:0.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">미처리</button>'
     +'<button onclick="setAsFilter(\'done\',this)" id="asf-done" style="padding:6px 14px;border-radius:20px;border:0.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">처리완료</button>'
-    +'</div>';
-  var filtered=window._asFilter?asArr.filter(function(a){return window._asFilter==='pending'?!a[1].done:window._asFilter==='done'?a[1].done:true;}):asArr;
-  if(!filtered.length){html+='<div class="empty"><div class="empty-ico">🔧</div>AS 내역이 없어요</div>';}
-  else{
-    filtered.forEach(function(entry){
-      var k=entry[0],a=entry[1];
-      html+='<div class="card" style="margin-bottom:10px;border-left:3px solid '+(a.done?'#059669':'#ef4444')+';border-radius:0 12px 12px 0;cursor:pointer;" onclick="openAsModal(\''+k+'\')">'+
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'+
-          '<div style="font-size:14px;font-weight:700;color:var(--text);flex:1;margin-right:8px;">'+a.site+'</div>'+
-          '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;background:'+(a.done?'#f0fdf4':'#fef2f2')+';color:'+(a.done?'#059669':'#ef4444')+'">'+(a.done?'처리완료':'미처리')+'</span>'+
-        '</div>'+
-        '<div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.5;">'+a.content+'</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;color:var(--muted);border-top:0.5px solid var(--border);padding-top:8px;">'+
-          '<div>📞 '+(a.phone||'-')+'</div>'+
-          '<div>👤 '+(a.manager||'-')+'</div>'+
-          '<div>🔨 '+(a.worker||'-')+'</div>'+
-          '<div>📅 '+(a.date||'-')+'</div>'+
-        '</div>'+
-        (!a.done?'<button onclick="event.stopPropagation();markAsDone(\''+k+'\')" style="width:100%;margin-top:10px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">✅ 처리 완료</button>':'')+
-      '</div>';
+    +'</div>'
+    +'<select id="as-site-filter" onchange="setAsSiteFilter(this.value)" style="width:100%;padding:10px 12px;border:0.5px solid var(--border);border-radius:10px;font-size:13px;background:#fff;color:var(--text);font-family:Pretendard,sans-serif;margin-bottom:12px;">'
+    +'<option value="">전체 현장</option>'
+    +siteNames.map(function(n){return'<option value="'+n+'">'+n+'</option>';}).join('')
+    +'</select>';
+
+  var filtered=asArr.filter(function(a){
+    if(window._asFilter==='pending'&&a[1].done)return false;
+    if(window._asFilter==='done'&&!a[1].done)return false;
+    if(window._asSiteFilter&&a[1].site!==window._asSiteFilter)return false;
+    return true;
+  });
+
+  var grouped={};
+  filtered.forEach(function(entry){
+    var site=entry[1].site||'현장 미지정';
+    if(!grouped[site])grouped[site]=[];
+    grouped[site].push({key:entry[0],data:entry[1]});
+  });
+
+  if(!Object.keys(grouped).length){
+    html+='<div class="empty"><div class="empty-ico">🔧</div>AS 내역이 없어요</div>';
+  } else {
+    Object.entries(grouped).forEach(function(entry){
+      var site=entry[0],items=entry[1];
+      var pendingCnt=items.filter(function(a){return!a.data.done;}).length;
+      var hasPending=pendingCnt>0;
+      var siteKey=site.replace(/[^a-zA-Z0-9가-힣]/g,'_');
+
+      html+='<div class="card" style="margin-bottom:12px;padding:0;overflow:hidden;border-left:3px solid '+(hasPending?'var(--red)':'var(--green)')+';border-radius:0 12px 12px 0;">';
+
+      html+='<div onclick="toggleAsGroup(\''+siteKey+'\')" style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'
+        +'<div>'
+        +'<div style="font-size:14px;font-weight:700;color:var(--text);">'+site+'</div>'
+        +'<div style="font-size:12px;color:var(--muted);margin-top:3px;">총 '+items.length+'건'+(hasPending?' · <span style="color:var(--red);font-weight:700;">미처리 '+pendingCnt+'건</span>':'')+'</div>'
+        +'</div>'
+        +'<span id="as-arrow-'+siteKey+'" style="font-size:12px;color:var(--muted);">▼</span>'
+        +'</div>';
+
+      html+='<div id="as-group-'+siteKey+'" style="border-top:0.5px solid var(--border);">';
+      items.forEach(function(item){
+        var a=item.data,k=item.key;
+        var isTbd=a.date==='날짜 조율중';
+        html+='<div style="padding:12px 16px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;cursor:pointer;" onclick="openAsModal(\''+k+'\')">'
+          +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-size:13px;color:var(--text);margin-bottom:6px;">'+a.content+'</div>'
+          +'<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted);">'
+          +(a.manager?'<span>👤 '+a.manager+'</span>':'')
+          +(a.worker?'<span>🔨 '+a.worker+'</span>':'')
+          +'<span style="color:'+(isTbd?'#d97706':'var(--muted)')+';">'+(isTbd?'🕐':'📅')+' '+a.date+'</span>'
+          +'</div>'
+          +'</div>'
+          +'<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;background:'+(a.done?'#f0fdf4':'#fef2f2')+';color:'+(a.done?'#059669':'#ef4444')+'">'+(a.done?'완료':'미처리')+'</span>'
+          +'</div>';
+      });
+
+      if(hasPending){
+        html+='<div style="padding:10px 16px;">'
+          +'<button onclick="markAllAsDone(\''+site+'\')" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">✅ 현장 전체 처리 완료</button>'
+          +'</div>';
+      }
+      html+='</div></div>';
     });
   }
+
   container.innerHTML=html;
   setTimeout(function(){
     var asfBtns=['all','pending','done'];
@@ -2205,6 +2250,8 @@ function renderAsTab(container,asSites){
       if(f===(window._asFilter||'all')){btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.border='none';}
       else{btn.style.background='#fff';btn.style.color='var(--muted)';btn.style.border='0.5px solid var(--border)';}
     });
+    var sf=document.getElementById('as-site-filter');
+    if(sf)sf.value=window._asSiteFilter||'';
   },0);
 }
 
@@ -2214,6 +2261,30 @@ function setAsFilter(f,btn){
   var asSites=Object.entries(_sites).filter(function(e){return e[1].status==='as';});
   var activeSites=Object.entries(_sites).filter(function(e){return e[1].status==='active'||e[1].status==='settle'||e[1].status==='balance';});
   dfRenderTabContent('as',activeSites,asSites);
+}
+
+window._asSiteFilter='';
+function setAsSiteFilter(val){
+  window._asSiteFilter=val;
+  var asSites=Object.entries(_sites).filter(function(e){return e[1].status==='as';});
+  var activeSites=Object.entries(_sites).filter(function(e){return e[1].status==='active'||e[1].status==='settle'||e[1].status==='balance';});
+  dfRenderTabContent('as',activeSites,asSites);
+}
+
+function toggleAsGroup(siteKey){
+  var el=document.getElementById('as-group-'+siteKey);
+  var arrow=document.getElementById('as-arrow-'+siteKey);
+  if(!el)return;
+  var open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(arrow)arrow.textContent=open?'▶':'▼';
+}
+
+async function markAllAsDone(site){
+  if(!confirm('"'+site+'" 현장의 미처리 AS를 모두 완료 처리할까요?'))return;
+  var targets=Object.entries(_asData).filter(function(a){return a[1].site===site&&!a[1].done;});
+  await Promise.all(targets.map(function(a){return db.ref('asData/'+a[0]).update({done:true,doneAt:Date.now()});}));
+  toast('✅ '+targets.length+'건 처리 완료!');
 }
 
 async function markAsDone(key){
