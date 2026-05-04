@@ -768,7 +768,6 @@ nav.nav .nav-btn {
         <div class="f-label">AS 담당자</div>
         <input class="f-input" id="as-manager-inp" type="text" placeholder="눌러서 선택하세요" readonly onfocus="showAsManagerDropdown()" style="margin-bottom:0;cursor:pointer;">
         <div id="as-manager-dd" style="display:none;border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:6px;position:absolute;z-index:400;background:#fff;width:100%;box-shadow:0 4px 16px rgba(0,0,0,.12);">
-          <div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--accent);background:#e8f0fe;border-bottom:0.5px solid var(--border);">재직중인 직원</div>
           <div id="as-manager-list"></div>
           <div style="border-top:0.5px solid var(--border);padding:10px 14px;background:var(--s2);">
             <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">직접 입력</div>
@@ -1403,6 +1402,16 @@ function updateSiteTags(){
   const qu=document.getElementById('qu-tags-site');
   if(qu)qu.innerHTML=names.map(n=>`<div class="tag" data-site-name="${n.replace(/"/g,'&quot;')}" data-site-mode="quick">${n}</div>`).join('');
 }
+
+document.addEventListener('click',function(e){
+  var mgrInp=document.getElementById('as-manager-inp');
+  var mgrDd=document.getElementById('as-manager-dd');
+  var siteDd=document.getElementById('as-site-dropdown');
+  var siteInp=document.getElementById('as-site-inp');
+  if(mgrDd&&!mgrDd.contains(e.target)&&e.target!==mgrInp)mgrDd.style.display='none';
+  if(siteDd&&!siteDd.contains(e.target)&&e.target!==siteInp)siteDd.style.display='none';
+});
+  
 document.addEventListener('click',function(e){
   const tag=e.target.closest('[data-site-name]');if(!tag)return;
   const name=tag.dataset.siteName;const mode=tag.dataset.siteMode;if(!name)return;
@@ -2283,9 +2292,10 @@ function showAsManagerDropdown(){
   } else {
     el.innerHTML=activeStaff.map(function(s){
       var label=s.name+(s.role?' '+s.role:'');
-      return '<div onclick="selectAsManager(\''+label.replace(/'/g,"\\'")+'\')" style="padding:12px 14px;font-size:14px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;" onmouseenter="this.style.background=\'var(--s2)\'" onmouseleave="this.style.background=\'transparent\'">'
-        +'<div style="width:30px;height:30px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;">'+s.name.slice(0,1)+'</div>'
-        +'<div><div style="font-size:13px;font-weight:700;color:var(--text);">'+s.name+'</div><div style="font-size:11px;color:var(--muted);">'+(s.role||'')+'</div></div>'
+      return '<div onclick="selectAsManager(\''+label.replace(/'/g,"\\'")+'\')" style="padding:11px 12px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseenter="this.style.background=\'var(--s2)\'" onmouseleave="this.style.background=\'transparent\'">'
+        +'<div style="width:26px;height:26px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">'+s.name.slice(0,1)+'</div>'
+        +'<span style="font-size:13px;font-weight:700;color:var(--text);">'+s.name+'</span>'
+        +'<span style="font-size:11px;color:var(--muted);">'+(s.role||'')+'</span>'
         +'</div>';
     }).join('');
   }
