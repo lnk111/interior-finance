@@ -736,6 +736,43 @@ nav.nav .nav-btn {
   </div>
 </div>
 
+<!-- AS 등록/수정 모달 -->
+<div class="modal" id="as-modal">
+  <div class="modal-sheet" style="max-height:92vh;">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="modal-title" id="as-modal-title" style="margin-bottom:0;">🔧 AS 등록</div>
+      <button onclick="closeAsModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+    <div class="f-label">현장 *</div>
+    <input class="f-input" id="as-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="showAsModalSiteTags()" style="cursor:pointer;">
+    <div class="tag-wrap" id="as-tags-site" style="display:none;"></div>
+    <div class="f-label">AS 내용 *</div>
+    <textarea class="f-input" id="as-content-inp" rows="3" placeholder="AS 내용을 입력하세요" style="resize:none;line-height:1.5;font-family:inherit;"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div>
+        <div class="f-label">고객 전화번호</div>
+        <input class="f-input" id="as-phone-inp" type="tel" placeholder="010-0000-0000" style="margin-bottom:0;">
+      </div>
+      <div>
+        <div class="f-label">AS 담당자</div>
+        <input class="f-input" id="as-manager-inp" type="text" placeholder="담당자" style="margin-bottom:0;">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
+      <div>
+        <div class="f-label">작업자</div>
+        <input class="f-input" id="as-worker-inp" type="text" placeholder="작업자" style="margin-bottom:0;">
+      </div>
+      <div>
+        <div class="f-label">날짜</div>
+        <input class="f-input" id="as-date-inp" type="date" style="margin-bottom:0;">
+      </div>
+    </div>
+    <button class="submit-btn" style="margin-top:14px;" onclick="saveAs()">저장</button>
+    <button id="as-del-btn" style="display:none;width:100%;padding:13px;background:none;border:1px solid #fee2e2;border-radius:var(--r);color:var(--red);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;font-family:'Pretendard',sans-serif;" onclick="deleteAs()">🗑️ 삭제</button>
+  </div>
+</div>
   
 <!-- 공정 편집 모달 -->
 <div id="proc-edit-modal">
@@ -880,6 +917,14 @@ function initApp(){
   db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDashDebounced();renderRecentEntries();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
+  var _asData={};
+  db.ref('asData').on('value',snap=>{
+    _asData=snap.val()||{};
+    if(window._dfCurrentTab==='as')dfRenderTabContent('as',
+      Object.entries(_sites).filter(([,s])=>s.status==='active'||s.status==='settle'||s.status==='balance'),
+      Object.entries(_sites).filter(([,s])=>s.status==='as')
+    );
+  });
   db.ref('scheduleData').on('value',snap=>{
     _calSchedules=snap.val()||{};
     if(document.getElementById('pg-calendar').classList.contains('on'))renderCalendar();
@@ -1015,7 +1060,7 @@ async function renderCalendar(){
     const isLastRow=d>lastDate-7;
 
     const cell=document.createElement('div');
-    cell.style.cssText='min-height:72px;border-right:'+(isLastCol?'none':'0.5px solid #f0f0f0')+';border-bottom:'+(isLastRow?'none':'0.5px solid #f0f0f0')+';padding:4px 2px;cursor:pointer;'+(isToday?'background:rgba(26,86,219,.05);':'');
+    cell.style.cssText='min-height:72px;border-right:'+(isLastCol?'none':'0.5px solid #f0f0f0')+';border-bottom:'+(isLastRow?'none':'0.5px solid #f0f0f0')+';padding:4px 2px;cursor:pointer;overflow:hidden;min-width:0;'+(isToday?'background:rgba(26,86,219,.05);':'');
     cell.addEventListener('click',function(){openCalDay(dateStr,bars);});
 
     // 날짜 숫자
@@ -1040,7 +1085,7 @@ async function renderCalendar(){
         const rLeft=bar.isFirst||bar.isSingle?'3px':'0';
         const rRight=bar.isLast||bar.isSingle?'3px':'0';
         // 라벨은 시작일에만 표시
-        barEl.style.cssText='background:'+bar.color+';border-radius:'+rLeft+' '+rRight+' '+rRight+' '+rLeft+';padding:1px 4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;font-weight:700;color:#fff;line-height:15px;height:15px;';
+        barEl.style.cssText='background:'+bar.color+';border-radius:'+rLeft+' '+rRight+' '+rRight+' '+rLeft+';padding:1px 4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;font-weight:700;color:#fff;line-height:15px;height:15px;max-width:100%;box-sizing:border-box;';
         barEl.textContent=(bar.isFirst||bar.isSingle)?bar.label:'';
         cell.appendChild(barEl);
       });
@@ -1678,7 +1723,8 @@ async function dfSwitchTab(tab){
 
 async function dfRenderTabContent(tab,activeSites,asSites){
   const sites=tab==='active'?activeSites:asSites;const container=document.getElementById('df-timelines');if(!container)return;
-  if(!sites.length){container.innerHTML=`<div class="empty"><div class="empty-ico">${tab==='active'?'🏗️':'🔧'}</div>${tab==='active'?'공사중 현장 없음':'AS관리 현장 없음'}</div>`;return;}
+  if(tab==='as'){renderAsTab(container,asSites);return;}
+  if(!sites.length){container.innerHTML=`<div class="empty"><div class="empty-ico">🏗️</div>공사중 현장 없음</div>`;return;}
   container.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">불러오는 중...</div>';
   const snaps=await Promise.all(sites.map(([key,s])=>{
     if(_calProcCache[key])return Promise.resolve({val:()=>_calProcCache[key]});
@@ -2072,7 +2118,138 @@ async function saveEditEntry(){
     toast('✅ 수정 완료');
   }catch(e){toast('❌ 저장 실패');}
 }
-  
+
+function renderAsTab(container,asSites){
+  var asArr=Object.entries(_asData).sort(function(a,b){return(b[1].createdAt||0)-(a[1].createdAt||0);});
+  var pendingCount=asArr.filter(function(a){return!a[1].done;}).length;
+  var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+    +'<div>'
+    +'<div style="font-size:22px;font-weight:800;color:'+(pendingCount>0?'var(--red)':'var(--green)')+';">미처리 '+pendingCount+'건</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-top:2px;">전체 '+asArr.length+'건</div>'
+    +'</div>'
+    +'<button onclick="openAsModal(null)" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">+ AS 등록</button>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:14px;">'
+    +'<button onclick="setAsFilter(\'all\',this)" id="asf-all" style="padding:6px 14px;border-radius:20px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">전체</button>'
+    +'<button onclick="setAsFilter(\'pending\',this)" id="asf-pending" style="padding:6px 14px;border-radius:20px;border:0.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">미처리</button>'
+    +'<button onclick="setAsFilter(\'done\',this)" id="asf-done" style="padding:6px 14px;border-radius:20px;border:0.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">처리완료</button>'
+    +'</div>';
+  var filtered=window._asFilter?asArr.filter(function(a){return window._asFilter==='pending'?!a[1].done:window._asFilter==='done'?a[1].done:true;}):asArr;
+  if(!filtered.length){html+='<div class="empty"><div class="empty-ico">🔧</div>AS 내역이 없어요</div>';}
+  else{
+    filtered.forEach(function(entry){
+      var k=entry[0],a=entry[1];
+      html+='<div class="card" style="margin-bottom:10px;border-left:3px solid '+(a.done?'#059669':'#ef4444')+';border-radius:0 12px 12px 0;cursor:pointer;" onclick="openAsModal(\''+k+'\')">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'+
+          '<div style="font-size:14px;font-weight:700;color:var(--text);flex:1;margin-right:8px;">'+a.site+'</div>'+
+          '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;background:'+(a.done?'#f0fdf4':'#fef2f2')+';color:'+(a.done?'#059669':'#ef4444')+'">'+(a.done?'처리완료':'미처리')+'</span>'+
+        '</div>'+
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.5;">'+a.content+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;color:var(--muted);border-top:0.5px solid var(--border);padding-top:8px;">'+
+          '<div>📞 '+(a.phone||'-')+'</div>'+
+          '<div>👤 '+(a.manager||'-')+'</div>'+
+          '<div>🔨 '+(a.worker||'-')+'</div>'+
+          '<div>📅 '+(a.date||'-')+'</div>'+
+        '</div>'+
+        (!a.done?'<button onclick="event.stopPropagation();markAsDone(\''+k+'\')" style="width:100%;margin-top:10px;padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;">✅ 처리 완료</button>':'')+
+      '</div>';
+    });
+  }
+  container.innerHTML=html;
+  setTimeout(function(){
+    var asfBtns=['all','pending','done'];
+    asfBtns.forEach(function(f){
+      var btn=document.getElementById('asf-'+f);
+      if(!btn)return;
+      if(f===(window._asFilter||'all')){btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.border='none';}
+      else{btn.style.background='#fff';btn.style.color='var(--muted)';btn.style.border='0.5px solid var(--border)';}
+    });
+  },0);
+}
+
+window._asFilter='all';
+function setAsFilter(f,btn){
+  window._asFilter=f;
+  var asSites=Object.entries(_sites).filter(function(e){return e[1].status==='as';});
+  var activeSites=Object.entries(_sites).filter(function(e){return e[1].status==='active'||e[1].status==='settle'||e[1].status==='balance';});
+  dfRenderTabContent('as',activeSites,asSites);
+}
+
+async function markAsDone(key){
+  if(!confirm('처리 완료로 변경할까요?'))return;
+  await db.ref('asData/'+key).update({done:true,doneAt:Date.now()});
+  toast('✅ 처리 완료!');
+}
+
+var _asEditKey=null;
+function openAsModal(key){
+  _asEditKey=key;
+  var modal=document.getElementById('as-modal');
+  if(!modal)return;
+  if(key&&_asData[key]){
+    var a=_asData[key];
+    document.getElementById('as-modal-title').textContent='✏️ AS 수정';
+    document.getElementById('as-site-inp').value=a.site||'';
+    document.getElementById('as-content-inp').value=a.content||'';
+    document.getElementById('as-phone-inp').value=a.phone||'';
+    document.getElementById('as-manager-inp').value=a.manager||'';
+    document.getElementById('as-worker-inp').value=a.worker||'';
+    document.getElementById('as-date-inp').value=a.date||'';
+    document.getElementById('as-del-btn').style.display='block';
+  } else {
+    document.getElementById('as-modal-title').textContent='🔧 AS 등록';
+    document.getElementById('as-site-inp').value='';
+    document.getElementById('as-content-inp').value='';
+    document.getElementById('as-phone-inp').value='';
+    document.getElementById('as-manager-inp').value='';
+    document.getElementById('as-worker-inp').value='';
+    document.getElementById('as-date-inp').value=today();
+    document.getElementById('as-del-btn').style.display='none';
+  }
+  modal.classList.add('on');
+}
+
+function closeAsModal(){
+  document.getElementById('as-modal').classList.remove('on');
+  _asEditKey=null;
+}
+
+function showAsModalSiteTags(){
+  var tw=document.getElementById('as-tags-site');if(!tw)return;
+  var names=Object.values(_sites).map(function(s){return s.name;});
+  tw.innerHTML=names.map(function(n){return '<div class="tag" onclick="document.getElementById(\'as-site-inp\').value=\''+n.replace(/'/g,"\\'")+'\';">'+n+'</div>';}).join('');
+  tw.style.display='flex';
+}
+
+async function saveAs(){
+  var site=document.getElementById('as-site-inp').value.trim();
+  var content=document.getElementById('as-content-inp').value.trim();
+  if(!site){toast('⚠️ 현장을 선택해주세요');return;}
+  if(!content){toast('⚠️ AS 내용을 입력해주세요');return;}
+  var data={
+    site,content,
+    phone:document.getElementById('as-phone-inp').value.trim(),
+    manager:document.getElementById('as-manager-inp').value.trim(),
+    worker:document.getElementById('as-worker-inp').value.trim(),
+    date:document.getElementById('as-date-inp').value||today(),
+    done:_asEditKey?(_asData[_asEditKey]?.done||false):false,
+    createdAt:_asEditKey?(_asData[_asEditKey]?.createdAt||Date.now()):Date.now()
+  };
+  try{
+    if(_asEditKey)await db.ref('asData/'+_asEditKey).update(data);
+    else await db.ref('asData').push(data);
+    closeAsModal();
+    toast(_asEditKey?'✅ 수정 완료':'✅ AS 등록 완료');
+  }catch(e){toast('❌ 저장 실패');}
+}
+
+async function deleteAs(){
+  if(!_asEditKey||!confirm('삭제할까요?'))return;
+  await db.ref('asData/'+_asEditKey).remove();
+  closeAsModal();
+  toast('🗑️ 삭제됨');
+}
+
 function goToSiteFromDF(key){openSiteDetail(key);}
 window.onload=initAuth;
 </script>
