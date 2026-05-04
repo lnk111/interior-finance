@@ -765,7 +765,18 @@ nav.nav .nav-btn {
       </div>
       <div>
         <div class="f-label">AS 담당자</div>
-        <input class="f-input" id="as-manager-inp" type="text" placeholder="담당자" style="margin-bottom:0;">
+        <input class="f-input" id="as-manager-inp" type="text" placeholder="눌러서 선택하세요" readonly onfocus="showAsManagerDropdown()" style="margin-bottom:0;cursor:pointer;">
+        <div id="as-manager-dd" style="display:none;border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:6px;">
+          <div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--accent);background:#e8f0fe;border-bottom:0.5px solid var(--border);">재직중인 직원</div>
+          <div id="as-manager-list"></div>
+          <div style="border-top:0.5px solid var(--border);padding:10px 14px;background:var(--s2);">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">직접 입력</div>
+            <div style="display:flex;gap:6px;">
+              <input id="as-manager-direct" type="text" placeholder="이름 직접 입력..." class="f-input" style="flex:1;margin-bottom:0;font-size:13px;">
+              <button onclick="selectAsManagerDirect()" style="padding:0 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Pretendard,sans-serif;white-space:nowrap;">확인</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
@@ -2224,6 +2235,7 @@ function openAsModal(key){
 function closeAsModal(){
   document.getElementById('as-modal').classList.remove('on');
   document.getElementById('as-site-dropdown').style.display='none';
+  document.getElementById('as-manager-dd').style.display='none';
   _asEditKey=null;
 }
 
@@ -2261,6 +2273,36 @@ function selectAsDirectSite(){
   document.getElementById('as-site-direct').value='';
 }
 
+function showAsManagerDropdown(){
+  var el=document.getElementById('as-manager-list');if(!el)return;
+  var activeStaff=Object.values(_staffData).filter(function(s){return!s.resignDate;});
+  if(!activeStaff.length){
+    el.innerHTML='<div style="padding:12px 14px;font-size:13px;color:var(--muted);">등록된 직원이 없어요 (설정에서 추가)</div>';
+  } else {
+    el.innerHTML=activeStaff.map(function(s){
+      var label=s.name+(s.role?' '+s.role:'');
+      return '<div onclick="selectAsManager(\''+label.replace(/'/g,"\\'")+'\')" style="padding:12px 14px;font-size:14px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;" onmouseenter="this.style.background=\'var(--s2)\'" onmouseleave="this.style.background=\'transparent\'">'
+        +'<div style="width:30px;height:30px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;">'+s.name.slice(0,1)+'</div>'
+        +'<div><div style="font-size:13px;font-weight:700;color:var(--text);">'+s.name+'</div><div style="font-size:11px;color:var(--muted);">'+(s.role||'')+'</div></div>'
+        +'</div>';
+    }).join('');
+  }
+  document.getElementById('as-manager-dd').style.display='block';
+}
+
+function selectAsManager(label){
+  document.getElementById('as-manager-inp').value=label;
+  document.getElementById('as-manager-dd').style.display='none';
+}
+
+function selectAsManagerDirect(){
+  var v=document.getElementById('as-manager-direct').value.trim();
+  if(!v){toast('⚠️ 이름을 입력해주세요');return;}
+  document.getElementById('as-manager-inp').value=v;
+  document.getElementById('as-manager-dd').style.display='none';
+  document.getElementById('as-manager-direct').value='';
+}
+  
 async function saveAs(){
   var site=document.getElementById('as-site-inp').value.trim();
   var content=document.getElementById('as-content-inp').value.trim();
