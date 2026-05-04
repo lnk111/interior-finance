@@ -799,7 +799,7 @@ const firebaseConfig={apiKey:"AIzaSyC3ePaFaHhNKLiKBmkEuAGMmHc3aqOxUEM",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-var _firebaseConnected=false,_role='',_sites={},_entries={},_pending={},_phCache={},_curSite='',_openPhId='',_siteFilter='all',_khFilter='all',_khImgs={problem:[],solution:[]},_editSiteKey=null,_editEntryKey=null,_pendingAllocations=[],_pendingEditKey=null,_khData={};
+var _firebaseConnected=false,_role='',_sites={},_entries={},_pending={},_phCache={},_curSite='',_openPhId='',_siteFilter='all',_khFilter='all',_khImgs={problem:[],solution:[]},_editSiteKey=null,_editEntryKey=null,_pendingAllocations=[],_pendingEditKey=null,_khData={},_asData={};
 
 // ── 달력 상태 ──
 var _calYear=new Date().getFullYear(), _calMonth=new Date().getMonth()+1;
@@ -917,7 +917,6 @@ function initApp(){
   db.ref('entries').on('value',snap=>{_entries=snap.val()||{};renderDashDebounced();renderRecentEntries();});
   db.ref('pending').on('value',snap=>{_pending=snap.val()||{};renderPending();updatePendingBadge();});
   db.ref('knowhow').on('value',snap=>{renderKnowhow(snap.val()||{});});
-  var _asData={};
   db.ref('asData').on('value',snap=>{
     _asData=snap.val()||{};
     if(window._dfCurrentTab==='as')dfRenderTabContent('as',
