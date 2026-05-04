@@ -13,6 +13,13 @@
 <link rel="stylesheet" href="style.css">
 <style>
 /* 스와이프 네비게이션 */
+
+#qu-tags-site {
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  flex-wrap: wrap !important;
+}
+  
 nav.nav {
   overflow-x: visible !important;
   display: flex !important;
@@ -1328,12 +1335,29 @@ function updateSiteTags(){
 document.addEventListener('click',function(e){
   const tag=e.target.closest('[data-site-name]');if(!tag)return;
   const name=tag.dataset.siteName;const mode=tag.dataset.siteMode;if(!name)return;
-  if(mode==='quick'){document.getElementById('qu-site-inp').value=name;document.getElementById('qu-site-display').textContent=name;document.getElementById('qu-tags-site').style.display='none';checkQuReady();}
+  if(mode==='quick'){
+  document.getElementById('qu-site-inp').value=name;
+  document.getElementById('qu-site-display').textContent=name;
+  document.getElementById('qu-tags-site').style.display='none';
+  var recent=JSON.parse(sessionStorage.getItem('recentSites')||'[]');
+  recent=recent.filter(function(n){return n!==name;});
+  recent.unshift(name);
+  if(recent.length>10)recent=recent.slice(0,10);
+  sessionStorage.setItem('recentSites',JSON.stringify(recent));
+  checkQuReady();
+}
   else{document.getElementById('f-site-inp').value=name;document.getElementById('f-site').value=name;document.getElementById('tags-site').style.display='none';}
 });
 
 function showSiteTags(){document.getElementById('tags-site').style.display='flex';}
-function quShowSiteTags(){document.getElementById('qu-tags-site').style.display='flex';}
+function quShowSiteTags(){
+  var tw=document.getElementById('qu-tags-site');if(!tw)return;
+  var recent=JSON.parse(sessionStorage.getItem('recentSites')||'[]');
+  var allNames=Object.values(_sites).map(function(s){return s.name;});
+  var sorted=recent.filter(function(n){return allNames.includes(n);}).concat(allNames.filter(function(n){return!recent.includes(n);}));
+  tw.innerHTML=sorted.map(function(n){return '<div class="tag" data-site-name="'+n.replace(/"/g,'&quot;')+'" data-site-mode="quick">'+(recent.includes(n)?'🕐 ':'')+n+'</div>';}).join('');
+  tw.style.display='flex';
+}
 
 var _payStage='계약금', _payMethod='현금';
 function pickStage(el){
