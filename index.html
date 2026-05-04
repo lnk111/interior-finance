@@ -609,7 +609,7 @@ nav.nav .nav-btn {
     <div style="margin-bottom:12px;">
       <div class="f-label">현장 선택 *</div>
       <input class="f-input" id="qu-site-inp" type="text" placeholder="현장을 눌러 선택하세요" readonly onfocus="quShowSiteTags()" style="margin-bottom:6px;cursor:pointer;">
-      <div class="tag-wrap" id="qu-tags-site" style="display:none;margin-bottom:0;"></div>
+      <div id="qu-tags-site" style="display:none;margin-bottom:0;border:0.5px solid var(--border);border-radius:10px;overflow:hidden;"></div>
     </div>
     <div style="margin-bottom:14px;">
       <div class="f-label">작성자 *</div>
@@ -1359,9 +1359,19 @@ function quShowSiteTags(){
   var tw=document.getElementById('qu-tags-site');if(!tw)return;
   var recent=JSON.parse(sessionStorage.getItem('recentSites')||'[]');
   var allNames=Object.values(_sites).map(function(s){return s.name;});
-  var sorted=recent.filter(function(n){return allNames.includes(n);}).concat(allNames.filter(function(n){return!recent.includes(n);}));
-  tw.innerHTML=sorted.map(function(n){return '<div class="tag" data-site-name="'+n.replace(/"/g,'&quot;')+'" data-site-mode="quick">'+(recent.includes(n)?'🕐 ':'')+n+'</div>';}).join('');
-  tw.style.display='flex';
+  var recentValid=recent.filter(function(n){return allNames.includes(n);});
+  var others=allNames.filter(function(n){return!recent.includes(n);});
+  var html='';
+  if(recentValid.length){
+    html+='<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--accent);background:var(--s2);border-bottom:0.5px solid var(--border);">최근 조회</div>';
+    html+=recentValid.map(function(n){return '<div style="padding:13px 16px;font-size:14px;border-bottom:0.5px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:8px;" data-site-name="'+n.replace(/"/g,'&quot;')+'" data-site-mode="quick"><span style="color:var(--accent);font-size:10px;">●</span>'+n+'</div>';}).join('');
+    html+='<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--s2);border-bottom:0.5px solid var(--border);border-top:0.5px solid var(--border);">전체 현장</div>';
+  }
+  html+='<div style="max-height:200px;overflow-y:auto;">';
+  html+=others.map(function(n){return '<div style="padding:13px 16px;font-size:14px;border-bottom:0.5px solid var(--border);cursor:pointer;" data-site-name="'+n.replace(/"/g,'&quot;')+'" data-site-mode="quick">'+n+'</div>';}).join('');
+  html+='</div>';
+  tw.innerHTML=html;
+  tw.style.display='block';
 }
 
 var _payStage='계약금', _payMethod='현금';
