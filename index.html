@@ -764,9 +764,10 @@ nav.nav .nav-btn {
         <input class="f-input" id="as-phone-inp" type="tel" placeholder="010-0000-0000" style="margin-bottom:0;">
       </div>
       <div>
+        <div style="position:relative;">
         <div class="f-label">AS 담당자</div>
         <input class="f-input" id="as-manager-inp" type="text" placeholder="눌러서 선택하세요" readonly onfocus="showAsManagerDropdown()" style="margin-bottom:0;cursor:pointer;">
-        <div id="as-manager-dd" style="display:none;border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:6px;">
+        <div id="as-manager-dd" style="display:none;border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:6px;position:absolute;z-index:400;background:#fff;width:100%;box-shadow:0 4px 16px rgba(0,0,0,.12);">
           <div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--accent);background:#e8f0fe;border-bottom:0.5px solid var(--border);">재직중인 직원</div>
           <div id="as-manager-list"></div>
           <div style="border-top:0.5px solid var(--border);padding:10px 14px;background:var(--s2);">
@@ -778,6 +779,7 @@ nav.nav .nav-btn {
           </div>
         </div>
       </div>
+    </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
       <div>
