@@ -487,14 +487,14 @@ window.FB_API = {
   async checkBossPin(name, pin) {
     const snap = await db.ref('bossAccount').once('value');
     const boss = snap.val();
-    return boss && boss.pin === pin && boss.name === name;
+    return boss && String(boss.pin) === String(pin) && boss.name === name;
   },
 
   // 직원 PIN 검증
   async checkStaffPin(name, pin) {
     const snap = await db.ref('staffData').once('value');
     const staffData = snap.val() || {};
-    return Object.values(staffData).find(s => s.name === name && s.pin === pin && !s.resignDate);
+    return Object.values(staffData).find(s => s.name === name && String(s.pin) === String(pin) && !s.resignDate);
   },
 };
 
