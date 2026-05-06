@@ -516,7 +516,9 @@ document.addEventListener('input', (e) => {
 });
 
 // ===== Init =====
-bootAuth();
-if (AUTH.current()) {
-  navigate('home');
-}
+document.addEventListener('DOMContentLoaded', function() {
+  const loggedIn = bootAuth();
+  if (loggedIn) {
+    navigate('home');
+  }
+});
