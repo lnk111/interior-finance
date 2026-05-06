@@ -105,6 +105,7 @@ function renderSettings() {
       </button>
     </div>
     <div class="page-body">
+      ${AUTH.can('fixedCost') ? `
       <div class="settings-group-label">📌 월 고정비</div>
       ${ymSelect(2026, 5)}
       <div class="settings-group" style="margin-top: 10px;">
@@ -120,6 +121,7 @@ function renderSettings() {
         <span class="tb-v num">${fmtFull2(total)}</span>
       </div>
       <button class="btn btn-primary btn-block" style="margin-top: 12px;">💾 저장</button>
+      ` : ''}
 
       <div class="settings-group-label">📥 데이터 내보내기</div>
       <button class="btn btn-ghost btn-block">현장별 손익 CSV 다운로드</button>
@@ -144,6 +146,14 @@ function renderSettings() {
         `).join('')}
       </div>
       <button class="btn btn-ghost btn-block" data-modal="staff" style="margin-top: 8px;">+ 직원 추가</button>
+
+      \${AUTH.role() === 'boss' ? \`
+      <div class="settings-group-label" style="margin-top: 20px;">🔐 계정 PIN 관리</div>
+      <div class="callout" style="margin-bottom: 12px;">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body">직원 추가 시 PIN을 설정해두면 해당 이름+PIN으로 로그인할 수 있어요.<br>역할: boss(보스) / manager(팀장) / staff(직원)</div>
+      </div>
+      \` : ''}
 
       <div style="text-align: center; padding: 32px 0 8px; color: var(--faint); font-size: 11px;">
         머니플로우 v1.1 · ${PMS.company}

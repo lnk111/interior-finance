@@ -142,24 +142,8 @@ function modalTip() {
         <textarea class="input" rows="3" placeholder="어떤 일이 있었는지"></textarea>
       </div>
       <div class="field">
-        <label class="field-label">사진 (문제) <span class="muted">최대 3장</span></label>
-        <div class="photo-row">
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
-        </div>
-      </div>
-      <div class="field">
         <label class="field-label">해결 방법</label>
         <textarea class="input" rows="3" placeholder="어떻게 해결했는지"></textarea>
-      </div>
-      <div class="field">
-        <label class="field-label">사진 (해결) <span class="muted">최대 3장</span></label>
-        <div class="photo-row">
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
-        </div>
       </div>
       <div class="grid-2">
         <div class="field">
@@ -188,8 +172,9 @@ function modalTip() {
   `);
 }
 
-// 4. Staff add modal
+// 4. Staff add modal — PIN + 역할 필드 추가
 function modalStaff() {
+  const isBoss = window.AUTH && AUTH.role() === 'boss';
   return openModal(`
     ${modalHeader('👤 직원 추가', '재직 정보를 등록합니다')}
     <div class="modal-body">
@@ -207,6 +192,30 @@ function modalStaff() {
           <input class="input" type="date" value="2026-05-01">
         </div>
       </div>
+      ${isBoss ? `
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label">PIN <span class="req">*</span> <span class="muted">4자리</span></label>
+          <input class="input num" type="password" inputmode="numeric" maxlength="4" placeholder="••••" id="staff-pin">
+        </div>
+        <div class="field">
+          <label class="field-label">역할 <span class="req">*</span></label>
+          <select class="input" id="staff-role-sel">
+            <option value="staff">직원</option>
+            <option value="manager">팀장</option>
+            <option value="boss">보스</option>
+          </select>
+        </div>
+      </div>
+      <div class="callout" style="margin-bottom: 12px;">
+        <div class="callout-icon">🔐</div>
+        <div class="callout-body">
+          <b>직원</b>: 고정비·급여·세금·TOP3 비공개<br>
+          <b>팀장</b>: 고정비만 비공개<br>
+          <b>보스</b>: 전체 공개
+        </div>
+      </div>
+      ` : ''}
       <div class="field">
         <label class="field-label">월급 (원)</label>
         <input class="input num" placeholder="3,500,000">
@@ -281,7 +290,7 @@ function modalPhase() {
         <div class="callout-icon">🤖</div>
         <div>
           <div class="callout-title">날짜 자동 상태</div>
-          <div class="callout-body">시작일·완료일을 입력하면 <b>오늘 날짜 기준</b>으로 상태가 자동으로 바뀌어요.<br>시작 전→대기 / 진행 중→진행중 / 완료일 지남→완료</div>
+          <div class="callout-body">시작일·완료일을 입력하면 <b>오늘 날짜 기준</b>으로 상태가 자동으로 바뀌어요.</div>
         </div>
       </div>
       <div class="field">
@@ -305,10 +314,6 @@ function modalPhase() {
           <button type="button" class="chip is-active">진행중</button>
           <button type="button" class="chip">완료</button>
         </div>
-      </div>
-      <div class="field">
-        <label class="field-label">메모</label>
-        <textarea class="input" rows="2"></textarea>
       </div>
     </div>
     <div class="modal-foot">
@@ -352,24 +357,8 @@ function modalTxEdit() {
         </div>
       </div>
       <div class="field">
-        <label class="field-label">결제 방법</label>
-        <div class="chip-group">
-          <button type="button" class="chip">💵 현금</button>
-          <button type="button" class="chip is-active">🏦 계좌이체</button>
-          <button type="button" class="chip">💳 신용카드</button>
-        </div>
-      </div>
-      <div class="field">
         <label class="field-label">메모</label>
         <textarea class="input" rows="2"></textarea>
-      </div>
-      <div class="field">
-        <label class="field-label">첨부 사진</label>
-        <div class="photo-row">
-          <div class="photo-thumb"></div>
-          <button type="button" class="photo-add">📷</button>
-        </div>
-        <div class="muted small">탭하면 전체화면</div>
       </div>
       <div class="invoice-toggle">
         <div class="checkbox">
@@ -392,7 +381,7 @@ function modalTxEdit() {
   `);
 }
 
-// 8. Quick tip / quick record modal
+// 8. Quick record modal
 function modalQuickTip() {
   return openModal(`
     ${modalHeader('⚡ 빠른 기록', '현장에서 즉석으로 메모, 나중에 정리')}

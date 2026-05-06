@@ -105,7 +105,7 @@ function renderHome() {
     <div class="page-header">
       <div>
         <div class="h-eyebrow">2026년 5월 · ${M.company}</div>
-        <h1 class="h-title">안녕하세요, ${M.user} ${M.role}님</h1>
+        <h1 class="h-title">안녕하세요, ${AUTH.current()?.name || M.user}님</h1>
       </div>
       <button class="btn-icon">${ICON.bell}</button>
     </div>
@@ -136,7 +136,7 @@ function renderHome() {
         </div>
         <div class="stack-legend">
           <div><div class="lk"><span class="ldot" style="background: var(--accent);"></span>이익</div><span class="lv num">${fmtSlim(t.finalProfit)}</span></div>
-          <div><div class="lk"><span class="ldot" style="background: var(--faint);"></span>고정비</div><span class="lv num">${fmtSlim(t.fixed)}</span></div>
+          ${AUTH.can('fixedCost') ? '<div><div class="lk"><span class="ldot" style="background: var(--faint);"></span>고정비</div><span class="lv num">' + fmtSlim(t.fixed) + '</span></div>' : ''}
           <div><div class="lk"><span class="ldot" style="background: var(--warn);"></span>부가세</div><span class="lv num">${fmtSlim(t.vat)}</span></div>
         </div>
       </div>
@@ -166,14 +166,15 @@ function renderHome() {
         </div>
       </div>
 
+      \${AUTH.can('tax') ? \`
       <button class="alert" data-goto="tax" style="width: 100%; text-align: left;">
         <div>
-          <div class="alert-eyebrow">D-${M.tax.daysLeft} · 부가세 납부</div>
-          <div class="alert-amount num">${fmtSlim(M.tax.vatPayable)}</div>
-          <div class="alert-meta">${M.tax.nextDue}</div>
+          <div class="alert-eyebrow">D-\${M.tax.daysLeft} · 부가세 납부</div>
+          <div class="alert-amount num">\${fmtSlim(M.tax.vatPayable)}</div>
+          <div class="alert-meta">\${M.tax.nextDue}</div>
         </div>
         <span class="alert-arrow">›</span>
-      </button>
+      </button>\` : ''}
 
       <!-- AS 관리 -->
       <div class="section-label">🔧 AS 관리 <span class="more"><span data-modal="as">+ 등록</span></span></div>
@@ -188,8 +189,9 @@ function renderHome() {
         <button class="quick" data-modal="site"><span style="font-size: 18px;">🏗️</span><span>현장 등록</span></button>
       </div>
 
+      \${AUTH.can('top3') ? \`
       <div class="section-label">현장 순이익 TOP 3 <span class="more" data-goto="sites">전체 ›</span></div>
-      <div class="rank-list">${ranksHtml}</div>
+      <div class="rank-list">\${ranksHtml}</div>\` : ''}
 
       <div class="section-label">최근 거래 <span class="pill pill-warn">미정리 ${M.unsorted}건</span></div>
       <div class="list">${recentHtml}</div>
