@@ -444,6 +444,7 @@ let currentPage = 'home';
 function navigate(page) {
   if (!routes[page]) return;
   currentPage = page;
+  window.currentPage = page;
   $('#app').innerHTML = `<div class="page is-active">${routes[page].render()}</div>`;
   const activeTab = routes[page].tab;
   $$('.tabbar-item, .tabbar-fab').forEach(b => {

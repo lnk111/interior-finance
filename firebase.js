@@ -32,7 +32,7 @@ function encKey(s) { return s.replace(/[.#$/ \[\]]/g, '_'); }
 function toToday() { return new Date().toISOString().slice(0, 10); }
 
 // ── MOCK 데이터를 Firebase 실제 데이터로 동기화 ──
-window.syncMockFromFirebase = function() {
+window.syncMockFromFirebase = function syncMockFromFirebase() {
   const M = window.MOCK;
   if (!M) return;
 
@@ -326,12 +326,13 @@ let _debounce = null;
 function onDataChange() {
   clearTimeout(_debounce);
   _debounce = setTimeout(() => {
-    syncMockFromFirebase();
+    window.syncMockFromFirebase();
     // 현재 페이지 재렌더
-    if (window.navigate && window.currentPage) {
-      window.navigate(window.currentPage);
+    const page = window.currentPage || 'home';
+    if (window.navigate) {
+      window.navigate(page);
     }
-  }, 150);
+  }, 300);
 }
 
 function updateConnStatus() {
@@ -487,14 +488,14 @@ window.FB_API = {
   async checkBossPin(name, pin) {
     const snap = await db.ref('bossAccount').once('value');
     const boss = snap.val();
-    return boss && String(boss.pin) === String(pin) && boss.name === name;
+    return boss && boss.pin === pin && boss.name === name;
   },
 
   // 직원 PIN 검증
   async checkStaffPin(name, pin) {
     const snap = await db.ref('staffData').once('value');
     const staffData = snap.val() || {};
-    return Object.values(staffData).find(s => s.name === name && String(s.pin) === String(pin) && !s.resignDate);
+    return Object.values(staffData).find(s => s.name === name && s.pin === pin && !s.resignDate);
   },
 };
 
