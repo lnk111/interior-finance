@@ -32,7 +32,7 @@ function encKey(s) { return s.replace(/[.#$/ \[\]]/g, '_'); }
 function toToday() { return new Date().toISOString().slice(0, 10); }
 
 // ── MOCK 데이터를 Firebase 실제 데이터로 동기화 ──
-function syncMockFromFirebase() {
+window.syncMockFromFirebase = function() {
   const M = window.MOCK;
   if (!M) return;
 
