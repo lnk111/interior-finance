@@ -87,8 +87,8 @@ window.MOCK = {
   ],
 
   staff: [
-    { name: '이재현', role: '실장', joined: '2018.03', status: '재직중' },
-    { name: '김민수', role: '현장반장', joined: '2020.07', status: '재직중' },
+    { name: '이재현', role: '실장', joined: '2018.03', salary: 4500000, status: '재직중' },
+    { name: '김민수', role: '현장반장', joined: '2020.07', salary: 3800000, status: '재직중' },
     { name: '박서영', role: '경리', joined: '2022.01', status: '재직중' },
     { name: '최도윤', role: '시공팀', joined: '2024.05', status: '재직중' },
   ],
