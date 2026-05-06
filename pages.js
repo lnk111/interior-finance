@@ -25,30 +25,53 @@ function ymSelect(year = 2026, month = 5) {
 }
 
 // ===== Calendar =====
+let _calYear = new Date().getFullYear();
+let _calMonth = new Date().getMonth() + 1;
+
 function renderCalendar() {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
-  const firstDay = 5; // May 1, 2026 = Friday
-  const totalDays = 31;
+  const firstDay = new Date(_calYear, _calMonth - 1, 1).getDay();
+  const totalDays = new Date(_calYear, _calMonth, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0, 10);
   const weekHead = days.map((d, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('');
+
+  // Firebase scheduleData 에서 이벤트 맵 만들기
+  const schedules = window.FB?.scheduleData || {};
+  const evMap = {};
+  Object.entries(schedules).forEach(([key, sc]) => {
+    if (!sc.date) return;
+    const d = parseInt(sc.date.slice(8, 10));
+    const ym = sc.date.slice(0, 7);
+    const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
+    if (ym !== curYm) return;
+    if (!evMap[d]) evMap[d] = [];
+    evMap[d].push({ t: (sc.time ? sc.time + ' ' : '') + sc.title, c: 'accent', key });
+  });
 
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push('<div class="cal-day empty"></div>');
   for (let d = 1; d <= totalDays; d++) {
     const col = (firstDay + d - 1) % 7;
-    const ev = PMS.events[d] || [];
-    const isToday = d === 6;
+    const dateStr = _calYear + '-' + String(_calMonth).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const isToday = dateStr === todayStr;
+    const ev = evMap[d] || [];
     const evHtml = ev.slice(0, 2).map(e => `<span class="cal-event" style="color: var(--${e.c}); background: rgba(0,0,0,0.04);">${e.t}</span>`).join('');
     cells.push(`<div class="cal-day ${isToday ? 'today' : ''} ${col === 0 ? 'sun' : col === 6 ? 'sat' : ''}">
       <span class="num">${d}</span>${evHtml}
     </div>`);
   }
 
-  const upcoming = [
-    { d: '5/8', t: '용산 한남더힐 착공', c: 'pin' },
-    { d: '5/12', t: '마포 자이 AS 방문', c: 'info' },
-    { d: '5/22', t: '서초 래미안 잔금', c: 'accent' },
-    { d: '5/30', t: '판교 푸르지오 마감', c: 'accent' },
-  ];
+  // 다가오는 일정 (오늘 이후 scheduleData)
+  const today = new Date(); today.setHours(0,0,0,0);
+  const upcoming = Object.entries(schedules)
+    .filter(([, sc]) => sc.date && new Date(sc.date) >= today)
+    .sort((a, b) => a[1].date.localeCompare(b[1].date))
+    .slice(0, 5)
+    .map(([, sc]) => ({
+      d: sc.date.slice(5).replace('-', '/'),
+      t: (sc.time ? sc.time + ' ' : '') + sc.title,
+      c: 'accent',
+    }));
 
   return `
     <div class="page-header">
@@ -58,12 +81,12 @@ function renderCalendar() {
       </div>
       <button class="btn btn-primary btn-sm" data-modal="schedule">+ 일정</button>
     </div>
-    <div style="padding: 0 var(--pad) 12px;">${ymSelect(2026, 5)}</div>
+    <div style="padding: 0 var(--pad) 12px;">${ymSelect(_calYear, _calMonth)}</div>
     <div class="cal-head">
-      <div class="cal-title num">2026년 5월</div>
+      <div class="cal-title num">${_calYear}년 ${_calMonth}월</div>
       <div class="nav-btns">
-        <button class="btn-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M10 4l-4 4 4 4"/></svg></button>
-        <button class="btn-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M6 4l4 4-4 4"/></svg></button>
+        <button class="btn-icon" id="cal-prev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M10 4l-4 4 4 4"/></svg></button>
+        <button class="btn-icon" id="cal-next"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M6 4l4 4-4 4"/></svg></button>
       </div>
     </div>
     <div class="cal-grid">
@@ -73,18 +96,30 @@ function renderCalendar() {
     <div class="cal-list">
       <div class="section-label">다가오는 일정 <button class="more" data-modal="schedule">+ 추가</button></div>
       <div class="list">
-        ${upcoming.map(u => `
+        ${upcoming.length > 0 ? upcoming.map(u => `
           <div class="list-row">
             <span class="num" style="font-size: 12px; color: var(--muted); font-weight: 600; min-width: 30px;">${u.d}</span>
             <div><div class="lr-title">${u.t}</div></div>
             <span class="pill pill-${u.c}" style="font-size: 9px;">●</span>
           </div>
-        `).join('')}
+        `).join('') : '<div class="empty">다가오는 일정이 없어요</div>'}
       </div>
       <button class="btn btn-ghost btn-block" style="margin-top: 12px;">📤 구글 캘린더 연동</button>
     </div>
   `;
 }
+
+// 달력 이전/다음 월 이벤트
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#cal-prev')) {
+    _calMonth--; if (_calMonth < 1) { _calMonth = 12; _calYear--; }
+    if (window.navigate) window.navigate('calendar');
+  }
+  if (e.target.closest('#cal-next')) {
+    _calMonth++; if (_calMonth > 12) { _calMonth = 1; _calYear++; }
+    if (window.navigate) window.navigate('calendar');
+  }
+});
 
 // ===== Settings (fixed costs + staff + export) =====
 function renderSettings() {
@@ -374,16 +409,9 @@ function renderSiteDetail() {
 
 // ===== Photos (현장 사진 보관함) =====
 function renderPhotos() {
-  const samples = [
-    { id: 'p1', site: '서초 래미안 32평', phase: '목공', date: '2026.05.04', count: 8, tone: '#D8C9A8' },
-    { id: 'p2', site: '서초 래미안 32평', phase: '타일', date: '2026.05.02', count: 12, tone: '#C8B89A' },
-    { id: 'p3', site: '판교 푸르지오', phase: '철거', date: '2026.04.28', count: 6, tone: '#B8A98C' },
-    { id: 'p4', site: '강남 아이파크', phase: '도배', date: '2026.04.22', count: 14, tone: '#D2C5A6' },
-    { id: 'p5', site: '마포 자이 18평', phase: 'AS', date: '2026.04.18', count: 4, tone: '#C5B8A0' },
-    { id: 'p6', site: '용산 한남더힐', phase: '계약 전', date: '2026.04.15', count: 3, tone: '#DBCFB2' },
-  ];
+  const samples = [];
 
-  const sites = [...new Set(samples.map(s => s.site))];
+  const sites = Object.values(window.FB?.sites || {}).map(s => s.name).filter(Boolean);
   const filterHtml = ['전체', ...sites].map((s, i) => `
     <button class="filter-chip ${i === 0 ? 'is-active' : ''}">${s}</button>
   `).join('');
@@ -393,8 +421,7 @@ function renderPhotos() {
     <button class="filter-chip ${i === 0 ? 'is-active' : ''}">${p}</button>
   `).join('');
 
-  // build a 2-col gallery of "albums"
-  const albumHtml = samples.map(s => `
+  const albumHtml = samples.length > 0 ? samples.map(s => `
     <button class="photo-album" style="text-align: left;">
       <div class="pa-thumb" style="background: linear-gradient(135deg, ${s.tone} 0%, ${s.tone}cc 100%);">
         <span class="pa-count">📷 ${s.count}</span>
@@ -402,7 +429,7 @@ function renderPhotos() {
       <div class="pa-title">${s.site}</div>
       <div class="pa-meta">${s.phase} · ${s.date}</div>
     </button>
-  `).join('');
+  `).join('') : '<div class="empty" style="grid-column:span 2;padding:40px 0;">📷 등록된 사진이 없어요</div>';
 
   return `
     <div class="breadcrumb">
