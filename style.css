@@ -651,13 +651,15 @@ input, textarea, select { font-family: inherit; }
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--hair);
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
   align-items: center;
-  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
   z-index: 100;
+  gap: 0;
 }
 .tabbar-item {
   flex: 1;
+  max-width: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -678,7 +680,7 @@ input, textarea, select { font-family: inherit; }
   color: var(--bg);
   display: grid;
   place-items: center;
-  margin: -22px 6px 0;
+  margin: -22px 16px 0;
   box-shadow: 0 6px 20px rgba(27, 24, 20, 0.25);
   flex-shrink: 0;
 }
