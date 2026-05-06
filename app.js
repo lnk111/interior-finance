@@ -516,6 +516,7 @@ document.addEventListener('input', (e) => {
 });
 
 // ===== Init =====
-if (bootAuth()) {
+bootAuth();
+if (AUTH.current()) {
   navigate('home');
 }
