@@ -543,7 +543,7 @@ input, textarea, select { font-family: inherit; }
 .cal-week-head > div { padding: 8px 0; text-align: center; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
 .cal-week-head .sun { color: var(--warn); }
 .cal-week-head .sat { color: var(--info); }
-.cal-grid-days { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 64px; }
+.cal-grid-days { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 72px; }
 .cal-day { padding: 6px 4px; font-size: 11px; color: var(--ink-2); border-right: 1px solid var(--hair-soft); border-top: 1px solid var(--hair-soft); display: flex; flex-direction: column; gap: 2px; }
 .cal-day.empty { background: var(--hair-soft); opacity: 0.5; }
 .cal-day .num { font-weight: 500; }
@@ -551,7 +551,8 @@ input, textarea, select { font-family: inherit; }
 .cal-day.today .num { font-weight: 700; }
 .cal-day.sun .num { color: var(--warn); }
 .cal-day.sat .num { color: var(--info); }
-.cal-event { font-size: 9px; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.cal-event { font-size: 9px; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; max-width: 100%; display: block; }
+.cal-day { overflow: hidden; }
 .cal-list { margin-top: 18px; padding: 0 var(--pad); }
 
 /* Tax */
