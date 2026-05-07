@@ -33,8 +33,27 @@ function ymRow(year = 2026, month = 5) {
 // ===== HOME =====
 function renderHome() {
   const t = M.totals;
-  const briefingHtml = M.briefing.map(b => `
-    <div class="briefing-item">
+  const briefingHtml = M.briefing.map(b => {
+    // kind별 이동 대상 설정
+    const gotoMap = {
+      'as': 'home',      // AS → 홈 AS관리 탭으로
+      'task': 'sites',   // 공사중 → 현장 탭
+      'pay': 'sites',    // 잔금 → 현장 탭
+      'cal': 'calendar', // 일정 → 달력
+    };
+    const goto = gotoMap[b.kind] || '';
+    const clickAction = b.kind === 'as'
+      ? `onclick="navigate('home');setTimeout(()=>switchSiteTab('as'),100)"`
+      : b.kind === 'task'
+      ? `onclick="navigate('sites')"`
+      : b.kind === 'pay'
+      ? `onclick="navigate('sites')"`
+      : b.kind === 'cal'
+      ? `onclick="navigate('calendar')"`
+      : '';
+
+    return `
+    <div class="briefing-item" style="cursor:pointer;" ${clickAction}>
       <div class="dot" style="background: var(--${b.color}-soft); color: var(--${b.color});">${b.icon}</div>
       <div>
         <div class="label">${b.label}</div>
@@ -42,7 +61,7 @@ function renderHome() {
       </div>
       <span style="color: var(--muted); font-size: 16px;">›</span>
     </div>
-  `).join('');
+  `}).join('');
 
   const topSites = M.sites.filter(s => s.profit > 0).sort((a, b) => b.profit - a.profit).slice(0, 3);
   const ranksHtml = AUTH.can('top3') ? topSites.map((s, i) => `
