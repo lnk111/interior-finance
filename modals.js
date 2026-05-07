@@ -121,71 +121,160 @@ function modalSchedule() {
 
 // 3. Tip (노하우) modal
 function modalTip() {
+  const tipId = 'tip_' + Date.now();
   return openModal(`
     ${modalHeader('💡 노하우 기록', '실수·팁·자재·고객 노하우를 남겨두세요')}
     <div class="modal-body">
       <div class="field">
         <label class="field-label">카테고리</label>
         <div class="chip-group">
-          <button type="button" class="chip is-active">😓 실수</button>
-          <button type="button" class="chip">💡 팁</button>
-          <button type="button" class="chip">🔩 자재</button>
-          <button type="button" class="chip">🤝 고객</button>
+          <button type="button" class="chip is-active" onclick="tipPickCat(this,'mistake')">😓 실수</button>
+          <button type="button" class="chip" onclick="tipPickCat(this,'tip')">💡 팁</button>
+          <button type="button" class="chip" onclick="tipPickCat(this,'material')">🔩 자재</button>
+          <button type="button" class="chip" onclick="tipPickCat(this,'client')">🤝 고객</button>
         </div>
+        <input type="hidden" id="tip-cat" value="mistake">
       </div>
       <div class="field">
         <label class="field-label">제목 <span class="req">*</span></label>
-        <input class="input" placeholder="예) 욕실 방수 24시간 양생 누락">
+        <input class="input" id="tip-title" placeholder="예) 욕실 방수 24시간 양생 누락">
       </div>
       <div class="field">
         <label class="field-label">문제 상황</label>
-        <textarea class="input" rows="3" placeholder="어떤 일이 있었는지"></textarea>
+        <textarea class="input" id="tip-problem" rows="3" placeholder="어떤 일이 있었는지"></textarea>
       </div>
       <div class="field">
         <label class="field-label">사진 (문제) <span class="muted">최대 3장</span></label>
-        <div class="photo-row">
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
+        <div class="photo-row" id="tip-photos-problem">
+          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',0)">📷</button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',1)">📷</button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',2)">📷</button>
         </div>
+        <input type="file" id="tip-file-problem" accept="image/*" capture="environment" style="display:none" onchange="tipFileSelected(event,'problem')">
       </div>
       <div class="field">
         <label class="field-label">해결 방법</label>
-        <textarea class="input" rows="3" placeholder="어떻게 해결했는지"></textarea>
+        <textarea class="input" id="tip-solution" rows="3" placeholder="어떻게 해결했는지"></textarea>
       </div>
       <div class="field">
         <label class="field-label">사진 (해결) <span class="muted">최대 3장</span></label>
-        <div class="photo-row">
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
-          <button type="button" class="photo-add">📷</button>
+        <div class="photo-row" id="tip-photos-solution">
+          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',0)">📷</button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',1)">📷</button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',2)">📷</button>
         </div>
+        <input type="file" id="tip-file-solution" accept="image/*" capture="environment" style="display:none" onchange="tipFileSelected(event,'solution')">
       </div>
       <div class="grid-2">
         <div class="field">
           <label class="field-label">현장</label>
-          <select class="input">
-            <option>—</option>
-            ${window.MOCK.sites.map(s => `<option>${s.name}</option>`).join('')}
+          <select class="input" id="tip-site">
+            <option value="">—</option>
+            ${(window.MOCK?.sites || []).map(s => `<option>${s.name}</option>`).join('')}
           </select>
         </div>
         <div class="field">
           <label class="field-label">작성자</label>
-          <select class="input">
-            ${window.MOCK.inputters.map(n => `<option>${n}</option>`).join('')}
+          <select class="input" id="tip-writer">
+            ${(window.MOCK?.inputters || []).map(n => `<option>${n}</option>`).join('')}
           </select>
         </div>
       </div>
       <label class="check-row">
-        <input type="checkbox" checked>
+        <input type="checkbox" id="tip-pinned">
         <span>📌 주의사항으로 핀 고정</span>
       </label>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-ghost danger" data-modal-close>🗑️ 삭제</button>
-      <button class="btn btn-primary" data-modal-close>저장</button>
+      <button class="btn btn-ghost" data-modal-close onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveTip()">저장</button>
     </div>
   `);
+}
+
+// 사진 첨부 - 선택창 표시
+let _tipPhotoTarget = null;
+function tipAddPhoto(type, idx) {
+  _tipPhotoTarget = { type, idx };
+  // 사진 선택창 표시
+  const sheet = document.createElement('div');
+  sheet.id = 'tip-photo-sheet';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(0,0,0,0.5);';
+  sheet.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 40px;">
+      <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 20px;"></div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px;">사진 추가</div>
+      <button onclick="tipTakePhoto('${type}')" style="width:100%;padding:16px;background:#f5f5f5;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit;">📷 카메라 촬영</button>
+      <button onclick="tipSelectPhoto('${type}')" style="width:100%;padding:16px;background:#f5f5f5;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit;">🖼️ 갤러리에서 선택</button>
+      <button onclick="document.getElementById('tip-photo-sheet').remove()" style="width:100%;padding:16px;background:none;border:none;border-radius:12px;font-size:15px;color:#999;cursor:pointer;font-family:inherit;">취소</button>
+    </div>
+  `;
+  sheet.addEventListener('click', e => { if(e.target === sheet) sheet.remove(); });
+  document.body.appendChild(sheet);
+}
+
+function tipTakePhoto(type) {
+  document.getElementById('tip-photo-sheet')?.remove();
+  const inp = document.getElementById('tip-file-' + type);
+  if(inp) { inp.setAttribute('capture','environment'); inp.click(); }
+}
+function tipSelectPhoto(type) {
+  document.getElementById('tip-photo-sheet')?.remove();
+  const inp = document.getElementById('tip-file-' + type);
+  if(inp) { inp.removeAttribute('capture'); inp.click(); }
+}
+
+window._tipPhotos = { problem: [], solution: [] };
+function tipFileSelected(e, type) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const base64 = ev.target.result;
+    if(window._tipPhotos[type].length < 3) window._tipPhotos[type].push(base64);
+    tipRenderPhotos(type);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+function tipRenderPhotos(type) {
+  const row = document.getElementById('tip-photos-' + type); if(!row) return;
+  const photos = window._tipPhotos[type];
+  let html = photos.map((p, i) => `
+    <div style="position:relative;width:80px;height:80px;">
+      <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid #e0e0e0;">
+      <button onclick="tipRemovePhoto('${type}',${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>`).join('');
+  if(photos.length < 3) html += `<button type="button" class="photo-add" onclick="tipAddPhoto('${type}',${photos.length})">📷</button>`;
+  row.innerHTML = html;
+}
+function tipRemovePhoto(type, idx) {
+  window._tipPhotos[type].splice(idx, 1);
+  tipRenderPhotos(type);
+}
+function tipPickCat(el, cat) {
+  el.closest('.chip-group').querySelectorAll('.chip').forEach(c => c.classList.remove('is-active'));
+  el.classList.add('is-active');
+  document.getElementById('tip-cat').value = cat;
+}
+async function saveTip() {
+  const title = document.getElementById('tip-title')?.value?.trim();
+  if(!title) { alert('제목을 입력해주세요'); return; }
+  const data = {
+    cat: document.getElementById('tip-cat')?.value || 'mistake',
+    title,
+    problem: document.getElementById('tip-problem')?.value?.trim() || '',
+    solution: document.getElementById('tip-solution')?.value?.trim() || '',
+    site: document.getElementById('tip-site')?.value || '',
+    writer: document.getElementById('tip-writer')?.value || '',
+    pinned: document.getElementById('tip-pinned')?.checked || false,
+    photos: window._tipPhotos,
+    createdAt: Date.now(),
+  };
+  try {
+    await window.FB_API.saveKnowhow(data);
+    window._tipPhotos = { problem: [], solution: [] };
+    closeModal();
+  } catch(e) { alert('저장 실패. 다시 시도해주세요.'); }
 }
 
 // 4. Staff add modal
