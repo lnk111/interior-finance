@@ -483,48 +483,141 @@ function modalTxEdit() {
 
 // 8. Quick tip / quick record modal
 function modalQuickTip() {
-  return openModal(`
-    ${modalHeader('⚡ 빠른 기록', '현장에서 즉석으로 메모, 나중에 정리')}
-    <div class="modal-body">
-      <div class="callout warm">
-        <div class="callout-icon">⚡</div>
-        <div>
-          <div class="callout-title">자동 설정</div>
-          <div class="callout-body">현장을 선택하고 사진·메모만 남기세요. 금액·공정은 나중에 미정리 탭에서 정리할 수 있어요.</div>
+  window._qtPhotos = [];
+  const today = new Date().toISOString().slice(0, 10);
+  const sitesOpts = (window.MOCK?.sites || []).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  const writersOpts = (window.MOCK?.inputters || []).map(n => `<option value="${n}">${n}</option>`).join('');
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">⚡ 빠른 기록</div>
+            <div class="modal-sub">현장에서 즉석으로 메모, 나중에 정리</div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()" style="background:var(--surface-2);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">${MODAL_BACK}</button>
+        </div>
+        <div class="modal-body">
+          <div class="callout warm">
+            <div class="callout-icon">⚡</div>
+            <div>
+              <div class="callout-title">자동 설정</div>
+              <div class="callout-body">현장을 선택하고 사진·메모만 남기세요. 금액·공정은 나중에 미정리 탭에서 정리할 수 있어요.</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">현장 선택 <span class="req">*</span></label>
+            <select class="input" id="qt-site">
+              <option value="">현장을 선택해주세요</option>
+              ${sitesOpts}
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">날짜</label>
+            <input class="input" type="date" id="qt-date" value="${today}">
+          </div>
+
+          <div class="field">
+            <label class="field-label">📎 사진 첨부 <span class="muted">선택사항</span></label>
+            <div class="grid-2" style="margin-bottom:10px;">
+              <button type="button" class="attach" onclick="qtOpenCamera()">📷 카메라 촬영</button>
+              <button type="button" class="attach" onclick="qtOpenGallery()">🖼️ 갤러리 업로드</button>
+            </div>
+            <input type="file" id="qt-file-camera" accept="image/*" capture="environment" style="display:none" onchange="qtHandleFile(event)">
+            <input type="file" id="qt-file-gallery" accept="image/*" multiple style="display:none" onchange="qtHandleFile(event)">
+            <div id="qt-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">작성자 <span class="req">*</span></label>
+            <select class="input" id="qt-writer">
+              ${writersOpts}
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">메모 <span class="muted">선택</span></label>
+            <textarea class="input" id="qt-memo" rows="3" placeholder="현장 상황을 빠르게 기록"></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+          <button class="btn btn-primary" onclick="qtSave()">⚡ 임시 저장</button>
         </div>
       </div>
-      <div class="field">
-        <label class="field-label">현장 선택 <span class="req">*</span></label>
-        <select class="input">
-          <option>현장을 선택해주세요</option>
-          ${window.MOCK.sites.map(s => `<option>${s.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field">
-        <label class="field-label">날짜</label>
-        <input class="input" type="date" value="2026-05-06">
-      </div>
-      <div class="field">
-        <label class="field-label">📎 사진 첨부 <span class="muted">선택사항</span></label>
-        <div class="grid-2">
-          <button type="button" class="attach">📷 카메라 촬영</button>
-          <button type="button" class="attach">🖼️ 갤러리 업로드</button>
-        </div>
-      </div>
-      <div class="field">
-        <label class="field-label">작성자 <span class="req">*</span></label>
-        <select class="input">${window.MOCK.inputters.map(n => `<option>${n}</option>`).join('')}</select>
-      </div>
-      <div class="field">
-        <label class="field-label">메모 <span class="muted">선택</span></label>
-        <textarea class="input" rows="3" placeholder="현장 상황을 빠르게 기록"></textarea>
-      </div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" data-modal-close>취소</button>
-      <button class="btn btn-primary" data-modal-close>⚡ 임시 저장</button>
+  `;
+  document.body.style.overflow = 'hidden';
+}
+
+function qtOpenCamera() {
+  document.getElementById('qt-file-camera')?.click();
+}
+function qtOpenGallery() {
+  document.getElementById('qt-file-gallery')?.click();
+}
+
+function qtHandleFile(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  files.forEach(file => {
+    if (window._qtPhotos.length >= 5) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      window._qtPhotos.push(ev.target.result);
+      qtRenderPhotos();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function qtRenderPhotos() {
+  const wrap = document.getElementById('qt-photo-preview');
+  if (!wrap) return;
+  wrap.innerHTML = window._qtPhotos.map((p, i) => `
+    <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+      <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
+      <button onclick="qtRemovePhoto(${i})"
+        style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
     </div>
-  `);
+  `).join('');
+}
+
+function qtRemovePhoto(idx) {
+  window._qtPhotos.splice(idx, 1);
+  qtRenderPhotos();
+}
+
+async function qtSave() {
+  const site = document.getElementById('qt-site')?.value;
+  const date = document.getElementById('qt-date')?.value;
+  const writer = document.getElementById('qt-writer')?.value;
+  const memo = document.getElementById('qt-memo')?.value?.trim();
+
+  if (!site) { alert('현장을 선택해주세요'); return; }
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    await window.FB_API.savePending({
+      site, date, writer, memo,
+      imageBase64: window._qtPhotos[0] || null,
+      extraPhotos: window._qtPhotos.slice(1),
+      status: 'temp',
+    });
+    window._qtPhotos = [];
+    closeModal();
+    alert('✅ 임시 저장 완료! 미정리 탭에서 금액을 입력하세요 😊');
+  } catch(e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ 임시 저장'; }
+  }
 }
 
 // Modal dispatcher
