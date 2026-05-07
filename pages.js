@@ -54,6 +54,8 @@ function renderCalendar() {
   const sites = window.FB?.sites || {};
   const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
   Object.values(sites).forEach(site => {
+    // AS관리 현장은 달력에 표시 안 함
+    if (site.status === 'as' || site.status === 'AS관리') return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const procData = window.FB?._procAll?.[procKey] || {};
     Object.values(procData).forEach(ph => {
