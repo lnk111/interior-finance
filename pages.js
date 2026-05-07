@@ -471,9 +471,9 @@ function renderPhotos() {
   const albumHtml = albums.length > 0 ? albums.map(a => {
     const thumb = a.photos[0];
     const date = a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR', {month:'numeric',day:'numeric'}) : '';
-    const photosJson = JSON.stringify(a.photos).replace(/"/g, '&quot;');
+    const photosEncoded = encodeURIComponent(JSON.stringify(a.photos));
     return `
-      <div style="cursor:pointer;" onclick="openPhotoAlbum('${photosJson}')">
+      <div style="cursor:pointer;" onclick="openPhotoAlbum('${photosEncoded}')">
         <div style="width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;position:relative;background:var(--surface-2);">
           <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;">
           <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;">📷 ${a.photos.length}</div>
@@ -482,7 +482,7 @@ function renderPhotos() {
         <div style="font-size:11px;color:var(--muted);">${a.phase || ''} · ${date}</div>
       </div>
     `;
-  }).join('') : '<div class="empty" style="grid-column:span 2;padding:40px 0;text-align:center;">📷 등록된 사진이 없어요<br><span style=\"font-size:12px;color:var(--muted)\">위 업로드 버튼으로 추가하세요</span></div>';
+  }).join('') : '<div class="empty" style="grid-column:span 2;padding:40px 0;text-align:center;">📷 등록된 사진이 없어요<br><span style="font-size:12px;color:var(--muted);">위 업로드 버튼으로 추가하세요</span></div>';
 
   return `
     <div class="breadcrumb">
@@ -508,23 +508,21 @@ function renderPhotos() {
     <div class="page-body">
       <div class="photo-gallery">${albumHtml}</div>
     </div>
-  \`;
+  `;
 }
 
-function openPhotoAlbum(photosJson) {
-  const photos = JSON.parse(photosJson.replace(/&quot;/g, '"'));
+function openPhotoAlbum(photosEncoded) {
+  const photos = JSON.parse(decodeURIComponent(photosEncoded));
   if (!photos.length) return;
   const root = document.getElementById('modal-root');
-  root.innerHTML = \`
-    <div style="position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;" onclick="closeModal()">
-      <div style="display:flex;justify-content:flex-end;padding:16px;">
-        <button onclick="closeModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;">✕</button>
-      </div>
-      <div style="flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;" onclick="event.stopPropagation()">
-        \${photos.map(p => \`<img src="\${p}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;">\`).join('')}
-      </div>
-    </div>
-  \`;
+  let imgHtml = photos.map(p => '<img src="' + p + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;">').join('');
+  root.innerHTML = '<div style="position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;" onclick="closeModal()">'
+    + '<div style="display:flex;justify-content:flex-end;padding:16px;">'
+    + '<button onclick="closeModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;">✕</button>'
+    + '</div>'
+    + '<div style="flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;" onclick="event.stopPropagation()">'
+    + imgHtml
+    + '</div></div>';
   document.body.style.overflow = 'hidden';
 }
 
