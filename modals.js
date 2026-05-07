@@ -6,7 +6,7 @@ const MODAL_BACK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" s
 function openModal(html) {
   const root = document.getElementById('modal-root');
   root.innerHTML = `
-    <div class="modal-backdrop" data-modal-close>
+    <div class="modal-backdrop" onclick="closeModal()">
       <div class="modal-sheet" onclick="event.stopPropagation()">
         ${html}
       </div>
@@ -26,7 +26,7 @@ function modalHeader(title, sub) {
         <div class="modal-title">${title}</div>
         ${sub ? `<div class="modal-sub">${sub}</div>` : ''}
       </div>
-      <button class="btn-icon" data-modal-close>${MODAL_BACK}</button>
+      <button class="btn-icon" data-modal-close onclick="closeModal()" style="pointer-events:auto;">${MODAL_BACK}</button>
     </div>
   `;
 }
@@ -634,11 +634,10 @@ window.MODALS = {
 
 // Close handlers
 document.addEventListener('click', (e) => {
+  // data-modal-close 버튼 또는 그 안의 SVG/path 클릭 모두 처리
   if (e.target.closest('[data-modal-close]')) {
-    const inSheet = e.target.closest('.modal-sheet');
-    if (e.target.matches('[data-modal-close]') || !inSheet) {
-      closeModal();
-    }
+    closeModal();
+    return;
   }
   const opener = e.target.closest('[data-modal]');
   if (opener) {
