@@ -317,48 +317,155 @@ function modalStaff() {
 }
 
 // 5. AS register modal
-function modalAS() {
-  return openModal(`
-    ${modalHeader('🔧 AS 등록', '하자보수 일정 및 내용')}
-    <div class="modal-body">
-      <div class="field">
-        <label class="field-label">현장 <span class="req">*</span></label>
-        <select class="input">
-          ${window.MOCK.sites.map(s => `<option>${s.name}</option>`).join('')}
-          <option>+ 직접 입력</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field-label">AS 내용 <span class="req">*</span></label>
-        <textarea class="input" rows="3" placeholder="예) 욕실 타일 줄눈 누수"></textarea>
-      </div>
-      <div class="grid-2">
-        <div class="field">
-          <label class="field-label">고객 전화번호</label>
-          <input class="input" type="tel" placeholder="010-0000-0000">
+function modalAS(editKey = null) {
+  const today = new Date().toISOString().slice(0, 10);
+  const existing = editKey ? (window.FB?.asData?.[editKey] || {}) : {};
+  const isEdit = !!editKey;
+
+  const sitesOpts = (window.MOCK?.sites || []).map(s =>
+    `<option value="${s.name}" ${existing.site === s.name ? 'selected' : ''}>${s.name}</option>`
+  ).join('');
+
+  const staffOpts = (window.MOCK?.inputters || []).map(n =>
+    `<option value="${n}" ${existing.manager === n ? 'selected' : ''}>${n}</option>`
+  ).join('');
+
+  const isTbd = existing.date === '날짜 조율중' || existing.date === 'tbd';
+  const dateVal = (!isEdit || isTbd) ? today : (existing.date || today);
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">${isEdit ? '🔧 AS 수정' : '🔧 AS 등록'}</div>
+            <div class="modal-sub">하자보수 일정 및 내용</div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()">${MODAL_BACK}</button>
         </div>
-        <div class="field">
-          <label class="field-label">AS 담당자</label>
-          <select class="input">
-            ${window.MOCK.staff.map(s => `<option>${s.name}</option>`).join('')}
-            <option>직접 입력</option>
-          </select>
+        <div class="modal-body">
+          <div class="field">
+            <label class="field-label">현장 <span class="req">*</span></label>
+            <select class="input" id="as-site">
+              <option value="">현장을 선택해주세요</option>
+              ${sitesOpts}
+              ${isEdit && existing.site && !(window.MOCK?.sites||[]).find(s=>s.name===existing.site)
+                ? `<option value="${existing.site}" selected>${existing.site}</option>` : ''}
+            </select>
+            <input class="input" id="as-site-direct" placeholder="목록에 없으면 직접 입력"
+              value="${isEdit && existing.site && !(window.MOCK?.sites||[]).find(s=>s.name===existing.site) ? existing.site : ''}"
+              style="margin-top:6px;">
+          </div>
+          <div class="field">
+            <label class="field-label">AS 내용 <span class="req">*</span></label>
+            <textarea class="input" id="as-content" rows="3" placeholder="예) 욕실 타일 줄눈 누수">${existing.content || ''}</textarea>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label">고객 전화번호</label>
+              <input class="input" id="as-phone" type="tel" placeholder="010-0000-0000" value="${existing.phone || ''}">
+            </div>
+            <div class="field">
+              <label class="field-label">AS 담당자</label>
+              <select class="input" id="as-manager">
+                <option value="">선택</option>
+                ${staffOpts}
+              </select>
+              <input class="input" id="as-manager-direct" placeholder="직접 입력" value="${existing.manager || ''}" style="margin-top:6px;">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">작업자</label>
+            <input class="input" id="as-worker" placeholder="작업자명" value="${existing.worker || ''}">
+          </div>
+          <div class="field">
+            <label class="field-label">날짜</label>
+            <div class="chip-group" style="margin-bottom:8px;">
+              <button type="button" class="chip ${!isTbd ? 'is-active' : ''}" id="as-date-btn" onclick="asToggleDate(false)">📅 날짜 선택</button>
+              <button type="button" class="chip ${isTbd ? 'is-active' : ''}" id="as-tbd-btn" onclick="asToggleDate(true)">🕐 날짜 조율중</button>
+            </div>
+            <input class="input" type="date" id="as-date" value="${dateVal}" style="${isTbd ? 'display:none;' : ''}">
+          </div>
+          ${isEdit ? `
+          <div class="field">
+            <label class="field-label">처리 상태</label>
+            <div class="chip-group">
+              <button type="button" class="chip ${!existing.done ? 'is-active' : ''}" id="as-undone-btn" onclick="asToggleDone(false)">⏳ 미처리</button>
+              <button type="button" class="chip ${existing.done ? 'is-active' : ''}" id="as-done-btn" onclick="asToggleDone(true)">✅ 완료</button>
+            </div>
+          </div>` : ''}
         </div>
-      </div>
-      <div class="field">
-        <label class="field-label">날짜</label>
-        <div class="chip-group">
-          <button type="button" class="chip is-active">📅 날짜 선택</button>
-          <button type="button" class="chip">🕐 날짜 조율중</button>
+        <div class="modal-foot">
+          ${isEdit ? `<button class="btn btn-ghost danger" onclick="asDelete('${editKey}')">🗑️ 삭제</button>` : `<button class="btn btn-ghost" onclick="closeModal()">취소</button>`}
+          <button class="btn btn-primary" onclick="asSave('${editKey || ''}')">저장</button>
         </div>
-        <input class="input" type="date" style="margin-top: 8px;" value="2026-05-10">
       </div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost danger" data-modal-close>🗑️ 삭제</button>
-      <button class="btn btn-primary" data-modal-close>저장</button>
-    </div>
-  `);
+  `;
+  document.body.style.overflow = 'hidden';
+  window._asDone = existing.done || false;
+  window._asTbd = isTbd;
+}
+
+function asToggleDate(isTbd) {
+  window._asTbd = isTbd;
+  document.getElementById('as-date-btn').classList.toggle('is-active', !isTbd);
+  document.getElementById('as-tbd-btn').classList.toggle('is-active', isTbd);
+  const dateInp = document.getElementById('as-date');
+  if (dateInp) dateInp.style.display = isTbd ? 'none' : '';
+}
+
+function asToggleDone(isDone) {
+  window._asDone = isDone;
+  document.getElementById('as-done-btn').classList.toggle('is-active', isDone);
+  document.getElementById('as-undone-btn').classList.toggle('is-active', !isDone);
+}
+
+async function asSave(editKey) {
+  const siteSelect = document.getElementById('as-site')?.value;
+  const siteDirect = document.getElementById('as-site-direct')?.value?.trim();
+  const site = siteDirect || siteSelect;
+  const content = document.getElementById('as-content')?.value?.trim();
+
+  if (!site) { alert('현장을 선택해주세요'); return; }
+  if (!content) { alert('AS 내용을 입력해주세요'); return; }
+
+  const managerSelect = document.getElementById('as-manager')?.value;
+  const managerDirect = document.getElementById('as-manager-direct')?.value?.trim();
+  const manager = managerDirect || managerSelect;
+  const phone = document.getElementById('as-phone')?.value?.trim() || '';
+  const worker = document.getElementById('as-worker')?.value?.trim() || '';
+  const date = window._asTbd ? '날짜 조율중' : (document.getElementById('as-date')?.value || '');
+  const done = window._asDone || false;
+
+  const data = { site, content, phone, manager, worker, date, done };
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    if (editKey) {
+      await db.ref('asData/' + editKey).update(data);
+    } else {
+      await db.ref('asData').push({ ...data, createdAt: Date.now() });
+    }
+    closeModal();
+    setTimeout(() => navigate('home'), 100);
+  } catch(e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
+}
+
+async function asDelete(editKey) {
+  if (!confirm('이 AS 항목을 삭제할까요?')) return;
+  try {
+    await db.ref('asData/' + editKey).remove();
+    closeModal();
+  } catch(e) {
+    alert('삭제 실패');
+  }
 }
 
 // 6. Phase status modal

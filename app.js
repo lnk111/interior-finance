@@ -293,7 +293,8 @@ function renderAsSitesHtml() {
     const done = items.filter(a => a.done);
 
     const pendingHtml = pending.map(a => `
-      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#fffdf8;">
+      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#fffdf8;cursor:pointer;"
+        onclick="modalAS('${a._key}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:700;color:#1B1814;margin-bottom:3px;">${a.content || '내용 없음'}</div>
@@ -304,13 +305,17 @@ function renderAsSitesHtml() {
               📅 ${a.date === '날짜 조율중' ? '🕐 날짜 조율중' : (a.date || '날짜 미정')}
             </div>
           </div>
-          <span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;flex-shrink:0;">미처리</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;">미처리</span>
+            <span style="font-size:10px;color:var(--muted);">탭하여 수정 ›</span>
+          </div>
         </div>
       </div>
     `).join('');
 
     const doneHtml = done.map(a => `
-      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#f8faf8;opacity:0.7;">
+      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#f8faf8;opacity:0.7;cursor:pointer;"
+        onclick="modalAS('${a._key}')">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div style="flex:1;min-width:0;">
             <div style="font-size:12px;color:var(--muted);text-decoration:line-through;">${a.content || ''}</div>
