@@ -64,6 +64,7 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     return {
       id: key,
       _key: key,
+      _createdAt: s.createdAt || 0,
       name: s.name || '',
       client: s.client || '',
       status: statusMap[s.status] || s.status || '상담중',

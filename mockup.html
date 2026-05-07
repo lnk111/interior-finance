@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>목업 - 현장 상세</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Pretendard', sans-serif; background: #E8E2D9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+.phone {
+  width: 390px;
+  height: 844px;
+  background: #FAF7F1;
+  border-radius: 48px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.3), inset 0 0 0 1.5px rgba(255,255,255,0.6);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  height: 44px;
+  background: #FAF7F1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+.status-bar .time { font-size: 15px; font-weight: 700; }
+.status-bar .icons { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+
+.header {
+  padding: 8px 20px 12px;
+  background: #FAF7F1;
+  border-bottom: 1px solid #EAE4DB;
+  flex-shrink: 0;
+}
+.back-row { display: flex; align-items: center; gap: 6px; color: #2F6B47; font-size: 13px; font-weight: 600; margin-bottom: 8px; cursor: pointer; }
+.site-name { font-size: 20px; font-weight: 800; color: #1B1814; }
+.site-badge { display: inline-block; background: rgba(47,107,71,0.1); color: #2F6B47; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; margin-left: 8px; }
+
+/* 탭 */
+.tabs {
+  display: flex;
+  background: #F0EBE0;
+  padding: 4px;
+  margin: 12px 20px 0;
+  border-radius: 12px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border: none;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  color: #8A8278;
+  background: transparent;
+  transition: all .2s;
+}
+.tab-btn.active {
+  background: #fff;
+  color: #1B1814;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 80px;
+}
+.content::-webkit-scrollbar { display: none; }
+
+/* 메모 섹션 */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8A8278;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.add-btn {
+  background: rgba(47,107,71,0.1);
+  color: #2F6B47;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.memo-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid #EAE4DB;
+  position: relative;
+}
+.memo-card.pinned {
+  border-color: #2F6B47;
+  background: rgba(47,107,71,0.03);
+}
+.memo-pin { position: absolute; top: 12px; right: 12px; font-size: 14px; }
+.memo-meta { font-size: 11px; color: #8A8278; margin-bottom: 6px; display: flex; gap: 8px; align-items: center; }
+.memo-author { background: #F0EBE0; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
+.memo-text { font-size: 14px; color: #1B1814; line-height: 1.6; font-weight: 500; }
+.memo-actions { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #F0EBE0; }
+.memo-action-btn { font-size: 11px; color: #8A8278; background: none; border: none; cursor: pointer; font-family: inherit; font-weight: 600; padding: 0; }
+.memo-action-btn.del { color: #C0392B; }
+
+.memo-input-area {
+  background: #fff;
+  border: 1.5px solid #2F6B47;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.memo-input-area textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1B1814;
+  resize: none;
+  background: transparent;
+  line-height: 1.6;
+}
+.memo-input-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+.memo-pin-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8A8278; font-weight: 600; }
+.memo-save-btn {
+  background: #1B1814;
+  color: #FAF7F1;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* 비밀번호 섹션 */
+.pw-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid #EAE4DB;
+}
+.pw-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #F0EBE0;
+}
+.pw-row:last-child { border: none; padding-bottom: 0; }
+.pw-icon { font-size: 18px; width: 32px; text-align: center; flex-shrink: 0; }
+.pw-info { flex: 1; min-width: 0; }
+.pw-label { font-size: 12px; color: #8A8278; font-weight: 600; margin-bottom: 2px; }
+.pw-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1B1814;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+}
+.pw-value.hidden { letter-spacing: 4px; color: #B8B0A4; font-size: 14px; }
+.pw-copy-btn {
+  background: #F0EBE0;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #1B1814;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.pw-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.lock-notice {
+  background: rgba(154,75,46,0.08);
+  border: 1px solid rgba(154,75,46,0.2);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  margin-top: 8px;
+}
+.lock-notice .lock-icon { font-size: 28px; margin-bottom: 6px; }
+.lock-notice p { font-size: 13px; color: #8A8278; font-weight: 600; }
+
+/* 홈 메모 알림 */
+.briefing-memo {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1.5px solid #2F6B47;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.briefing-memo .dot { width: 36px; height: 36px; border-radius: 10px; background: rgba(47,107,71,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.briefing-memo .label { font-size: 14px; font-weight: 700; color: #1B1814; }
+.briefing-memo .meta { font-size: 12px; color: #8A8278; margin-top: 2px; }
+.briefing-memo .arrow { color: #B8B0A4; font-size: 18px; margin-left: auto; }
+
+/* 탭바 */
+.tabbar {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  height: 72px;
+  background: rgba(250,247,241,0.97);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #EAE4DB;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 10px;
+}
+.tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #B8B0A4; cursor: pointer; }
+.tab-item.on { color: #2F6B47; }
+.tab-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tab-fab { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding-top: 0; }
+.tab-fab-btn { width: 48px; height: 48px; border-radius: 50%; background: #1B1814; display: flex; align-items: center; justify-content: center; margin-top: -14px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+.tab-fab-btn svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+
+/* 전환 버튼 */
+.switch-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.switch-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #EAE4DB;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8A8278;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .2s;
+}
+.switch-btn.on {
+  background: #1B1814;
+  border-color: #1B1814;
+  color: #fff;
+}
+
+.page { display: none; }
+.page.show { display: block; }
+
+.pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.pill-green { background: rgba(47,107,71,0.12); color: #2F6B47; }
+.pill-warn { background: rgba(160,122,44,0.12); color: #A07A2C; }
+
+.copied-toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: #1B1814;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 20px;
+  opacity: 0;
+  transition: all .3s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 999;
+}
+.copied-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 420px) {
+  body { padding: 0; background: #FAF7F1; }
+  .phone { width: 100%; height: 100vh; border-radius: 0; box-shadow: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="status-bar">
+    <span class="time">5:21</span>
+    <span class="icons">●●●● LTE 🔋</span>
+  </div>
+
+  <!-- 페이지 1: 현장 상세 -->
+  <div id="pg-detail" class="page show" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="header">
+      <div class="back-row" onclick="showPage('home')">
+        ‹ 현장
+      </div>
+      <div>
+        <span class="site-name">기안 신일해피트리</span>
+        <span class="site-badge">공사중</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn" onclick="switchDetailTab('profit',this)">💰 손익</button>
+      <button class="tab-btn" onclick="switchDetailTab('proc',this)">⚙️ 공정</button>
+      <button class="tab-btn active" onclick="switchDetailTab('memo',this)">📌 메모</button>
+      <button class="tab-btn" onclick="switchDetailTab('pw',this)">🔑 비밀번호</button>
+    </div>
+
+    <div class="content" id="detail-content">
+      <!-- 메모 탭 (기본) -->
+      <div id="tab-memo">
+        <div style="margin-bottom:14px;">
+          <div class="section-label">
+            현장 메모
+            <button class="add-btn" onclick="toggleMemoInput()">+ 메모 추가</button>
+          </div>
+
+          <div id="memo-input-wrap" style="display:none;">
+            <div class="memo-input-area">
+              <textarea id="memo-textarea" rows="3" placeholder="현장 특이사항을 입력하세요...">고객 요청: 거실 타일 줄눈 흰색으로 변경. 기존 계약서에 없던 내용이므로 추가금액 협의 필요.</textarea>
+              <div class="memo-input-row">
+                <label class="memo-pin-toggle">
+                  <input type="checkbox" id="memo-pin-chk"> 📌 핀 고정
+                </label>
+                <button class="memo-save-btn" onclick="saveMemo()">저장</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="memo-card pinned">
+            <span class="memo-pin">📌</span>
+            <div class="memo-meta">
+              <span class="memo-author">김영애실장</span>
+              <span>2026.05.04</span>
+              <span class="pill pill-warn">중요</span>
+            </div>
+            <div class="memo-text">엘리베이터 사용 시간 오전 9시~오후 6시만 가능. 자재 반입 전날 관리소에 반드시 연락할 것.</div>
+            <div class="memo-actions">
+              <button class="memo-action-btn">✏️ 수정</button>
+              <button class="memo-action-btn del">🗑️ 삭제</button>
+            </div>
+          </div>
+
+          <div class="memo-card">
+            <div class="memo-meta">
+              <span class="memo-author">이남경팀장</span>
+              <span>2026.05.02</span>
+            </div>
+            <div class="memo-text">고객 요청사항: 주방 타일 샘플 3가지 가져가서 현장에서 최종 결정하기로 함. 다음 방문 때 챙길 것.</div>
+            <div class="memo-actions">
+              <button class="memo-action-btn">✏️ 수정</button>
+              <button class="memo-action-btn del">🗑️ 삭제</button>
+            </div>
+          </div>
+
+          <div class="memo-card">
+            <div class="memo-meta">
+              <span class="memo-author">김덕수대리</span>
+              <span>2026.04.28</span>
+            </div>
+            <div class="memo-text">주차 가능 구역: 지하 2층 방문자 주차 (2시간 무료). 경비실에 차량번호 등록 필요.</div>
+            <div class="memo-actions">
+              <button class="memo-action-btn">✏️ 수정</button>
+              <button class="memo-action-btn del">🗑️ 삭제</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 비밀번호 탭 -->
+      <div id="tab-pw" style="display:none;">
+        <div id="pw-boss-view">
+          <div class="section-label">
+            현장 비밀번호
+            <button class="add-btn">+ 추가</button>
+          </div>
+          <div class="pw-card">
+            <div class="pw-row">
+              <span class="pw-icon">🚪</span>
+              <div class="pw-info">
+                <div class="pw-label">현관 도어락</div>
+                <div class="pw-value" id="pw1">1234#</div>
+              </div>
+              <button class="pw-toggle-btn" onclick="togglePw('pw1')">👁️</button>
+              <button class="pw-copy-btn" onclick="copyPw('1234#')">복사</button>
+            </div>
+            <div class="pw-row">
+              <span class="pw-icon">🛗</span>
+              <div class="pw-info">
+                <div class="pw-label">엘리베이터</div>
+                <div class="pw-value hidden" id="pw2">••••</div>
+              </div>
+              <button class="pw-toggle-btn" onclick="togglePw('pw2','9876')">👁️</button>
+              <button class="pw-copy-btn" onclick="copyPw('9876')">복사</button>
+            </div>
+            <div class="pw-row">
+              <span class="pw-icon">🏢</span>
+              <div class="pw-info">
+                <div class="pw-label">관리사무소</div>
+                <div class="pw-value" id="pw3">010-1234-5678</div>
+              </div>
+              <button class="pw-toggle-btn" onclick="togglePw('pw3')">👁️</button>
+              <button class="pw-copy-btn" onclick="copyPw('010-1234-5678')">복사</button>
+            </div>
+            <div class="pw-row">
+              <span class="pw-icon">🔑</span>
+              <div class="pw-info">
+                <div class="pw-label">창고 열쇠</div>
+                <div class="pw-value hidden" id="pw4">••••••</div>
+              </div>
+              <button class="pw-toggle-btn" onclick="togglePw('pw4','관리실 보관')">👁️</button>
+              <button class="pw-copy-btn" onclick="copyPw('관리실 보관')">복사</button>
+            </div>
+          </div>
+          <div style="background:#F0EBE0;border-radius:10px;padding:10px 12px;font-size:11px;color:#8A8278;line-height:1.6;">
+            🔒 비밀번호는 대표·팀장만 열람 가능합니다
+          </div>
+        </div>
+      </div>
+
+      <!-- 손익 탭 -->
+      <div id="tab-profit" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div style="background:#fff;border-radius:14px;padding:14px;border:1px solid #EAE4DB;">
+            <div style="font-size:11px;color:#8A8278;margin-bottom:6px;">매출</div>
+            <div style="font-size:20px;font-weight:800;color:#2F6B47;">₩3.8억</div>
+          </div>
+          <div style="background:#fff;border-radius:14px;padding:14px;border:1px solid #EAE4DB;">
+            <div style="font-size:11px;color:#8A8278;margin-bottom:6px;">매입</div>
+            <div style="font-size:20px;font-weight:800;color:#9A4B2E;">₩2.9억</div>
+          </div>
+        </div>
+        <div style="background:#2F6B47;border-radius:14px;padding:16px;color:#fff;text-align:center;">
+          <div style="font-size:12px;opacity:.7;margin-bottom:4px;">순이익</div>
+          <div style="font-size:28px;font-weight:800;">+₩9,000만</div>
+        </div>
+      </div>
+
+      <!-- 공정 탭 -->
+      <div id="tab-proc" style="display:none;">
+        <div style="background:#fff;border-radius:14px;border:1px solid #EAE4DB;overflow:hidden;">
+          ${['철거','창호','전기','욕실방수','목공','타일','도배','바닥'].map((p, i) => `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #F0EBE0;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${i<4?'#2F6B47':i===4?'#A07A2C':'#D0C8BE'};flex-shrink:0;"></div>
+            <div style="flex:1;font-size:13px;font-weight:600;">${p}</div>
+            <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;background:${i<4?'rgba(47,107,71,0.1)':i===4?'rgba(160,122,44,0.1)':'rgba(184,176,164,0.2)'};color:${i<4?'#2F6B47':i===4?'#A07A2C':'#8A8278'};">${i<4?'완료':i===4?'진행중':'대기'}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 페이지 2: 홈 (브리핑에 메모 알림) -->
+  <div id="pg-home" class="page" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="header">
+      <div style="font-size:12px;color:#8A8278;margin-bottom:4px;">2026년 5월 · 하늘인테리어</div>
+      <div style="font-size:22px;font-weight:800;">안녕하세요, 김영애실장 대표님</div>
+    </div>
+    <div class="content">
+      <div style="background:#fff;border-radius:16px;border:1px solid #EAE4DB;padding:16px;margin-bottom:16px;">
+        <div style="font-size:11px;color:#8A8278;font-weight:700;margin-bottom:4px;">오늘의 브리핑</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:14px;">오늘 챙길 일 <span style="color:#2F6B47;">3</span>건</div>
+
+        <div class="briefing-memo" onclick="showPage('detail')">
+          <div class="dot">📌</div>
+          <div>
+            <div class="label">새 메모 2건</div>
+            <div class="meta">기안 신일해피트리 · 이남경팀장</div>
+          </div>
+          <span class="arrow">›</span>
+        </div>
+
+        <div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid #EAE4DB;display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(160,122,44,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;">🔧</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;">AS 미처리 6건</div>
+            <div style="font-size:12px;color:#8A8278;">AS 탭에서 확인</div>
+          </div>
+          <span style="color:#B8B0A4;font-size:18px;margin-left:auto;">›</span>
+        </div>
+
+        <div style="background:#fff;border-radius:12px;padding:12px 14px;border:1px solid #EAE4DB;display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(47,107,71,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;">🔨</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;">공사중 1개 현장</div>
+            <div style="font-size:12px;color:#8A8278;">기안 신일해피트리</div>
+          </div>
+          <span style="color:#B8B0A4;font-size:18px;margin-left:auto;">›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab-item on" onclick="showPage('home')">
+      <svg viewBox="0 0 20 20"><path d="M3 10l7-7 7 7M5 9v8h10V9"/></svg>홈
+    </div>
+    <div class="tab-item" onclick="showPage('sites')">
+      <svg viewBox="0 0 20 20"><rect x="3" y="3" width="6" height="6"/><rect x="11" y="3" width="6" height="6"/><rect x="3" y="11" width="6" height="6"/><rect x="11" y="11" width="6" height="6"/></svg>현장
+    </div>
+    <div class="tab-fab">
+      <div class="tab-fab-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+    </div>
+    <div class="tab-item">
+      <svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="1"/><path d="M3 8h14M7 2v4M13 2v4"/></svg>달력
+    </div>
+    <div class="tab-item">
+      <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2"/></svg>설정
+    </div>
+  </div>
+</div>
+
+<div class="copied-toast" id="toast">복사됨!</div>
+
+<script>
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  if (page === 'home') {
+    document.getElementById('pg-home').style.display = 'flex';
+    document.querySelectorAll('.tab-item')[0].classList.add('on');
+    document.querySelectorAll('.tab-item')[1].classList.remove('on');
+  } else if (page === 'detail') {
+    document.getElementById('pg-detail').style.display = 'flex';
+    document.querySelectorAll('.tab-item')[0].classList.remove('on');
+    document.querySelectorAll('.tab-item')[1].classList.add('on');
+    switchDetailTab('memo', document.querySelectorAll('.tab-btn')[2]);
+  } else if (page === 'sites') {
+    document.getElementById('pg-detail').style.display = 'flex';
+    switchDetailTab('memo', document.querySelectorAll('.tab-btn')[2]);
+  }
+}
+
+function switchDetailTab(tab, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['memo','pw','profit','proc'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+function toggleMemoInput() {
+  const wrap = document.getElementById('memo-input-wrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveMemo() {
+  document.getElementById('memo-input-wrap').style.display = 'none';
+  showToast('📌 메모 저장됨!');
+}
+
+const pwValues = {};
+function togglePw(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.classList.contains('hidden')) {
+    el.classList.remove('hidden');
+    el.textContent = value || el.dataset.val || '1234#';
+  } else {
+    el.dataset.val = el.textContent;
+    el.classList.add('hidden');
+    el.textContent = '•'.repeat(el.dataset.val?.length || 4);
+  }
+}
+
+function copyPw(val) {
+  if (navigator.clipboard) navigator.clipboard.writeText(val);
+  showToast('📋 복사됨!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// 초기 탭 설정
+switchDetailTab('memo', document.querySelectorAll('.tab-btn')[2]);
+</script>
+</body>
+</html>

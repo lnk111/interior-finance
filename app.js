@@ -104,32 +104,60 @@ function renderHome() {
   return `
     <div class="page-header">
       <div>
-        <div class="h-eyebrow">2026년 5월 · ${M.company}</div>
+        <div class="h-eyebrow">${new Date().getFullYear()}년 ${new Date().getMonth()+1}월 · ${M.company}</div>
         <h1 class="h-title">안녕하세요, ${M.user} ${M.role}님</h1>
       </div>
       <button class="btn-icon">${ICON.bell}</button>
     </div>
 
     <div class="page-body">
+
+      <!-- ① 오늘의 브리핑 -->
       <div class="briefing">
         <div class="briefing-eyebrow">오늘의 브리핑</div>
         <div class="briefing-title">오늘 챙길 일 <span class="num">${M.briefing.length}</span>건</div>
         <div class="briefing-list">${briefingHtml}</div>
       </div>
 
-      <!-- Year/Month filter for 손익 -->
-      <div class="section-label">손익 현황 <span class="more"><span class="pill pill-muted" style="font-size: 9px;">${AUTH.roleLabel()} 모드</span></span></div>
-      ${ymRow(2026, 5)}
+      <!-- ② 공사중 / AS관리 탭 -->
+      <div class="section-label">현장 현황 <span class="more" data-goto="sites">전체 ›</span></div>
+      <div style="background:#fff;border-radius:16px;border:1px solid var(--hair);overflow:hidden;margin-bottom:16px;">
+        <div style="display:flex;border-bottom:1px solid var(--hair);">
+          <button id="site-tab-active" onclick="switchSiteTab('active')"
+            style="flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
+            🔨 공사중 <span style="background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 7px;font-size:11px;">${(window.MOCK?.sites||[]).filter(s=>s.status==='공사중').length}</span>
+          </button>
+          <button id="site-tab-as" onclick="switchSiteTab('as')"
+            style="flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
+            🔧 AS관리 <span id="as-badge" style="background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:1px 7px;font-size:11px;">${(window.MOCK?.sites||[]).filter(s=>s.status==='AS관리').length}</span>
+          </button>
+        </div>
+        <div id="site-tab-content" style="padding:0;">
+          ${renderActiveSitesHtml()}
+        </div>
+      </div>
 
+      <!-- ③ 현장 노하우 -->
+      <div class="section-label">💡 현장 노하우 <span class="more"><span data-modal="tip">+ 기록</span></span></div>
+      <div class="tip-filter-row">
+        <button class="filter-chip is-active">📌 핀 고정</button>
+        <button class="filter-chip">전체</button>
+        <button class="filter-chip">😓 실수</button>
+        <button class="filter-chip">💡 팁</button>
+        <button class="filter-chip">🔩 자재</button>
+        <button class="filter-chip">🤝 고객</button>
+      </div>
+      ${pinnedTips.map(tipCard).join('')}
+      ${otherTips.map(tipCard).join('')}
+
+      <!-- ④ 손익 현황 -->
+      <div class="section-label" style="margin-top:8px;">손익 현황 <span class="more"><span class="pill pill-muted" style="font-size: 9px;">${AUTH.roleLabel()} 모드</span></span></div>
+      ${ymRow(new Date().getFullYear(), new Date().getMonth()+1)}
       ${AUTH.can('finalProfit') ? `
       <div class="hero" style="margin-top: 10px;">
         <div class="hero-eyebrow">🏢 이번 달 최종 영업이익</div>
         <div class="hero-amount num">${fmtSlim(t.finalProfit)}<span class="unit">원</span></div>
         <div class="hero-meta">순이익 − 고정비(임대료·급여 등) − 부가세</div>
-        <div class="hero-trend">
-          <span class="pill pill-accent">↑ 8.2%</span>
-          <span>전월 대비</span>
-        </div>
         <div class="stack-bar">
           <span style="flex:${t.finalProfit}; background: var(--accent);"></span>
           <span style="flex:${t.fixed}; background: var(--faint);"></span>
@@ -142,7 +170,6 @@ function renderHome() {
         </div>
       </div>
       ` : ''}
-
       <div class="stat-row">
         <div class="stat">
           <div class="stat-label">총 매출</div>
@@ -168,8 +195,13 @@ function renderHome() {
         </div>
       </div>
 
+      <!-- ⑤ 최근 거래 -->
+      <div class="section-label">최근 거래 <span class="pill pill-warn">미정리 ${M.unsorted}건</span></div>
+      <div class="list">${recentHtml}</div>
+
+      <!-- ⑥ 부가세 알림 -->
       ${AUTH.can('tax') ? `
-      <button class="alert" data-goto="tax" style="width: 100%; text-align: left;">
+      <button class="alert" data-goto="tax" style="width: 100%; text-align: left; margin-top: 8px;">
         <div>
           <div class="alert-eyebrow">D-${M.tax.daysLeft} · 부가세 납부</div>
           <div class="alert-amount num">${fmtSlim(M.tax.vatPayable)}</div>
@@ -179,39 +211,80 @@ function renderHome() {
       </button>
       ` : ''}
 
-      <!-- AS 관리 -->
-      <div class="section-label">🔧 AS 관리 <span class="more"><span data-modal="as">+ 등록</span></span></div>
-      <div class="as-list">${asHtml || '<div class="empty">진행중 AS가 없습니다</div>'}</div>
-
-      <!-- Quick actions -->
-      <div class="section-label">빠른 작업</div>
-      <div class="quick-actions">
-        <button class="quick" data-goto="input">${ICON.plus}<span>거래 입력</span></button>
-        <button class="quick" data-modal="quickTip"><span style="font-size: 18px;">⚡</span><span>빠른 기록</span></button>
-        <button class="quick" data-modal="as"><span style="font-size: 18px;">🔧</span><span>AS 등록</span></button>
-        <button class="quick" data-modal="site"><span style="font-size: 18px;">🏗️</span><span>현장 등록</span></button>
-      </div>
-
-      <div class="section-label">현장 순이익 TOP 3 <span class="more" data-goto="sites">전체 ›</span></div>
-      ${AUTH.can('top3') ? `<div class="rank-list">${ranksHtml}</div>` : `<div class="locked">🔒 권한이 있는 사용자만 볼 수 있어요</div>`}
-
-      <div class="section-label">최근 거래 <span class="pill pill-warn">미정리 ${M.unsorted}건</span></div>
-      <div class="list">${recentHtml}</div>
-
-      <!-- 노하우 섹션 (홈에 통합) -->
-      <div class="section-label">💡 현장 노하우 <span class="more"><span data-modal="tip">+ 기록</span></span></div>
-      <div class="tip-filter-row">
-        <button class="filter-chip is-active">📌 핀 고정</button>
-        <button class="filter-chip">전체</button>
-        <button class="filter-chip">😓 실수</button>
-        <button class="filter-chip">💡 팁</button>
-        <button class="filter-chip">🔩 자재</button>
-        <button class="filter-chip">🤝 고객</button>
-      </div>
-      ${pinnedTips.map(tipCard).join('')}
-      ${otherTips.map(tipCard).join('')}
     </div>
   `;
+}
+
+let _siteTab = 'active';
+
+function renderActiveSitesHtml() {
+  const activeSites = (window.MOCK?.sites || []).filter(s => s.status === '공사중');
+  if (!activeSites.length) return '<div class="empty" style="padding:24px;">진행중인 공사 현장이 없어요</div>';
+  return activeSites.map(s => {
+    const procData = window.FB?._procAll?.[(s.name||'').replace(/[.#$/ \[\]]/g,'_')] || {};
+    const phases = Object.values(procData).sort((a,b)=>(a.order||0)-(b.order||0));
+    const done = phases.filter(p=>p.status==='done').length;
+    const total = phases.length;
+    const pct = total > 0 ? Math.round(done/total*100) : 0;
+    const activePh = phases.find(p=>p.status==='active');
+    return `
+      <div style="padding:14px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" data-site="${s.name}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;">${s.name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${activePh ? '🔨 '+activePh.name+' 진행중' : s.start !== '—' ? s.start : ''}</div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:var(--accent);">${pct}%</span>
+        </div>
+        <div style="height:6px;background:var(--hair);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:4px;transition:width .4s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;">
+          <span style="font-size:11px;color:var(--muted);">${done}/${total} 공정 완료</span>
+          <span style="font-size:11px;color:var(--accent);font-weight:700;">+${fmtSlim(s.profit)}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderAsSitesHtml() {
+  const asSites = (window.MOCK?.sites || []).filter(s => s.status === 'AS관리');
+  if (!asSites.length) return '<div class="empty" style="padding:24px;">AS 관리 현장이 없어요</div>';
+  return asSites.map(s => {
+    const asItems = Object.values(window.FB?.asData || {}).filter(a => a.site === s.name);
+    const pending = asItems.filter(a => !a.done).length;
+    const latest = asItems.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0];
+    return `
+      <div style="padding:14px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" data-site="${s.name}">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:14px;font-weight:700;">${s.name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;">${latest ? (latest.date||'날짜 미정') : '등록된 AS 없음'}</div>
+          </div>
+          ${pending > 0
+            ? `<span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">미처리 ${pending}건</span>`
+            : `<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">✅ 완료</span>`
+          }
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function switchSiteTab(tab) {
+  _siteTab = tab;
+  const content = document.getElementById('site-tab-content');
+  const btnActive = document.getElementById('site-tab-active');
+  const btnAs = document.getElementById('site-tab-as');
+  if (!content || !btnActive || !btnAs) return;
+  if (tab === 'active') {
+    btnActive.style.background = 'var(--accent)'; btnActive.style.color = '#fff';
+    btnAs.style.background = '#fff'; btnAs.style.color = 'var(--muted)';
+    content.innerHTML = renderActiveSitesHtml();
+  } else {
+    btnAs.style.background = 'var(--accent)'; btnAs.style.color = '#fff';
+    btnActive.style.background = '#fff'; btnActive.style.color = 'var(--muted)';
+    content.innerHTML = renderAsSitesHtml();
+  }
 }
 
 // ===== INPUT (거래 입력) =====
@@ -221,7 +294,7 @@ let inputState = {
   stage: '중도금',
   payMethod: '계좌이체',
   phase: '도배',
-  amount: '18000000',
+  amount: '',
   invoice: true,
   inputter: '김실장',
   site: '',
@@ -235,6 +308,58 @@ function addRecentSite(name) {
   let arr = getRecentSites().filter(s => s !== name);
   arr.unshift(name);
   localStorage.setItem('recent_sites', JSON.stringify(arr.slice(0, 5)));
+}
+
+async function submitEntry() {
+  const siteInp = document.getElementById('site-input');
+  const amountInp = document.getElementById('amount-input');
+  const dateInp = document.querySelector('#pg-input input[type=date]') || document.querySelector('input[type=date]');
+
+  const site = siteInp?.value?.trim() || inputState.site;
+  const rawAmount = amountInp?.value?.replace(/[^0-9]/g, '') || '';
+  const amount = parseInt(rawAmount) || 0;
+  const date = dateInp?.value || new Date().toISOString().slice(0, 10);
+
+  if (!site) { alert('현장을 선택해주세요'); siteInp?.focus(); return; }
+  if (!amount) { alert('금액을 입력해주세요'); amountInp?.focus(); return; }
+
+  // 입력자 확인
+  const activeChip = document.querySelector('.chip-group .chip.is-active');
+  const writer = activeChip?.textContent?.trim() || AUTH.current()?.name || '';
+
+  // 공정
+  const phaseChips = document.querySelectorAll('.phase-chips .chip.is-active');
+  const process = Array.from(phaseChips).map(c => c.textContent.trim()).join(', ') || inputState.phase || '';
+
+  // 메모
+  const memoInp = document.querySelector('textarea.input');
+  const memo = memoInp?.value?.trim() || '';
+
+  const entry = {
+    type: inputState.tab === '매출' ? 'revenue' : inputState.tab === 'AS' ? 'as' : 'cost',
+    site, amount, date, process, memo, writer,
+    payMethod: inputState.payMethod || '',
+    payStage: inputState.stage || '',
+    taxInvoice: inputState.invoice && inputState.tab === '매출',
+  };
+
+  const btn = document.querySelector('.form-submit .btn');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    await window.FB_API.saveEntry(entry);
+    // 초기화
+    inputState.site = '';
+    inputState.amount = '';
+    if (siteInp) siteInp.value = '';
+    if (amountInp) amountInp.value = '';
+    if (memoInp) memoInp.value = '';
+    navigate('input');
+    setTimeout(() => alert('✅ 저장 완료!'), 100);
+  } catch(e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '+ 입력 완료'; }
+  }
 }
 
 function openSiteDropdown() {
@@ -374,7 +499,7 @@ function renderInput() {
       <div class="field">
         <label class="field-label">금액 (원) <span class="req">*</span></label>
         <div class="input-wrap">
-          <input class="input input-amount num" id="amount-input" value="${formattedAmount}">
+          <input class="input input-amount num" id="amount-input" value="${formattedAmount}" placeholder="금액을 입력해주세요">
           <span class="input-suffix">원</span>
         </div>
       </div>
@@ -431,7 +556,7 @@ function renderInput() {
       </div>
 
       <div class="form-submit">
-        <button class="btn btn-primary btn-block">+ 입력 완료</button>
+        <button class="btn btn-primary btn-block" onclick="submitEntry()">+ 입력 완료</button>
       </div>
 
       <div class="section-label">📌 최근 입력 내역</div>
@@ -460,7 +585,14 @@ let sitesFilter = '전체';
 let sitesQuery = '';
 function renderSites() {
   const filters = ['전체', '계약완료', '공사중', 'AS관리'];
-  let list = sitesFilter === '전체' ? M.sites : M.sites.filter(s => s.status === sitesFilter);
+  let list = sitesFilter === '전체' ? [...M.sites] : M.sites.filter(s => s.status === sitesFilter);
+  // 공사중 먼저, 나머지 최근 등록순 (createdAt 역순)
+  list.sort((a, b) => {
+    const aActive = a.status === '공사중' ? 1 : 0;
+    const bActive = b.status === '공사중' ? 1 : 0;
+    if (aActive !== bActive) return bActive - aActive;
+    return (b._createdAt || 0) - (a._createdAt || 0);
+  });
   if (sitesQuery) list = list.filter(s => s.name.includes(sitesQuery) || s.client.includes(sitesQuery));
 
   const filterHtml = filters.map(f => `
