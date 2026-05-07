@@ -216,20 +216,101 @@ function renderHome() {
 
 // ===== INPUT (거래 입력) =====
 let inputState = {
-  tab: '매출',
-  mode: 'quick', // quick | detail
+  tab: '매입',
+  mode: 'quick',
   stage: '중도금',
   payMethod: '계좌이체',
   phase: '도배',
   amount: '18000000',
   invoice: true,
   inputter: '김실장',
+  site: '',
 };
+
+// 최근 선택 현장 (localStorage)
+function getRecentSites() {
+  try { return JSON.parse(localStorage.getItem('recent_sites') || '[]'); } catch { return []; }
+}
+function addRecentSite(name) {
+  let arr = getRecentSites().filter(s => s !== name);
+  arr.unshift(name);
+  localStorage.setItem('recent_sites', JSON.stringify(arr.slice(0, 5)));
+}
+
+function openSiteDropdown() {
+  const dd = document.getElementById('site-dropdown');
+  if (!dd) return;
+  dd.style.display = 'block';
+  filterSiteDropdown(document.getElementById('site-input')?.value || '');
+}
+
+function closeSiteDropdown() {
+  const dd = document.getElementById('site-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function filterSiteDropdown(query) {
+  const dd = document.getElementById('site-dropdown-list');
+  if (!dd) return;
+  const allSites = (window.MOCK?.sites || []).map(s => s.name);
+  const recent = getRecentSites().filter(s => allSites.includes(s));
+  const q = query.trim().toLowerCase();
+
+  let html = '';
+
+  // 최근 선택
+  const recentFiltered = recent.filter(s => !q || s.toLowerCase().includes(q));
+  if (recentFiltered.length > 0) {
+    html += `<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">🕐 최근 선택</div>`;
+    html += recentFiltered.map(s => `
+      <div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
+        style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
+        onmousedown="event.preventDefault()">
+        ${s}
+      </div>`).join('');
+  }
+
+  // 전체 현장
+  const others = allSites.filter(s => !recent.includes(s) && (!q || s.toLowerCase().includes(q)));
+  if (others.length > 0) {
+    html += `<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">전체 현장</div>`;
+    html += others.map(s => `
+      <div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
+        style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
+        onmousedown="event.preventDefault()">
+        ${s}
+      </div>`).join('');
+  }
+
+  if (!html) {
+    html = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">검색 결과 없음</div>`;
+  }
+
+  dd.innerHTML = html;
+  document.getElementById('site-dropdown').style.display = 'block';
+}
+
+function selectSite(name) {
+  inputState.site = name;
+  addRecentSite(name);
+  const inp = document.getElementById('site-input');
+  if (inp) inp.value = name;
+  closeSiteDropdown();
+}
+
+// 외부 클릭 시 드롭다운 닫기
+document.addEventListener('click', (e) => {
+  const inp = document.getElementById('site-input');
+  const dd = document.getElementById('site-dropdown');
+  if (dd && inp && !inp.contains(e.target) && !dd.contains(e.target)) {
+    closeSiteDropdown();
+  }
+});
 
 function renderInput() {
   const tabsHtml = [
-    { k: '매출', i: '💰' },
     { k: '매입', i: '📦' },
+    { k: '매출', i: '💰' },
     { k: 'AS', i: '🔧' },
   ].map(t => `
     <button class="tab ${inputState.tab === t.k ? 'is-active' : ''}" data-tab="${t.k}">${t.i} ${t.k}</button>
@@ -278,9 +359,16 @@ function renderInput() {
 
       <div class="tabs">${tabsHtml}</div>
 
-      <div class="field">
+      <div class="field" style="position:relative;">
         <label class="field-label">현장 <span class="req">*</span></label>
-        <input class="input" value="서초 래미안 32평">
+        <input class="input" id="site-input" placeholder="현장을 선택하거나 직접 입력" autocomplete="off"
+          value="${inputState.site || ''}"
+          oninput="filterSiteDropdown(this.value)"
+          onfocus="openSiteDropdown()"
+        >
+        <div id="site-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:200;background:#fff;border:1.5px solid var(--hair);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:220px;overflow-y:auto;margin-top:4px;">
+          <div id="site-dropdown-list"></div>
+        </div>
       </div>
 
       <div class="field">
@@ -380,7 +468,7 @@ function renderSites() {
   `).join('');
 
   const cardsHtml = list.map(s => `
-    <div class="site-card" data-site="${s.id}">
+    <div class="site-card" data-site="${s.name}">
       <div class="site-card-head">
         <div>
           <div class="site-card-name">${s.name}</div>
@@ -468,7 +556,20 @@ document.addEventListener('click', (e) => {
   if (filter && currentPage === 'sites') { sitesFilter = filter.dataset.filter; navigate('sites'); return; }
 
   const siteCard = e.target.closest('[data-site]');
-  if (siteCard && currentPage === 'sites') { navigate('siteDetail'); return; }
+  if (siteCard && currentPage === 'sites') {
+    const siteName = siteCard.dataset.site;
+    // PMS.sites[0] 을 선택한 현장으로 설정
+    const found = (window.MOCK?.sites || []).find(s => s.name === siteName);
+    if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s => s.name !== siteName))];
+    // Firebase procData 로드
+    window._procCache = {};
+    const key = siteName.replace(/[.#$/ \[\]]/g, '_');
+    db.ref('procData/' + key).once('value').then(snap => {
+      window._procCache = snap.val() || {};
+      navigate('siteDetail');
+    }).catch(() => navigate('siteDetail'));
+    return;
+  }
 
   const inputTab = e.target.closest('[data-tab]');
   if (inputTab && (currentPage === 'input' || currentPage === 'quickInput')) {

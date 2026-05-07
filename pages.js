@@ -38,6 +38,8 @@ function renderCalendar() {
   // Firebase scheduleData 에서 이벤트 맵 만들기
   const schedules = window.FB?.scheduleData || {};
   const evMap = {};
+
+  // 1) 일정 데이터 추가
   Object.entries(schedules).forEach(([key, sc]) => {
     if (!sc.date) return;
     const d = parseInt(sc.date.slice(8, 10));
@@ -45,7 +47,38 @@ function renderCalendar() {
     const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
     if (ym !== curYm) return;
     if (!evMap[d]) evMap[d] = [];
-    evMap[d].push({ t: (sc.time ? sc.time + ' ' : '') + sc.title, c: 'accent', key });
+    evMap[d].push({ t: (sc.time ? sc.time + ' ' : '') + sc.title, c: 'accent' });
+  });
+
+  // 2) procData 공정 추가 (시작일~완료일 기간 표시)
+  const sites = window.FB?.sites || {};
+  const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
+  Object.values(sites).forEach(site => {
+    const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const procData = window.FB?._procAll?.[procKey] || {};
+    Object.values(procData).forEach(ph => {
+      if (!ph.startDate && !ph.doneDate) return;
+      const start = ph.startDate || ph.doneDate;
+      const end = ph.doneDate || ph.startDate;
+      // 이 달에 걸치는 날짜만
+      let cur = new Date(start + 'T00:00:00');
+      const endDate = new Date(end + 'T00:00:00');
+      while (cur <= endDate) {
+        const ds = cur.toISOString().slice(0, 10);
+        if (ds.startsWith(curYm)) {
+          const d = cur.getDate();
+          if (!evMap[d]) evMap[d] = [];
+          // 같은 공정 중복 방지
+          const label = site.name.length > 6 ? site.name.slice(0, 6) + '..' : site.name;
+          const already = evMap[d].some(e => e.t.includes(ph.name));
+          if (!already) {
+            const stColor = ph.status === 'done' ? 'accent' : ph.status === 'active' ? 'warn' : 'muted';
+            evMap[d].push({ t: label + ' ' + ph.name, c: stColor });
+          }
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
   });
 
   const cells = [];
@@ -314,31 +347,34 @@ function renderTax() {
 }
 
 // ===== Site Detail (with phase modal trigger) =====
+function encKey(s) { return s.replace(/[.#$/ \[\]]/g, '_'); }
+
 function renderSiteDetail() {
   const s = PMS.sites[0];
-  const phases = [
-    { name: '철거', status: 'done', start: '04.18', end: '04.20', cost: 2_400_000 },
-    { name: '창호', status: 'done', start: '04.21', end: '04.23', cost: 8_400_000 },
-    { name: '전기', status: 'done', start: '04.22', end: '04.25', cost: 3_200_000 },
-    { name: '욕실방수', status: 'done', start: '04.24', end: '04.26', cost: 1_800_000 },
-    { name: '목공', status: 'now', start: '04.27', end: '05.02', cost: 6_500_000 },
-    { name: '타일', status: 'now', start: '04.30', end: '05.05', cost: 4_800_000 },
-    { name: '도배', status: 'todo', start: '05.06', end: '05.10', cost: 0 },
-    { name: '바닥', status: 'todo', start: '05.08', end: '05.12', cost: 0 },
-  ];
-  const stLabel = { done: '완료', now: '진행중', todo: '대기' };
-  const stClass = { done: 'pill-accent', now: 'pill-warn', todo: 'pill-muted' };
 
-  const tlHtml = phases.map(p => `
+  // Firebase procData 에서 공정 데이터 로드
+  const procRaw = window._procCache || {};
+  const phases = Object.values(procRaw).sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  const stLabel = { done: '완료', active: '진행중', wait: '대기' };
+  const stClass = { done: 'pill-accent', active: 'pill-warn', wait: 'pill-muted' };
+  const dotClass = { done: 'done', active: 'now', wait: 'todo' };
+
+  const tlHtml = phases.length > 0 ? phases.map(p => {
+    const st = p.status || 'wait';
+    const startStr = p.startDate ? p.startDate.slice(5).replace('-', '.') : '';
+    const endStr = p.doneDate ? p.doneDate.slice(5).replace('-', '.') : '';
+    const dateStr = startStr && endStr ? startStr + ' – ' + endStr : startStr || endStr || '';
+    return `
     <button class="tl-row" data-modal="phase" style="width: 100%; text-align: left;">
-      <span class="tl-dot ${p.status}"></span>
+      <span class="tl-dot ${dotClass[st] || 'todo'}"></span>
       <div>
-        <div class="tl-name">${p.name} <span class="pill ${stClass[p.status]}" style="margin-left: 6px; font-size: 9px; padding: 1px 6px;">${stLabel[p.status]}</span></div>
-        <div class="tl-meta">${p.start} – ${p.end}</div>
+        <div class="tl-name">${p.name} <span class="pill ${stClass[st] || 'pill-muted'}" style="margin-left: 6px; font-size: 9px; padding: 1px 6px;">${stLabel[st] || '대기'}</span></div>
+        ${dateStr ? `<div class="tl-meta">${dateStr}</div>` : ''}
       </div>
-      <span class="tl-cost num ${p.cost === 0 ? 'empty' : ''}">${p.cost > 0 ? fmtSlim2(p.cost) : '—'}</span>
-    </button>
-  `).join('');
+      <span class="tl-cost num"></span>
+    </button>`;
+  }).join('') : '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">등록된 공정이 없어요</div>';
 
   const payments = [
     { stage: '계약금', amount: 5_800_000, paid: true, date: '04.10' },

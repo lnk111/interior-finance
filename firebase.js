@@ -276,6 +276,12 @@ function initFirebase() {
   // 현장 정보
   db.ref('siteInfo').on('value', snap => {
     FB.sites = snap.val() || {};
+    // 모든 현장 procData 한번에 로드
+    db.ref('procData').once('value').then(procSnap => {
+      if (!window.FB) window.FB = {};
+      window.FB._procAll = procSnap.val() || {};
+      onDataChange();
+    });
     onDataChange();
   });
 
