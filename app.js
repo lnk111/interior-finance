@@ -341,6 +341,8 @@ async function submitEntry() {
     payMethod: inputState.payMethod || '',
     payStage: inputState.stage || '',
     taxInvoice: inputState.invoice && inputState.tab === '매출',
+    imageBase64: window._entryPhotos?.[0] || null,
+    extraPhotos: window._entryPhotos?.slice(1) || [],
   };
 
   const btn = document.querySelector('.form-submit .btn');
@@ -351,6 +353,7 @@ async function submitEntry() {
     // 초기화
     inputState.site = '';
     inputState.amount = '';
+    window._entryPhotos = [];
     if (siteInp) siteInp.value = '';
     if (amountInp) amountInp.value = '';
     if (memoInp) memoInp.value = '';
@@ -534,9 +537,15 @@ function renderInput() {
         <textarea class="input" rows="2" placeholder="선택사항"></textarea>
       </div>
 
-      <div class="attach-row">
-        <button class="attach">📷 영수증</button>
-        <button class="attach">🎤 음성 메모</button>
+      <div class="field">
+        <label class="field-label">📎 영수증 첨부 <span class="muted">선택사항</span></label>
+        <div class="grid-2" style="margin-bottom:8px;">
+          <button type="button" class="attach" onclick="entryOpenCamera()">📷 카메라 촬영</button>
+          <button type="button" class="attach" onclick="entryOpenGallery()">🖼️ 갤러리 업로드</button>
+        </div>
+        <input type="file" id="entry-file-camera" accept="image/*" capture="environment" style="display:none" onchange="entryHandleFile(event)">
+        <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
+        <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
 
       ${inputState.tab === '매출' ? `
@@ -578,6 +587,44 @@ function renderInput() {
       </div>
     </div>
   `;
+}
+
+// ===== 거래 입력 사진 첨부 =====
+window._entryPhotos = [];
+
+function entryOpenCamera() {
+  document.getElementById('entry-file-camera')?.click();
+}
+function entryOpenGallery() {
+  document.getElementById('entry-file-gallery')?.click();
+}
+function entryHandleFile(e) {
+  const files = Array.from(e.target.files || []);
+  files.forEach(file => {
+    if (window._entryPhotos.length >= 5) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      window._entryPhotos.push(ev.target.result);
+      entryRenderPhotos();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+function entryRenderPhotos() {
+  const wrap = document.getElementById('entry-photo-preview');
+  if (!wrap) return;
+  wrap.innerHTML = window._entryPhotos.map((p, i) => `
+    <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+      <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
+      <button onclick="entryRemovePhoto(${i})"
+        style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
+    </div>
+  `).join('');
+}
+function entryRemovePhoto(idx) {
+  window._entryPhotos.splice(idx, 1);
+  entryRenderPhotos();
 }
 
 // ===== SITES =====
