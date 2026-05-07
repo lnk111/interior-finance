@@ -267,23 +267,41 @@ function renderActiveSitesHtml() {
 }
 
 function renderAsSitesHtml() {
-  const asSites = (window.MOCK?.sites || []).filter(s => s.status === 'AS관리');
-  if (!asSites.length) return '<div class="empty" style="padding:24px;">AS 관리 현장이 없어요</div>';
+  const asData = window.FB?.asData || {};
+  if (!Object.keys(asData).length) return '<div class="empty" style="padding:24px;">AS 데이터가 없어요</div>';
 
-  return asSites.map(s => {
-    const asItems = Object.entries(window.FB?.asData || {})
-      .filter(([, a]) => a.site === s.name)
-      .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-    const pending = asItems.filter(([, a]) => !a.done);
-    const done = asItems.filter(([, a]) => a.done);
+  // asData를 현장별로 그룹핑
+  const grouped = {};
+  Object.entries(asData).forEach(([key, a]) => {
+    const site = a.site || '현장 미지정';
+    if (!grouped[site]) grouped[site] = [];
+    grouped[site].push({ ...a, _key: key });
+  });
 
-    const pendingHtml = pending.map(([key, a]) => `
+  // 미처리 있는 현장 먼저, 최근순 정렬
+  const sortedSites = Object.entries(grouped).sort((a, b) => {
+    const aPending = a[1].filter(x => !x.done).length;
+    const bPending = b[1].filter(x => !x.done).length;
+    if (aPending !== bPending) return bPending - aPending;
+    const aLatest = Math.max(...a[1].map(x => x.createdAt || 0));
+    const bLatest = Math.max(...b[1].map(x => x.createdAt || 0));
+    return bLatest - aLatest;
+  });
+
+  return sortedSites.map(([siteName, items]) => {
+    const pending = items.filter(a => !a.done);
+    const done = items.filter(a => a.done);
+
+    const pendingHtml = pending.map(a => `
       <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#fffdf8;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:700;color:#1B1814;margin-bottom:3px;">${a.content || '내용 없음'}</div>
-            <div style="font-size:11px;color:var(--muted);">
-              ${a.phone ? '📞 '+a.phone : ''} ${a.manager ? '· 👤 '+a.manager : ''} · ${a.date === 'tbd' ? '날짜 조율중' : (a.date || '날짜 미정')}
+            <div style="font-size:11px;color:var(--muted);line-height:1.6;">
+              ${a.phone && a.phone !== '없음' ? '📞 '+a.phone+'<br>' : ''}
+              ${a.manager ? '👤 담당: '+a.manager : ''}
+              ${a.worker ? ' · 작업자: '+a.worker : ''}<br>
+              📅 ${a.date === '날짜 조율중' ? '🕐 날짜 조율중' : (a.date || '날짜 미정')}
             </div>
           </div>
           <span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;flex-shrink:0;">미처리</span>
@@ -291,21 +309,35 @@ function renderAsSitesHtml() {
       </div>
     `).join('');
 
+    const doneHtml = done.map(a => `
+      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#f8faf8;opacity:0.7;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;color:var(--muted);text-decoration:line-through;">${a.content || ''}</div>
+            <div style="font-size:11px;color:var(--muted);">${a.date || ''}</div>
+          </div>
+          <span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;flex-shrink:0;">✅ 완료</span>
+        </div>
+      </div>
+    `).join('');
+
+    const isOpen = pending.length > 0;
     return `
-      <div style="border-bottom:1px solid var(--hair);">
-        <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;"
+      <div style="border-bottom:2px solid var(--hair);">
+        <div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#fff;"
           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
           <div>
-            <div style="font-size:14px;font-weight:700;">${s.name}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${asItems.length}건 중 미처리 ${pending.length}건</div>
+            <div style="font-size:14px;font-weight:700;">${siteName}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">전체 ${items.length}건 · 미처리 ${pending.length}건</div>
           </div>
           ${pending.length > 0
             ? `<span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">미처리 ${pending.length}건</span>`
             : `<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">✅ 완료</span>`
           }
         </div>
-        <div style="${pending.length > 0 ? '' : 'display:none;'}">
-          ${pendingHtml || '<div style="padding:10px 16px;font-size:12px;color:var(--muted);">미처리 AS 없음</div>'}
+        <div style="${isOpen ? '' : 'display:none;'}">
+          ${pendingHtml}
+          ${doneHtml}
         </div>
       </div>`;
   }).join('');
