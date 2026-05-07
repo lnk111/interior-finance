@@ -331,7 +331,7 @@ function switchSiteTab(tab) {
 // ===== INPUT (거래 입력) =====
 let inputState = {
   tab: '매입',
-  mode: 'quick',
+  mode: 'detail',
   stage: '중도금',
   payMethod: '계좌이체',
   phase: '도배',
@@ -514,10 +514,12 @@ function renderInput() {
       </div>
     </div>
     <div class="page-body">
-      <!-- Mode toggle: 빠른 입력 vs 상세 -->
-      <div class="mode-toggle">
-        <button class="mt-btn ${inputState.mode === 'quick' ? 'is-active' : ''}" data-mode="quick">⚡ 빠른 입력 <span class="muted">사진 선택사항</span></button>
-        <button class="mt-btn ${inputState.mode === 'detail' ? 'is-active' : ''}" data-mode="detail">📋 상세 직접 입력</button>
+      <!-- 상단: 빠른입력 버튼 -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button onclick="window.MODALS.quickTip()" 
+          style="background:var(--warn-soft);color:var(--warn);border:1.5px solid var(--warn);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
+          ⚡ 빠른입력
+        </button>
       </div>
 
       <button class="unsorted-banner" data-modal="quickTip">

@@ -620,6 +620,180 @@ async function qtSave() {
   }
 }
 
+// ===== 현장 사진 보관함 업로드 모달 =====
+const PHOTO_PHASES = ['시공 전', '철거', '창호', '전기', '욕실방수', '목공', '타일', '필름', '욕실설비', '바닥', '도배', '가구', '조명마감', '중문', '실리콘', '잔마감', '시공 후', 'AS'];
+
+window._photoUploadState = { site: '', phase: '', photos: [] };
+
+function openPhotoUploadModal() {
+  window._photoUploadState = { site: '', phase: '', photos: [] };
+  const sites = (window.MOCK?.sites || []).map(s => s.name);
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">📸 현장 사진 업로드</div>
+            <div class="modal-sub">현장별 공정 사진을 보관해요</div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()">${MODAL_BACK}</button>
+        </div>
+        <div class="modal-body">
+
+          <!-- STEP 1: 현장 선택 -->
+          <div id="photo-step-1">
+            <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:12px;">STEP 1 · 현장 선택</div>
+            <div style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;">
+              ${sites.map(s => `
+                <button onclick="photoSelectSite('${s.replace(/'/g,"\\'")}', this)"
+                  style="padding:14px 16px;background:#fff;border:1.5px solid var(--hair);border-radius:12px;text-align:left;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;">
+                  📁 ${s}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- STEP 2: 공정 선택 -->
+          <div id="photo-step-2" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <button onclick="photoBackToStep1()" style="background:var(--surface-2);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);">‹ 현장</button>
+              <div style="font-size:13px;font-weight:700;color:var(--muted);">STEP 2 · 공정 선택</div>
+            </div>
+            <div id="photo-site-label" style="font-size:15px;font-weight:800;margin-bottom:14px;color:var(--accent);"></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${PHOTO_PHASES.map(p => `
+                <button onclick="photoSelectPhase('${p}', this)"
+                  style="padding:9px 14px;background:#fff;border:1.5px solid var(--hair);border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;">
+                  ${p}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- STEP 3: 사진 업로드 -->
+          <div id="photo-step-3" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <button onclick="photoBackToStep2()" style="background:var(--surface-2);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);">‹ 공정</button>
+              <div style="font-size:13px;font-weight:700;color:var(--muted);">STEP 3 · 사진 업로드</div>
+            </div>
+            <div id="photo-upload-label" style="font-size:15px;font-weight:800;margin-bottom:14px;"></div>
+            <div class="grid-2" style="margin-bottom:12px;">
+              <button type="button" class="attach" onclick="document.getElementById('photo-file-camera').click()">📷 카메라 촬영</button>
+              <button type="button" class="attach" onclick="document.getElementById('photo-file-gallery').click()">🖼️ 갤러리 업로드</button>
+            </div>
+            <input type="file" id="photo-file-camera" accept="image/*" capture="environment" style="display:none" onchange="photoHandleFile(event)">
+            <input type="file" id="photo-file-gallery" accept="image/*" multiple style="display:none" onchange="photoHandleFile(event)">
+            <div id="photo-upload-preview" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px;"></div>
+          </div>
+
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+          <button class="btn btn-primary" id="photo-save-btn" style="display:none;" onclick="photoSave()">💾 저장</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.style.overflow = 'hidden';
+}
+
+function photoSelectSite(name, el) {
+  window._photoUploadState.site = name;
+  document.querySelectorAll('#photo-step-1 button').forEach(b => {
+    b.style.borderColor = 'var(--hair)'; b.style.background = '#fff'; b.style.color = 'var(--text)';
+  });
+  el.style.borderColor = 'var(--accent)'; el.style.background = 'rgba(47,107,71,0.06)'; el.style.color = 'var(--accent)';
+  setTimeout(() => {
+    document.getElementById('photo-step-1').style.display = 'none';
+    document.getElementById('photo-step-2').style.display = 'block';
+    document.getElementById('photo-site-label').textContent = '📁 ' + name;
+  }, 200);
+}
+
+function photoBackToStep1() {
+  document.getElementById('photo-step-2').style.display = 'none';
+  document.getElementById('photo-step-1').style.display = 'block';
+}
+
+function photoSelectPhase(phase, el) {
+  window._photoUploadState.phase = phase;
+  document.querySelectorAll('#photo-step-2 button:not(:first-child)').forEach(b => {
+    b.style.borderColor = 'var(--hair)'; b.style.background = '#fff'; b.style.color = 'var(--text)';
+  });
+  el.style.borderColor = 'var(--accent)'; el.style.background = 'rgba(47,107,71,0.06)'; el.style.color = 'var(--accent)';
+  setTimeout(() => {
+    document.getElementById('photo-step-2').style.display = 'none';
+    document.getElementById('photo-step-3').style.display = 'block';
+    document.getElementById('photo-save-btn').style.display = 'block';
+    document.getElementById('photo-upload-label').innerHTML =
+      `<span style="color:var(--accent);">${window._photoUploadState.site}</span> · <span style="color:var(--muted);">${phase}</span>`;
+  }, 200);
+}
+
+function photoBackToStep2() {
+  document.getElementById('photo-step-3').style.display = 'none';
+  document.getElementById('photo-step-2').style.display = 'block';
+  document.getElementById('photo-save-btn').style.display = 'none';
+}
+
+function photoHandleFile(e) {
+  const files = Array.from(e.target.files || []);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      window._photoUploadState.photos.push(ev.target.result);
+      photoRenderPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function photoRenderPreview() {
+  const wrap = document.getElementById('photo-upload-preview');
+  if (!wrap) return;
+  const photos = window._photoUploadState.photos;
+  wrap.innerHTML = photos.map((p, i) => `
+    <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+      <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
+      <button onclick="photoRemove(${i})"
+        style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
+    </div>
+  `).join('');
+}
+
+function photoRemove(idx) {
+  window._photoUploadState.photos.splice(idx, 1);
+  photoRenderPreview();
+}
+
+async function photoSave() {
+  const { site, phase, photos } = window._photoUploadState;
+  if (!site || !phase) { alert('현장과 공정을 선택해주세요'); return; }
+  if (!photos.length) { alert('사진을 1장 이상 추가해주세요'); return; }
+
+  const btn = document.getElementById('photo-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    const encKey = s => s.replace(/[.#$/ \[\]]/g, '_');
+    const key = encKey(site) + '_' + encKey(phase) + '_' + Date.now();
+    await db.ref('photoData/' + encKey(site) + '/' + key).set({
+      site, phase,
+      photos,
+      createdAt: Date.now(),
+      writer: window.AUTH?.current()?.name || '',
+    });
+    closeModal();
+    alert(`✅ ${phase} 사진 ${photos.length}장 저장 완료!`);
+    if (window.navigate) window.navigate('photos');
+  } catch(e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '💾 저장'; }
+  }
+}
+
 // Modal dispatcher
 window.MODALS = {
   site: modalSiteRegister,

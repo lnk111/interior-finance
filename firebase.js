@@ -16,14 +16,15 @@ const db = firebase.database();
 
 // ── 전역 상태 ──
 window.FB = {
-  sites: {},       // siteInfo
-  entries: {},     // entries
-  pending: {},     // pending
-  staffData: {},   // staffData
-  asData: {},      // asData
-  fixedCosts: {},  // fixedCosts
-  knowhow: {},     // knowhow
-  scheduleData: {},// scheduleData
+  sites: {},
+  entries: {},
+  pending: {},
+  staffData: {},
+  asData: {},
+  fixedCosts: {},
+  knowhow: {},
+  scheduleData: {},
+  photoData: {},
   connected: false,
 };
 
@@ -325,6 +326,12 @@ function initFirebase() {
   // 일정
   db.ref('scheduleData').on('value', snap => {
     FB.scheduleData = snap.val() || {};
+    onDataChange();
+  });
+
+  // 현장 사진
+  db.ref('photoData').on('value', snap => {
+    FB.photoData = snap.val() || {};
     onDataChange();
   });
 }
