@@ -91,8 +91,11 @@ function renderCalendar() {
     const isToday = dateStr === todayStr;
     const ev = evMap[d] || [];
     const evHtml = ev.slice(0, 2).map(e => `<span class="cal-event" style="color: var(--${e.c}); background: rgba(0,0,0,0.04);">${e.t}</span>`).join('');
-    cells.push(`<div class="cal-day ${isToday ? 'today' : ''} ${col === 0 ? 'sun' : col === 6 ? 'sat' : ''}">
+    const hasMore = ev.length > 2;
+    cells.push(`<div class="cal-day ${isToday ? 'today' : ''} ${col === 0 ? 'sun' : col === 6 ? 'sat' : ''}"
+      onclick="openCalDayPopup('${dateStr}')" style="cursor:pointer;">
       <span class="num">${d}</span>${evHtml}
+      ${hasMore ? `<span style="font-size:9px;color:var(--muted);">+${ev.length-2}건</span>` : ''}
     </div>`);
   }
 
@@ -155,6 +158,127 @@ document.addEventListener('click', (e) => {
     if (window.navigate) window.navigate('calendar');
   }
 });
+
+// 날짜 클릭 시 일별 팝업
+function openCalDayPopup(dateStr) {
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  const date = new Date(dateStr + 'T00:00:00');
+  const mm = parseInt(dateStr.slice(5, 7));
+  const dd = parseInt(dateStr.slice(8, 10));
+  const dayName = dayNames[date.getDay()];
+  const title = `${mm}월 ${dd}일 (${dayName})`;
+
+  // 일정 수집
+  const schedules = window.FB?.scheduleData || {};
+  const daySchedules = Object.entries(schedules)
+    .filter(([, sc]) => sc.date === dateStr)
+    .sort((a, b) => (a[1].time || '').localeCompare(b[1].time || ''));
+
+  // 공정 수집
+  const sites = window.FB?.sites || {};
+  const dayProcs = [];
+  Object.values(sites).forEach(site => {
+    if (site.status === 'as' || site.status === 'AS관리') return;
+    const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const procData = window.FB?._procAll?.[procKey] || {};
+    Object.values(procData).forEach(ph => {
+      const start = ph.startDate || ph.doneDate;
+      const end = ph.doneDate || ph.startDate;
+      if (!start) return;
+      if (dateStr >= start && dateStr <= end) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let status = 'wait';
+        if (todayStr >= start && todayStr <= end) status = 'active';
+        if (todayStr > end) status = 'done';
+        dayProcs.push({ siteName: site.name, phName: ph.name, start, end, status });
+      }
+    });
+  });
+
+  // HTML 구성
+  const procHtml = dayProcs.length > 0 ? `
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;">🔨 공정 일정</div>
+    ${dayProcs.map(p => {
+      const stColor = p.status === 'done' ? 'var(--accent)' : p.status === 'active' ? 'var(--warn)' : 'var(--faint)';
+      const stLabel = p.status === 'done' ? '완료' : p.status === 'active' ? '진행중' : '대기';
+      const dateRange = p.start === p.end ? p.start.slice(5).replace('-','.') : p.start.slice(5).replace('-','.') + ' – ' + p.end.slice(5).replace('-','.');
+      return `
+        <div style="background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:13px 14px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:14px;font-weight:700;">${p.siteName}</div>
+            <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:${stColor}20;color:${stColor};">${stLabel}</span>
+          </div>
+          <div style="font-size:13px;color:var(--ink-2);">🔨 ${p.phName}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;">📅 ${dateRange}</div>
+        </div>`;
+    }).join('')}
+  ` : '';
+
+  const scheduleHtml = daySchedules.length > 0 ? `
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:${dayProcs.length>0?'16px':'0'} 0 10px;">📌 추가 일정</div>
+    ${daySchedules.map(([key, sc]) => `
+      <div style="background:var(--surface);border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:12px;padding:13px 14px;margin-bottom:8px;cursor:pointer;"
+        onclick="closeCalDayPopup();modalAS && openCalScheduleEdit('${key}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:14px;font-weight:700;">${sc.title || ''}</div>
+          ${sc.time ? `<span style="font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:20px;">${sc.time}</span>` : ''}
+        </div>
+        ${sc.memo ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${sc.memo}</div>` : ''}
+        ${sc.attendees && sc.attendees.length ? `<div style="font-size:11px;color:var(--muted);margin-top:3px;">👥 ${sc.attendees.join(', ')}</div>` : ''}
+      </div>
+    `).join('')}
+  ` : '';
+
+  const emptyHtml = (!dayProcs.length && !daySchedules.length) ?
+    '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px;">이 날은 일정이 없어요</div>' : '';
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div style="position:fixed;inset:0;z-index:300;background:rgba(27,24,20,0.5);display:flex;align-items:flex-end;"
+      onclick="closeCalDayPopup()">
+      <div style="width:100%;max-height:85vh;background:var(--bg);border-radius:18px 18px 0 0;display:flex;flex-direction:column;animation:sheetIn .25s ease;"
+        onclick="event.stopPropagation()">
+        <!-- 헤더 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px;border-bottom:1px solid var(--hair);">
+          <div style="font-size:18px;font-weight:800;">${title}</div>
+          <button onclick="closeCalDayPopup()" style="width:32px;height:32px;border-radius:50%;background:var(--hair-soft);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);">✕</button>
+        </div>
+        <!-- 내용 -->
+        <div style="overflow-y:auto;flex:1;padding:16px 18px;">
+          ${procHtml}
+          ${scheduleHtml}
+          ${emptyHtml}
+        </div>
+        <!-- 일정 추가 버튼 -->
+        <div style="padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--hair);">
+          <button onclick="closeCalDayPopup();openScheduleForDate('${dateStr}')"
+            style="width:100%;padding:14px;background:var(--ink);color:var(--bg);border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+            + 이 날 일정 추가
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCalDayPopup() {
+  const root = document.getElementById('modal-root');
+  if (root) root.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function openScheduleForDate(dateStr) {
+  // 일정 추가 모달을 해당 날짜로 열기
+  if (window.MODALS && window.MODALS.schedule) {
+    window.MODALS.schedule();
+    // 날짜 인풋 자동 설정
+    setTimeout(() => {
+      const dateInp = document.getElementById('sched-date');
+      if (dateInp) dateInp.value = dateStr;
+    }, 100);
+  }
+}
 
 // ===== Settings (fixed costs + staff + export) =====
 function renderSettings() {
