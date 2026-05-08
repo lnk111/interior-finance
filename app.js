@@ -239,13 +239,22 @@ let _siteTab = 'active';
 function renderActiveSitesHtml() {
   const activeSites = (window.MOCK?.sites || []).filter(s => s.status === '공사중');
   if (!activeSites.length) return '<div class="empty" style="padding:24px;">진행중인 공사 현장이 없어요</div>';
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  function calcPhaseStatus(startDate, endDate) {
+    if (!startDate && !endDate) return 'wait';
+    if (startDate && todayStr < startDate) return 'wait';
+    if (endDate && todayStr > endDate) return 'done';
+    return 'active';
+  }
+
   return activeSites.map(s => {
     const procData = window.FB?._procAll?.[(s.name||'').replace(/[.#$/ \[\]]/g,'_')] || {};
     const phases = Object.values(procData).sort((a,b)=>(a.order||0)-(b.order||0));
-    const done = phases.filter(p=>p.status==='done').length;
+    const done = phases.filter(p => calcPhaseStatus(p.startDate, p.doneDate) === 'done').length;
     const total = phases.length;
     const pct = total > 0 ? Math.round(done/total*100) : 0;
-    const activePh = phases.find(p=>p.status==='active');
+    const activePh = phases.find(p => calcPhaseStatus(p.startDate, p.doneDate) === 'active');
     return `
       <div style="padding:14px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" data-site="${s.name}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
