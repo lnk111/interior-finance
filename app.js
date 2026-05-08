@@ -659,20 +659,34 @@ function renderInput() {
 
       <div class="section-label">📌 최근 입력 내역</div>
       <div class="list">
-        ${M.recent.slice(0, 4).map(r => {
-          const cls = r.kind === '매출' ? 'pill-accent' : r.kind === 'AS' ? 'pill-pin' : 'pill-warn';
-          const sign = r.kind === '매출' ? '+' : '−';
-          return `
-            <button class="list-row" data-modal="txEdit" style="width: 100%; text-align: left;">
-              <span class="pill ${cls}">${r.kind}</span>
-              <div>
-                <div class="lr-title">${r.site}</div>
-                <div class="lr-meta">${r.stage || r.phase} · ${r.pay || ''} · ${r.when}</div>
-              </div>
-              <span class="lr-amount num">${sign}${fmtSlim(r.amount)}</span>
-            </button>
-          `;
-        }).join('')}
+        ${Object.entries(window.FB?.entries || {})
+          .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
+          .slice(0, 5)
+          .map(([key, e]) => {
+            const cls = e.type === 'revenue' ? 'pill-accent' : e.type === 'as' ? 'pill-pin' : 'pill-warn';
+            const label = e.type === 'revenue' ? '매출' : e.type === 'as' ? 'AS' : '매입';
+            const sign = e.type === 'revenue' ? '+' : '−';
+            const date = e.date ? e.date.slice(5).replace('-', '/') : '';
+            // 메타 정보 조합 (공정/결제단계 · 결제방법 · 날짜 · 입력자 · 메모)
+            const metaParts = [
+              e.process || e.payStage || '',
+              e.payMethod || '',
+              date,
+              e.writer || '',
+              e.memo || '',
+            ].filter(Boolean);
+            const meta = metaParts.join(' · ');
+            return `
+              <button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
+                <span class="pill ${cls}">${label}</span>
+                <div style="min-width:0;">
+                  <div class="lr-title">${e.site || ''}</div>
+                  <div class="lr-meta" style="white-space:normal;line-height:1.4;">${meta}</div>
+                </div>
+                <span class="lr-amount num" style="flex-shrink:0;">${sign}${fmtSlim(e.amount || 0)}</span>
+              </button>
+            `;
+          }).join('') || '<div class="empty">입력 내역이 없어요</div>'}
       </div>
     </div>
   `;
@@ -717,10 +731,10 @@ function entryRemovePhoto(idx) {
 }
 
 // ===== SITES =====
-let sitesFilter = '전체';
+let sitesFilter = '공사중';
 let sitesQuery = '';
 function renderSites() {
-  const filters = ['전체', '계약완료', '공사중', 'AS관리'];
+  const filters = ['공사중', '전체', '계약완료', 'AS관리'];
   let list = sitesFilter === '전체' ? [...M.sites] : M.sites.filter(s => s.status === sitesFilter);
   // 공사중 먼저, 나머지 최근 등록순 (createdAt 역순)
   list.sort((a, b) => {

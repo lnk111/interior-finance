@@ -275,65 +275,52 @@ function initFirebase() {
     updateConnStatus();
   });
 
-  // 현장 정보
-  db.ref('siteInfo').on('value', snap => {
-    FB.sites = snap.val() || {};
-    // 모든 현장 procData 한번에 로드
-    db.ref('procData').once('value').then(procSnap => {
-      if (!window.FB) window.FB = {};
-      window.FB._procAll = procSnap.val() || {};
-      onDataChange();
+  // ★ 1순위: 핵심 데이터 동시에 한번에 로드 (Promise.all)
+  Promise.all([
+    db.ref('siteInfo').once('value'),
+    db.ref('entries').once('value'),
+    db.ref('asData').once('value'),
+    db.ref('pending').once('value'),
+    db.ref('staffData').once('value'),
+  ]).then(([siteSnap, entrySnap, asSnap, pendingSnap, staffSnap]) => {
+    FB.sites = siteSnap.val() || {};
+    FB.entries = entrySnap.val() || {};
+    FB.asData = asSnap.val() || {};
+    FB.pending = pendingSnap.val() || {};
+    FB.staffData = staffSnap.val() || {};
+    // 첫 렌더 (빠르게)
+    window.syncMockFromFirebase();
+    if (window.navigate) window.navigate(window.currentPage || 'home');
+
+    // ★ 2순위: 나머지 데이터 백그라운드 로드
+    Promise.all([
+      db.ref('procData').once('value'),
+      db.ref('scheduleData').once('value'),
+      db.ref('fixedCosts').once('value'),
+      db.ref('knowhow').once('value'),
+      db.ref('photoData').once('value'),
+    ]).then(([procSnap, schedSnap, fcSnap, khSnap, photoSnap]) => {
+      FB._procAll = procSnap.val() || {};
+      FB.scheduleData = schedSnap.val() || {};
+      FB.fixedCosts = fcSnap.val() || {};
+      FB.knowhow = khSnap.val() || {};
+      FB.photoData = photoSnap.val() || {};
+      // 2차 렌더 (완전한 데이터)
+      window.syncMockFromFirebase();
+      if (window.navigate) window.navigate(window.currentPage || 'home');
     });
-    onDataChange();
   });
 
-  // 거래 내역
-  db.ref('entries').on('value', snap => {
-    FB.entries = snap.val() || {};
-    onDataChange();
-  });
-
-  // 미정리
-  db.ref('pending').on('value', snap => {
-    FB.pending = snap.val() || {};
-    onDataChange();
-  });
-
-  // 직원
-  db.ref('staffData').on('value', snap => {
-    FB.staffData = snap.val() || {};
-    onDataChange();
-  });
-
-  // AS 데이터
-  db.ref('asData').on('value', snap => {
-    FB.asData = snap.val() || {};
-    onDataChange();
-  });
-
-  // 고정비
-  db.ref('fixedCosts').on('value', snap => {
-    FB.fixedCosts = snap.val() || {};
-    onDataChange();
-  });
-
-  // 노하우
-  db.ref('knowhow').on('value', snap => {
-    FB.knowhow = snap.val() || {};
-    onDataChange();
-  });
-
-  // 일정
-  db.ref('scheduleData').on('value', snap => {
-    FB.scheduleData = snap.val() || {};
-    onDataChange();
-  });
-
-  // 현장 사진
-  db.ref('photoData').on('value', snap => {
-    FB.photoData = snap.val() || {};
-    onDataChange();
-  });
+  // ★ 실시간 리스너 (변경사항 감지)
+  db.ref('siteInfo').on('value', snap => { FB.sites = snap.val() || {}; onDataChange(); });
+  db.ref('entries').on('value', snap => { FB.entries = snap.val() || {}; onDataChange(); });
+  db.ref('pending').on('value', snap => { FB.pending = snap.val() || {}; onDataChange(); });
+  db.ref('staffData').on('value', snap => { FB.staffData = snap.val() || {}; onDataChange(); });
+  db.ref('asData').on('value', snap => { FB.asData = snap.val() || {}; onDataChange(); });
+  db.ref('fixedCosts').on('value', snap => { FB.fixedCosts = snap.val() || {}; onDataChange(); });
+  db.ref('knowhow').on('value', snap => { FB.knowhow = snap.val() || {}; onDataChange(); });
+  db.ref('scheduleData').on('value', snap => { FB.scheduleData = snap.val() || {}; onDataChange(); });
+  db.ref('photoData').on('value', snap => { FB.photoData = snap.val() || {}; onDataChange(); });
 }
 
 let _debounce = null;
@@ -341,12 +328,9 @@ function onDataChange() {
   clearTimeout(_debounce);
   _debounce = setTimeout(() => {
     window.syncMockFromFirebase();
-    // 현재 페이지 재렌더
     const page = window.currentPage || 'home';
-    if (window.navigate) {
-      window.navigate(page);
-    }
-  }, 300);
+    if (window.navigate) window.navigate(page);
+  }, 100);
 }
 
 function updateConnStatus() {
