@@ -79,7 +79,7 @@ function renderHome() {
     const cls = r.kind === '매출' ? 'pill-accent' : r.kind === 'AS' ? 'pill-pin' : 'pill-warn';
     const sign = r.kind === '매출' ? '+' : '−';
     return `
-      <button class="list-row" data-modal="txEdit" style="width: 100%; text-align: left;">
+      <button class="list-row" onclick="modalTxEdit('${r._key||r.id}')" style="width: 100%; text-align: left;">
         <span class="pill ${cls}">${r.kind}</span>
         <div>
           <div class="lr-title">${r.site}</div>

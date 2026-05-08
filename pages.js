@@ -437,10 +437,35 @@ function renderSiteDetail() {
       <div class="section-label">공정 진행 <span class="more">${s.progress}% · 탭하면 수정</span></div>
       <div class="timeline">${tlHtml}</div>
 
-      <div class="section-label">결제 일정</div>
-      <div class="pay-list">${payHtml}</div>
+      <!-- 거래 내역 -->
+      <div class="section-label" style="margin-top:8px;">거래 내역
+        <span class="more" onclick="modalTxEdit && navigate('input')" style="cursor:pointer;">+ 입력</span>
+      </div>
+      <div class="list">
+        ${(() => {
+          const entries = Object.entries(window.FB?.entries || {})
+            .filter(([, e]) => e.site === s.name)
+            .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+          if (!entries.length) return '<div class="empty" style="padding:16px;">거래 내역이 없어요</div>';
+          return entries.map(([key, e]) => {
+            const cls = e.type === 'revenue' ? 'pill-accent' : e.type === 'as' ? 'pill-pin' : 'pill-warn';
+            const label = e.type === 'revenue' ? '매출' : e.type === 'as' ? 'AS' : '매입';
+            const sign = e.type === 'revenue' ? '+' : '−';
+            const date = e.date ? e.date.slice(5).replace('-','/') : '';
+            return `
+              <button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
+                <span class="pill ${cls}">${label}</span>
+                <div>
+                  <div class="lr-title">${e.process || e.payStage || ''}</div>
+                  <div class="lr-meta">${e.writer||''} · ${date}</div>
+                </div>
+                <span class="lr-amount num">${sign}${fmtSlim2(e.amount||0)}</span>
+              </button>`;
+          }).join('');
+        })()}
+      </div>
 
-      <button class="btn btn-ghost btn-block" data-modal="as" style="margin-top: 14px;">🔧 AS 등록</button>
+      <button class="btn btn-ghost btn-block" onclick="modalAS(null)" style="margin-top: 14px;">🔧 AS 등록</button>
     </div>
   `;
 }

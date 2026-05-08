@@ -515,77 +515,162 @@ function modalPhase() {
 }
 
 // 7. Transaction edit modal
-function modalTxEdit() {
-  return openModal(`
-    ${modalHeader('✏️ 거래 수정', '입력한 거래 내용을 수정합니다')}
-    <div class="modal-body">
-      <div class="tabs">
-        <button class="tab is-active">💰 매출</button>
-        <button class="tab">📦 매입</button>
-        <button class="tab">🔧 AS</button>
-      </div>
-      <div class="field">
-        <label class="field-label">현장 <span class="req">*</span></label>
-        <select class="input">
-          ${window.MOCK.sites.map(s => `<option>${s.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field">
-        <label class="field-label">금액 (원) <span class="req">*</span></label>
-        <input class="input input-amount num" value="18,000,000">
-      </div>
-      <div class="field">
-        <label class="field-label">날짜</label>
-        <input class="input" type="date" value="2026-05-06">
-      </div>
-      <div class="field">
-        <label class="field-label">결제 단계</label>
-        <div class="chip-group">
-          <button type="button" class="chip">📋 계약금</button>
-          <button type="button" class="chip">🔨 착수금</button>
-          <button type="button" class="chip is-active">💼 중도금</button>
-          <button type="button" class="chip">✅ 잔금</button>
+function modalTxEdit(entryKey) {
+  const entry = window.FB?.entries?.[entryKey] || {};
+  const typeMap = { revenue: '매출', cost: '매입', as: 'AS' };
+  const curType = typeMap[entry.type] || '매입';
+  const sitesOpts = (window.MOCK?.sites || []).map(s =>
+    `<option value="${s.name}" ${entry.site === s.name ? 'selected' : ''}>${s.name}</option>`
+  ).join('');
+  const writersOpts = (window.MOCK?.inputters || []).map(n =>
+    `<option value="${n}" ${entry.writer === n ? 'selected' : ''}>${n}</option>`
+  ).join('');
+  const phases = ['철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
+  const stages = ['계약금','착수금','중도금','잔금'];
+  const pays = ['현금','계좌이체','신용카드'];
+  const stageIcons = {'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
+  const payIcons = {'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
+
+  window._txEditType = curType;
+  window._txEditKey = entryKey;
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">✏️ 거래 수정</div>
+            <div class="modal-sub">입력한 거래 내용을 수정합니다</div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()">${MODAL_BACK}</button>
         </div>
-      </div>
-      <div class="field">
-        <label class="field-label">결제 방법</label>
-        <div class="chip-group">
-          <button type="button" class="chip">💵 현금</button>
-          <button type="button" class="chip is-active">🏦 계좌이체</button>
-          <button type="button" class="chip">💳 신용카드</button>
+        <div class="modal-body">
+          <div class="tabs">
+            <button class="tab ${curType==='매출'?'is-active':''}" onclick="txEditSetType('매출',this)">💰 매출</button>
+            <button class="tab ${curType==='매입'?'is-active':''}" onclick="txEditSetType('매입',this)">📦 매입</button>
+            <button class="tab ${curType==='AS'?'is-active':''}" onclick="txEditSetType('AS',this)">🔧 AS</button>
+          </div>
+          <div class="field">
+            <label class="field-label">현장 <span class="req">*</span></label>
+            <select class="input" id="txe-site">
+              <option value="">선택</option>
+              ${sitesOpts}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">금액 (원) <span class="req">*</span></label>
+            <div class="input-wrap">
+              <input class="input input-amount num" id="txe-amount"
+                value="${(entry.amount||0).toLocaleString('ko-KR')}"
+                oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')">
+              <span class="input-suffix">원</span>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">날짜</label>
+            <input class="input" type="date" id="txe-date" value="${entry.date || ''}">
+          </div>
+          <div id="txe-stage-wrap" style="${curType==='매출'?'':'display:none;'}">
+            <div class="field">
+              <label class="field-label">결제 단계</label>
+              <div class="chip-group">
+                ${stages.map(s=>`<button type="button" class="chip ${entry.payStage===s?'is-active':''}" onclick="txEditChip(this,'stage','${s}')">${stageIcons[s]} ${s}</button>`).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">결제 방법</label>
+            <div class="chip-group">
+              ${pays.map(p=>`<button type="button" class="chip ${entry.payMethod===p?'is-active':''}" onclick="txEditChip(this,'pay','${p}')">${payIcons[p]} ${p}</button>`).join('')}
+            </div>
+          </div>
+          <div id="txe-phase-wrap" style="${curType==='매입'||curType==='AS'?'':'display:none;'}">
+            <div class="field">
+              <label class="field-label">공정</label>
+              <div class="chip-group" style="flex-wrap:wrap;">
+                ${phases.map(p=>`<button type="button" class="chip ${entry.process===p?'is-active':''}" onclick="txEditChip(this,'phase','${p}')">${p}</button>`).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">메모</label>
+            <textarea class="input" id="txe-memo" rows="2">${entry.memo||''}</textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">입력자</label>
+            <select class="input" id="txe-writer">
+              ${writersOpts}
+            </select>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label class="field-label">메모</label>
-        <textarea class="input" rows="2"></textarea>
-      </div>
-      <div class="field">
-        <label class="field-label">첨부 사진</label>
-        <div class="photo-row">
-          <div class="photo-thumb"></div>
-          <button type="button" class="photo-add">📷</button>
+        <div class="modal-foot">
+          <button class="btn btn-ghost danger" onclick="txEditDelete()">🗑️ 삭제</button>
+          <button class="btn btn-primary" onclick="txEditSave()">✅ 수정 완료</button>
         </div>
-        <div class="muted small">탭하면 전체화면</div>
-      </div>
-      <div class="invoice-toggle">
-        <div class="checkbox">
-          <svg viewBox="0 0 12 9" fill="none"><path d="M1 4.5L4 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div>
-          <div class="it-title">📄 세금계산서 발행</div>
-          <div class="it-meta">체크하면 부가세(10%)가 자동 계산됩니다</div>
-        </div>
-      </div>
-      <div class="field">
-        <label class="field-label">입력자</label>
-        <select class="input">${window.MOCK.inputters.map(n => `<option>${n}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" data-modal-close>취소</button>
-      <button class="btn btn-primary" data-modal-close>✅ 수정 완료</button>
-    </div>
-  `);
+  `;
+  document.body.style.overflow = 'hidden';
+  window._txStage = entry.payStage || '';
+  window._txPay = entry.payMethod || '';
+  window._txPhase = entry.process || '';
+}
+
+function txEditSetType(type, el) {
+  window._txEditType = type;
+  document.querySelectorAll('.modal-sheet .tab').forEach(b => b.classList.remove('is-active'));
+  el.classList.add('is-active');
+  document.getElementById('txe-stage-wrap').style.display = type === '매출' ? '' : 'none';
+  document.getElementById('txe-phase-wrap').style.display = (type === '매입' || type === 'AS') ? '' : 'none';
+}
+
+function txEditChip(el, kind, val) {
+  const group = el.closest('.chip-group');
+  group.querySelectorAll('.chip').forEach(b => b.classList.remove('is-active'));
+  el.classList.add('is-active');
+  if (kind === 'stage') window._txStage = val;
+  if (kind === 'pay') window._txPay = val;
+  if (kind === 'phase') window._txPhase = val;
+}
+
+async function txEditSave() {
+  const key = window._txEditKey;
+  const site = document.getElementById('txe-site')?.value;
+  const rawAmt = document.getElementById('txe-amount')?.value?.replace(/[^0-9]/g,'') || '0';
+  const amount = parseInt(rawAmt) || 0;
+  const date = document.getElementById('txe-date')?.value || '';
+  const memo = document.getElementById('txe-memo')?.value?.trim() || '';
+  const writer = document.getElementById('txe-writer')?.value || '';
+  const typeMap = {'매출':'revenue','매입':'cost','AS':'as'};
+
+  if (!site) { alert('현장을 선택해주세요'); return; }
+  if (!amount) { alert('금액을 입력해주세요'); return; }
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    await db.ref('entries/' + key).update({
+      type: typeMap[window._txEditType] || 'cost',
+      site, amount, date, memo, writer,
+      payStage: window._txStage || '',
+      payMethod: window._txPay || '',
+      process: window._txPhase || '',
+    });
+    closeModal();
+  } catch(e) {
+    alert('저장 실패');
+    if (btn) { btn.disabled = false; btn.textContent = '✅ 수정 완료'; }
+  }
+}
+
+async function txEditDelete() {
+  if (!confirm('이 거래를 삭제할까요?')) return;
+  try {
+    await db.ref('entries/' + window._txEditKey).remove();
+    closeModal();
+  } catch(e) { alert('삭제 실패'); }
 }
 
 // 8. Quick tip / quick record modal
