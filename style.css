@@ -42,7 +42,7 @@ input, textarea, select { font-family: inherit; }
 .empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
 
 /* App shell */
-#app { min-height: 100vh; padding-bottom: var(--tabbar-h); }
+#app { min-height: 100vh; padding-bottom: var(--tabbar-h); padding-top: env(safe-area-inset-top); }
 .page { display: none; }
 .page.is-active { display: block; }
 
@@ -91,7 +91,7 @@ input, textarea, select { font-family: inherit; }
 
 /* Header */
 .page-header {
-  padding: 16px var(--pad) 14px;
+  padding: calc(16px + env(safe-area-inset-top)) var(--pad) 14px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
