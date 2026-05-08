@@ -358,12 +358,22 @@ function renderSiteDetail() {
   const procRaw = window._procCache || {};
   const phases = Object.values(procRaw).sort((a, b) => (a.order || 0) - (b.order || 0));
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  function calcStatus(startDate, endDate) {
+    if (!startDate && !endDate) return 'wait';
+    const today = todayStr;
+    if (startDate && today < startDate) return 'wait';
+    if (endDate && today > endDate) return 'done';
+    return 'active';
+  }
+
   const stLabel = { done: '완료', active: '진행중', wait: '대기' };
   const stClass = { done: 'pill-accent', active: 'pill-warn', wait: 'pill-muted' };
   const dotClass = { done: 'done', active: 'now', wait: 'todo' };
 
   const tlHtml = phases.length > 0 ? phases.map(p => {
-    const st = p.status || 'wait';
+    const st = calcStatus(p.startDate, p.doneDate);
     const startStr = p.startDate ? p.startDate.slice(5).replace('-', '.') : '';
     const endStr = p.doneDate ? p.doneDate.slice(5).replace('-', '.') : '';
     const dateStr = startStr && endStr ? startStr + ' – ' + endStr : startStr || endStr || '';
@@ -434,7 +444,16 @@ function renderSiteDetail() {
         </div>
       </div>
 
-      <div class="section-label">공정 진행 <span class="more">${s.progress}% · 탭하면 수정</span></div>
+      <div class="section-label">공정 진행
+        <span class="more">
+          ${(() => {
+            const total = phases.length;
+            const done = phases.filter(p => calcStatus(p.startDate, p.doneDate) === 'done').length;
+            const pct = total > 0 ? Math.round(done / total * 100) : 0;
+            return pct + '% · 탭하면 수정';
+          })()}
+        </span>
+      </div>
       <div class="timeline">${tlHtml}</div>
 
       <!-- 거래 내역 -->
