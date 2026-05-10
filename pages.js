@@ -734,9 +734,9 @@ function openPhotoAlbum(photosEncoded) {
     return `
       <div id="photo-viewer" style="position:fixed;inset:0;z-index:999;background:#000;display:flex;flex-direction:column;touch-action:pan-y;">
         <!-- 상단 헤더 -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;padding-top:calc(16px + env(safe-area-inset-top));">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 20px;padding-top:calc(52px + env(safe-area-inset-top));">
           <span style="color:rgba(255,255,255,0.7);font-size:14px;font-weight:600;">${currentIdx+1} / ${photos.length}</span>
-          <button onclick="closeModal()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+          <button onclick="closeModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:50%;width:44px;height:44px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
 
         <!-- 슬라이드 영역 -->
