@@ -666,14 +666,20 @@ function renderPhotos() {
     (phaseF === '전체' || a.phase === phaseF)
   );
 
+  // Cloudinary 썸네일 URL 생성 (빠른 로딩용)
+  function thumbUrl(url) {
+    if (!url || !url.includes('cloudinary.com')) return url;
+    return url.replace('/upload/', '/upload/w_400,h_400,c_fill,q_auto,f_auto/');
+  }
+
   const albumHtml = display.length > 0 ? display.map(a => {
-    const thumb = a.photos[0];
+    const thumb = thumbUrl(a.photos[0]);
     const date = a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR', {month:'numeric',day:'numeric'}) : '';
     const photosEncoded = encodeURIComponent(JSON.stringify(a.photos));
     return `
       <div style="cursor:pointer;" onclick="openPhotoAlbum('${photosEncoded}')">
         <div style="width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;position:relative;background:var(--surface-2);">
-          <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
+          <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async">
           <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;">📷 ${a.photos.length}</div>
         </div>
         <div style="font-size:12px;font-weight:700;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.site || ''}</div>
