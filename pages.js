@@ -743,8 +743,8 @@ function openPhotoAlbum(photosEncoded) {
         <div style="flex:1;overflow:hidden;position:relative;" id="slide-container">
           <div id="slide-track" style="display:flex;transition:transform .25s ease;height:100%;will-change:transform;">
             ${photos.map((p, i) => `
-              <div style="min-width:100vw;width:100vw;height:100%;flex-shrink:0;">
-                <img src="${p}" style="width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none;">
+              <div style="min-width:100vw;width:100vw;height:100%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#000;">
+                <img src="${p}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;">
               </div>
             `).join('')}
           </div>
