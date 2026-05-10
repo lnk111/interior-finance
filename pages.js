@@ -740,11 +740,11 @@ function openPhotoAlbum(photosEncoded) {
         </div>
 
         <!-- 슬라이드 영역 -->
-        <div style="flex:1;display:flex;align-items:center;overflow:hidden;position:relative;" id="slide-container">
-          <div id="slide-track" style="display:flex;transition:transform .25s ease;width:100%;height:100%;">
+        <div style="flex:1;overflow:hidden;position:relative;" id="slide-container">
+          <div id="slide-track" style="display:flex;transition:transform .25s ease;height:100%;will-change:transform;">
             ${photos.map((p, i) => `
-              <div style="min-width:100%;width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:8px;">
-                <img src="${p}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;user-select:none;-webkit-user-drag:none;">
+              <div style="min-width:100vw;width:100vw;height:100%;flex-shrink:0;">
+                <img src="${p}" style="width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none;">
               </div>
             `).join('')}
           </div>
@@ -769,14 +769,16 @@ function openPhotoAlbum(photosEncoded) {
     if (idx < 0 || idx >= photos.length) return;
     currentIdx = idx;
     const track = document.getElementById('slide-track');
-    if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+    if (track) {
+      track.style.transition = 'transform .25s ease';
+      track.style.transform = `translateX(-${idx * 100}vw)`;
+    }
     photos.forEach((_, i) => {
       const dot = document.getElementById('dot-' + i);
       if (!dot) return;
       dot.style.width = i === idx ? '20px' : '6px';
       dot.style.background = i === idx ? '#fff' : 'rgba(255,255,255,0.4)';
     });
-    // 카운터 업데이트
     const counter = document.querySelector('#photo-viewer span');
     if (counter) counter.textContent = `${idx + 1} / ${photos.length}`;
   }
@@ -800,7 +802,7 @@ function openPhotoAlbum(photosEncoded) {
       const track = document.getElementById('slide-track');
       if (track) {
         track.style.transition = 'none';
-        track.style.transform = `translateX(calc(-${currentIdx * 100}% + ${dx}px))`;
+        track.style.transform = `translateX(calc(-${currentIdx * 100}vw + ${dx}px))`;
       }
     }
   }, { passive: false });
