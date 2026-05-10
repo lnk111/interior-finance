@@ -741,9 +741,9 @@ function openPhotoAlbum(photosEncoded) {
 
         <!-- 슬라이드 영역 -->
         <div style="flex:1;display:flex;align-items:center;overflow:hidden;position:relative;" id="slide-container">
-          <div id="slide-track" style="display:flex;transition:transform .25s ease;width:${photos.length*100}%;height:100%;">
+          <div id="slide-track" style="display:flex;transition:transform .25s ease;width:100%;height:100%;">
             ${photos.map((p, i) => `
-              <div style="width:${100/photos.length}%;height:100%;display:flex;align-items:center;justify-content:center;padding:0 4px;">
+              <div style="min-width:100%;width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:8px;">
                 <img src="${p}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;user-select:none;-webkit-user-drag:none;">
               </div>
             `).join('')}
@@ -769,14 +769,16 @@ function openPhotoAlbum(photosEncoded) {
     if (idx < 0 || idx >= photos.length) return;
     currentIdx = idx;
     const track = document.getElementById('slide-track');
-    if (track) track.style.transform = `translateX(-${idx * (100/photos.length)}%)`;
-    // 인디케이터 업데이트
+    if (track) track.style.transform = `translateX(-${idx * 100}%)`;
     photos.forEach((_, i) => {
       const dot = document.getElementById('dot-' + i);
       if (!dot) return;
       dot.style.width = i === idx ? '20px' : '6px';
       dot.style.background = i === idx ? '#fff' : 'rgba(255,255,255,0.4)';
     });
+    // 카운터 업데이트
+    const counter = document.querySelector('#photo-viewer span');
+    if (counter) counter.textContent = `${idx + 1} / ${photos.length}`;
   }
 
   // 터치 스와이프
@@ -793,15 +795,12 @@ function openPhotoAlbum(photosEncoded) {
     if (!isDragging) return;
     const dx = e.touches[0].clientX - touchStartX;
     const dy = e.touches[0].clientY - touchStartY;
-    // 수평 스와이프가 수직보다 크면 스크롤 막기
     if (Math.abs(dx) > Math.abs(dy)) {
       e.preventDefault();
       const track = document.getElementById('slide-track');
       if (track) {
-        const base = currentIdx * (100/photos.length);
-        const offset = (dx / window.innerWidth) * (100/photos.length) * 100;
         track.style.transition = 'none';
-        track.style.transform = `translateX(calc(-${base}% + ${dx}px))`;
+        track.style.transform = `translateX(calc(-${currentIdx * 100}% + ${dx}px))`;
       }
     }
   }, { passive: false });
