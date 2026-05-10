@@ -78,45 +78,106 @@ function modalSiteRegister() {
 }
 
 // 2. Schedule add modal
-function modalSchedule() {
-  const staffHtml = window.MOCK.staff.map(s => `
-    <label class="check-row">
-      <input type="checkbox" />
-      <span>${s.name} <span class="muted">${s.role}</span></span>
+function modalSchedule(editKey = null, prefillDate = null) {
+  const today = new Date().toISOString().slice(0, 10);
+  const existing = editKey ? (window.FB?.scheduleData?.[editKey] || {}) : {};
+  const isEdit = !!editKey;
+
+  const staffHtml = (window.MOCK?.inputters || []).map(n => `
+    <label class="check-row" style="cursor:pointer;">
+      <input type="checkbox" value="${n}" ${(existing.attendees||[]).includes(n) ? 'checked' : ''} onchange="schedUpdateAttendees()">
+      <span>${n}</span>
     </label>
   `).join('');
 
-  return openModal(`
-    ${modalHeader('일정 추가', '캘린더에 표시됩니다')}
-    <div class="modal-body">
-      <div class="field">
-        <label class="field-label">제목 <span class="req">*</span></label>
-        <input class="input" placeholder="예) 서초 래미안 점검">
-      </div>
-      <div class="grid-2">
-        <div class="field">
-          <label class="field-label">날짜 <span class="req">*</span></label>
-          <input class="input" type="date" value="2026-05-08">
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">${isEdit ? '✏️ 일정 수정' : '📅 일정 추가'}</div>
+            <div class="modal-sub">캘린더에 표시됩니다</div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()">${MODAL_BACK}</button>
         </div>
-        <div class="field">
-          <label class="field-label">시간</label>
-          <input class="input" type="time" value="14:00">
+        <div class="modal-body">
+          <div class="field">
+            <label class="field-label">제목 <span class="req">*</span></label>
+            <input class="input" id="sched-title" placeholder="예) 서초 래미안 점검" value="${existing.title || ''}">
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label">날짜 <span class="req">*</span></label>
+              <input class="input" type="date" id="sched-date" value="${existing.date || prefillDate || today}">
+            </div>
+            <div class="field">
+              <label class="field-label">시간</label>
+              <input class="input" type="time" id="sched-time" value="${existing.time || ''}">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">메모</label>
+            <textarea class="input" id="sched-memo" rows="2" placeholder="메모를 입력하세요">${existing.memo || ''}</textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">참석자</label>
+            <div class="check-list" id="sched-staff">${staffHtml}</div>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label class="field-label">메모</label>
-        <textarea class="input" rows="2"></textarea>
-      </div>
-      <div class="field">
-        <label class="field-label">참석자</label>
-        <div class="check-list">${staffHtml}</div>
+        <div class="modal-foot">
+          ${isEdit
+            ? `<button class="btn btn-ghost danger" onclick="schedDelete('${editKey}')">🗑️ 삭제</button>`
+            : `<button class="btn btn-ghost" onclick="closeModal()">취소</button>`
+          }
+          <button class="btn btn-primary" onclick="schedSave('${editKey || ''}')">저장</button>
+        </div>
       </div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost danger" data-modal-close>🗑️ 삭제</button>
-      <button class="btn btn-primary" data-modal-close>저장</button>
-    </div>
-  `);
+  `;
+  document.body.style.overflow = 'hidden';
+}
+
+async function schedSave(editKey) {
+  const title = document.getElementById('sched-title')?.value?.trim();
+  const date = document.getElementById('sched-date')?.value;
+  const time = document.getElementById('sched-time')?.value || '';
+  const memo = document.getElementById('sched-memo')?.value?.trim() || '';
+
+  if (!title) { alert('제목을 입력해주세요'); return; }
+  if (!date) { alert('날짜를 선택해주세요'); return; }
+
+  // 참석자 수집
+  const attendees = [];
+  document.querySelectorAll('#sched-staff input[type=checkbox]:checked').forEach(cb => {
+    attendees.push(cb.value);
+  });
+
+  const data = { title, date, time, memo, attendees };
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    if (editKey) {
+      await db.ref('scheduleData/' + editKey).update(data);
+    } else {
+      await db.ref('scheduleData').push({ ...data, createdAt: Date.now() });
+    }
+    closeModal();
+    if (window.navigate) window.navigate('calendar');
+  } catch(e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
+}
+
+async function schedDelete(editKey) {
+  if (!confirm('이 일정을 삭제할까요?')) return;
+  try {
+    await db.ref('scheduleData/' + editKey).remove();
+    closeModal();
+    if (window.navigate) window.navigate('calendar');
+  } catch(e) { alert('삭제 실패'); }
 }
 
 // 3. Tip (노하우) modal

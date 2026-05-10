@@ -218,7 +218,7 @@ function openCalDayPopup(dateStr) {
     <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:${dayProcs.length>0?'16px':'0'} 0 10px;">📌 추가 일정</div>
     ${daySchedules.map(([key, sc]) => `
       <div style="background:var(--surface);border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:12px;padding:13px 14px;margin-bottom:8px;cursor:pointer;"
-        onclick="closeCalDayPopup();modalAS && openCalScheduleEdit('${key}')">
+        onclick="closeCalDayPopup();modalSchedule('${key}')">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <div style="font-size:14px;font-weight:700;">${sc.title || ''}</div>
           ${sc.time ? `<span style="font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:20px;">${sc.time}</span>` : ''}
@@ -251,7 +251,7 @@ function openCalDayPopup(dateStr) {
         </div>
         <!-- 일정 추가 버튼 -->
         <div style="padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--hair);">
-          <button onclick="closeCalDayPopup();openScheduleForDate('${dateStr}')"
+          <button onclick="closeCalDayPopup();modalSchedule(null, '${dateStr}')"
             style="width:100%;padding:14px;background:var(--ink);color:var(--bg);border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
             + 이 날 일정 추가
           </button>
