@@ -28,18 +28,33 @@ function ymSelect(year = 2026, month = 5) {
 let _calYear = new Date().getFullYear();
 let _calMonth = new Date().getMonth() + 1;
 
+// 달력 HTML 캐시
+let _calCache = null;
+let _calCacheKey = '';
+
 function renderCalendar() {
+  const cacheKey = `${_calYear}-${_calMonth}-${Object.keys(window.FB?.scheduleData||{}).length}-${Object.keys(window.FB?._procAll||{}).length}`;
+
+  // 캐시가 있으면 즉시 반환 (이후 백그라운드 업데이트)
+  if (_calCache && _calCacheKey === cacheKey) return _calCache;
+
+  const html = _buildCalendarHtml();
+  _calCache = html;
+  _calCacheKey = cacheKey;
+  return html;
+}
+
+function _buildCalendarHtml() {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const firstDay = new Date(_calYear, _calMonth - 1, 1).getDay();
   const totalDays = new Date(_calYear, _calMonth, 0).getDate();
   const todayStr = new Date().toISOString().slice(0, 10);
   const weekHead = days.map((d, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('');
 
-  // Firebase scheduleData 에서 이벤트 맵 만들기
   const schedules = window.FB?.scheduleData || {};
   const evMap = {};
 
-  // 1) 일정 데이터 추가
+  // 1) 일정 데이터
   Object.entries(schedules).forEach(([key, sc]) => {
     if (!sc.date) return;
     const d = parseInt(sc.date.slice(8, 10));
@@ -50,11 +65,10 @@ function renderCalendar() {
     evMap[d].push({ t: (sc.time ? sc.time + ' ' : '') + sc.title, c: 'accent' });
   });
 
-  // 2) procData 공정 추가 (시작일~완료일 기간 표시)
+  // 2) 공정 데이터
   const sites = window.FB?.sites || {};
   const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
   Object.values(sites).forEach(site => {
-    // AS관리 현장은 달력에 표시 안 함
     if (site.status === 'as' || site.status === 'AS관리') return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const procData = window.FB?._procAll?.[procKey] || {};
@@ -62,7 +76,6 @@ function renderCalendar() {
       if (!ph.startDate && !ph.doneDate) return;
       const start = ph.startDate || ph.doneDate;
       const end = ph.doneDate || ph.startDate;
-      // 이 달에 걸치는 날짜만
       let cur = new Date(start + 'T00:00:00');
       const endDate = new Date(end + 'T00:00:00');
       while (cur <= endDate) {
@@ -70,7 +83,6 @@ function renderCalendar() {
         if (ds.startsWith(curYm)) {
           const d = cur.getDate();
           if (!evMap[d]) evMap[d] = [];
-          // 같은 공정 중복 방지
           const label = site.name.length > 6 ? site.name.slice(0, 6) + '..' : site.name;
           const already = evMap[d].some(e => e.t.includes(ph.name));
           if (!already) {
@@ -151,10 +163,12 @@ function renderCalendar() {
 document.addEventListener('click', (e) => {
   if (e.target.closest('#cal-prev')) {
     _calMonth--; if (_calMonth < 1) { _calMonth = 12; _calYear--; }
+    _calCache = null; // 캐시 초기화
     if (window.navigate) window.navigate('calendar');
   }
   if (e.target.closest('#cal-next')) {
     _calMonth++; if (_calMonth > 12) { _calMonth = 1; _calYear++; }
+    _calCache = null; // 캐시 초기화
     if (window.navigate) window.navigate('calendar');
   }
 });

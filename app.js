@@ -815,11 +815,15 @@ function navigate(page) {
   if (!routes[page]) return;
   currentPage = page;
   window.currentPage = page;
-  $('#app').innerHTML = `<div class="page is-active">${routes[page].render()}</div>`;
+
+  // 탭바 즉시 업데이트
   const activeTab = routes[page].tab;
   $$('.tabbar-item, .tabbar-fab').forEach(b => {
     b.classList.toggle('is-active', b.dataset.page === activeTab);
   });
+
+  // 콘텐츠 렌더링
+  $('#app').innerHTML = `<div class="page is-active">${routes[page].render()}</div>`;
   window.scrollTo(0, 0);
 }
 window.navigate = navigate;
