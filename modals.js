@@ -991,8 +991,14 @@ function photoBackToStep2() {
 }
 
 function photoHandleFile(e) {
-  const files = Array.from(e.target.files || []);
-  files.forEach(file => {
+  const newFiles = Array.from(e.target.files || []);
+  if (!newFiles.length) return;
+  if (!window._photoUploadState.files) window._photoUploadState.files = [];
+  if (!window._photoUploadState.photos) window._photoUploadState.photos = [];
+
+  newFiles.forEach(file => {
+    // 미리보기용 base64 + 업로드용 File 객체 둘 다 저장
+    window._photoUploadState.files.push(file);
     const reader = new FileReader();
     reader.onload = ev => {
       window._photoUploadState.photos.push(ev.target.result);
@@ -1018,31 +1024,89 @@ function photoRenderPreview() {
 
 function photoRemove(idx) {
   window._photoUploadState.photos.splice(idx, 1);
+  if (window._photoUploadState.files) window._photoUploadState.files.splice(idx, 1);
   photoRenderPreview();
 }
 
+// ===== Cloudinary 설정 =====
+const CLOUDINARY = {
+  cloudName: 'dirocerek',
+  uploadPreset: 'designfor_site_photos',
+  uploadUrl: 'https://api.cloudinary.com/v1_1/dirocerek/image/upload',
+};
+
+// 이미지 압축 (업로드 전 - 속도/용량 절약)
+async function compressImage(file, maxWidth = 1920, quality = 0.82) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxWidth / img.width);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
+    };
+    img.onerror = () => resolve(file);
+    img.src = url;
+  });
+}
+
+// Cloudinary 단일 파일 업로드
+async function uploadToCloudinary(file, folder, tags = []) {
+  const compressed = await compressImage(file);
+  const fd = new FormData();
+  fd.append('file', compressed);
+  fd.append('upload_preset', CLOUDINARY.uploadPreset);
+  fd.append('folder', folder);
+  if (tags.length) fd.append('tags', tags.join(','));
+  const res = await fetch(CLOUDINARY.uploadUrl, { method: 'POST', body: fd });
+  if (!res.ok) throw new Error('업로드 실패');
+  const data = await res.json();
+  return data.secure_url;
+}
+
 async function photoSave() {
-  const { site, phase, photos } = window._photoUploadState;
+  const { site, phase, files } = window._photoUploadState;
   if (!site || !phase) { alert('현장과 공정을 선택해주세요'); return; }
-  if (!photos.length) { alert('사진을 1장 이상 추가해주세요'); return; }
+  if (!files || !files.length) { alert('사진을 1장 이상 추가해주세요'); return; }
 
   const btn = document.getElementById('photo-save-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  if (btn) { btn.disabled = true; btn.textContent = `⏫ 0/${files.length} 업로드 중...`; }
 
   try {
     const encKey = s => s.replace(/[.#$/ \[\]]/g, '_');
+    const folder = `designfor/${encKey(site)}/${encKey(phase)}`;
+    const tags = [encKey(site), encKey(phase), new Date().toISOString().slice(0, 10)];
+
+    // 병렬 업로드
+    let done = 0;
+    const urls = await Promise.all(files.map(async file => {
+      const url = await uploadToCloudinary(file, folder, tags);
+      done++;
+      if (btn) btn.textContent = `⏫ ${done}/${files.length} 업로드 중...`;
+      return url;
+    }));
+
+    // Firebase에는 URL만 저장 (용량 거의 없음!)
     const key = encKey(site) + '_' + encKey(phase) + '_' + Date.now();
     await db.ref('photoData/' + encKey(site) + '/' + key).set({
       site, phase,
-      photos,
+      photos: urls,           // Cloudinary URL 배열
       createdAt: Date.now(),
       writer: window.AUTH?.current()?.name || '',
     });
+
+    window._photoUploadState = { site: '', phase: '', files: [], photos: [] };
     closeModal();
-    alert(`✅ ${phase} 사진 ${photos.length}장 저장 완료!`);
+    alert(`✅ ${phase} 사진 ${urls.length}장 저장 완료!`);
     if (window.navigate) window.navigate('photos');
   } catch(e) {
-    alert('저장 실패. 다시 시도해주세요.');
+    console.error(e);
+    alert('저장 실패: ' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = '💾 저장'; }
   }
 }

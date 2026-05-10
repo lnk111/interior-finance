@@ -641,30 +641,49 @@ function renderPhotos() {
   });
   albums.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
+  // 검색어 필터
+  const searchQ = window._photoSearch || '';
+  const filtered = searchQ
+    ? albums.filter(a => (a.site||'').includes(searchQ) || (a.phase||'').includes(searchQ))
+    : albums;
+
   const filterHtml = ['전체', ...sites].map((s, i) => `
-    <button class="filter-chip ${i === 0 ? 'is-active' : ''}">${s}</button>
+    <button class="filter-chip ${(window._photoSiteFilter||'전체') === s ? 'is-active' : ''}"
+      onclick="setPhotoFilter('${s}')">${s}</button>
   `).join('');
 
   const phases = ['전체', '시공 전', '철거', '목공', '타일', '도배', '시공 후', 'AS'];
-  const phaseHtml = phases.map((p, i) => `
-    <button class="filter-chip ${i === 0 ? 'is-active' : ''}">${p}</button>
+  const phaseHtml = phases.map(p => `
+    <button class="filter-chip ${(window._photoPhaseFilter||'전체') === p ? 'is-active' : ''}"
+      onclick="setPhotoPhaseFilter('${p}')">${p}</button>
   `).join('');
 
-  const albumHtml = albums.length > 0 ? albums.map(a => {
+  // 사이트/공정 필터 적용
+  const siteF = window._photoSiteFilter || '전체';
+  const phaseF = window._photoPhaseFilter || '전체';
+  const display = filtered.filter(a =>
+    (siteF === '전체' || a.site === siteF) &&
+    (phaseF === '전체' || a.phase === phaseF)
+  );
+
+  const albumHtml = display.length > 0 ? display.map(a => {
     const thumb = a.photos[0];
     const date = a.createdAt ? new Date(a.createdAt).toLocaleDateString('ko-KR', {month:'numeric',day:'numeric'}) : '';
     const photosEncoded = encodeURIComponent(JSON.stringify(a.photos));
     return `
       <div style="cursor:pointer;" onclick="openPhotoAlbum('${photosEncoded}')">
         <div style="width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;position:relative;background:var(--surface-2);">
-          <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;">
+          <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
           <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;">📷 ${a.photos.length}</div>
         </div>
         <div style="font-size:12px;font-weight:700;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.site || ''}</div>
         <div style="font-size:11px;color:var(--muted);">${a.phase || ''} · ${date}</div>
       </div>
     `;
-  }).join('') : '<div class="empty" style="grid-column:span 2;padding:40px 0;text-align:center;">📷 등록된 사진이 없어요<br><span style="font-size:12px;color:var(--muted);">위 업로드 버튼으로 추가하세요</span></div>';
+  }).join('') : `<div class="empty" style="grid-column:span 2;padding:40px 0;text-align:center;">
+    📷 ${searchQ ? `"${searchQ}" 검색 결과 없음` : '등록된 사진이 없어요'}
+    <br><span style="font-size:12px;color:var(--muted);">위 업로드 버튼으로 추가하세요</span>
+  </div>`;
 
   return `
     <div class="breadcrumb">
@@ -682,15 +701,27 @@ function renderPhotos() {
     <div style="padding: 0 var(--pad) 12px;">
       <div class="search-box">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="16" height="16"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg>
-        <input class="search-input" placeholder="현장명·공정 검색">
+        <input class="search-input" placeholder="현장명·공정 검색"
+          value="${searchQ}"
+          oninput="window._photoSearch=this.value;navigate('photos')">
       </div>
     </div>
-    <div class="filter-row" style="padding-bottom: 4px;">${filterHtml}</div>
-    <div class="filter-row">${phaseHtml}</div>
+    <div class="filter-row" style="padding-bottom:4px;overflow-x:auto;">${filterHtml}</div>
+    <div class="filter-row" style="overflow-x:auto;">${phaseHtml}</div>
     <div class="page-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">총 ${display.length}개 앨범</div>
       <div class="photo-gallery">${albumHtml}</div>
     </div>
   `;
+}
+
+function setPhotoFilter(site) {
+  window._photoSiteFilter = site;
+  if (window.navigate) window.navigate('photos');
+}
+function setPhotoPhaseFilter(phase) {
+  window._photoPhaseFilter = phase;
+  if (window.navigate) window.navigate('photos');
 }
 
 function openPhotoAlbum(photosEncoded) {
