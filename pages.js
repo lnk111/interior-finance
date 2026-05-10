@@ -696,16 +696,116 @@ function renderPhotos() {
 function openPhotoAlbum(photosEncoded) {
   const photos = JSON.parse(decodeURIComponent(photosEncoded));
   if (!photos.length) return;
+
+  let currentIdx = 0;
+
+  function renderViewer() {
+    return `
+      <div id="photo-viewer" style="position:fixed;inset:0;z-index:999;background:#000;display:flex;flex-direction:column;touch-action:pan-y;">
+        <!-- 상단 헤더 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;padding-top:calc(16px + env(safe-area-inset-top));">
+          <span style="color:rgba(255,255,255,0.7);font-size:14px;font-weight:600;">${currentIdx+1} / ${photos.length}</span>
+          <button onclick="closeModal()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+
+        <!-- 슬라이드 영역 -->
+        <div style="flex:1;display:flex;align-items:center;overflow:hidden;position:relative;" id="slide-container">
+          <div id="slide-track" style="display:flex;transition:transform .25s ease;width:${photos.length*100}%;height:100%;">
+            ${photos.map((p, i) => `
+              <div style="width:${100/photos.length}%;height:100%;display:flex;align-items:center;justify-content:center;padding:0 4px;">
+                <img src="${p}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;user-select:none;-webkit-user-drag:none;">
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- 하단 인디케이터 -->
+        <div style="display:flex;justify-content:center;gap:6px;padding:16px 0;padding-bottom:calc(16px + env(safe-area-inset-bottom));">
+          ${photos.map((_, i) => `
+            <div id="dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'#fff':'rgba(255,255,255,0.4)'};transition:all .2s;"></div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   const root = document.getElementById('modal-root');
-  let imgHtml = photos.map(p => '<img src="' + p + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;">').join('');
-  root.innerHTML = '<div style="position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;" onclick="closeModal()">'
-    + '<div style="display:flex;justify-content:flex-end;padding:16px;">'
-    + '<button onclick="closeModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;">✕</button>'
-    + '</div>'
-    + '<div style="flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;" onclick="event.stopPropagation()">'
-    + imgHtml
-    + '</div></div>';
+  root.innerHTML = renderViewer();
   document.body.style.overflow = 'hidden';
+
+  // 슬라이드 함수
+  function goTo(idx) {
+    if (idx < 0 || idx >= photos.length) return;
+    currentIdx = idx;
+    const track = document.getElementById('slide-track');
+    if (track) track.style.transform = `translateX(-${idx * (100/photos.length)}%)`;
+    // 인디케이터 업데이트
+    photos.forEach((_, i) => {
+      const dot = document.getElementById('dot-' + i);
+      if (!dot) return;
+      dot.style.width = i === idx ? '20px' : '6px';
+      dot.style.background = i === idx ? '#fff' : 'rgba(255,255,255,0.4)';
+    });
+  }
+
+  // 터치 스와이프
+  let touchStartX = 0, touchStartY = 0, isDragging = false;
+  const container = document.getElementById('slide-container');
+
+  container.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isDragging = true;
+  }, { passive: true });
+
+  container.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+    // 수평 스와이프가 수직보다 크면 스크롤 막기
+    if (Math.abs(dx) > Math.abs(dy)) {
+      e.preventDefault();
+      const track = document.getElementById('slide-track');
+      if (track) {
+        const base = currentIdx * (100/photos.length);
+        const offset = (dx / window.innerWidth) * (100/photos.length) * 100;
+        track.style.transition = 'none';
+        track.style.transform = `translateX(calc(-${base}% + ${dx}px))`;
+      }
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchend', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const track = document.getElementById('slide-track');
+    if (track) track.style.transition = 'transform .25s ease';
+
+    if (dx < -50 && currentIdx < photos.length - 1) {
+      goTo(currentIdx + 1);
+    } else if (dx > 50 && currentIdx > 0) {
+      goTo(currentIdx - 1);
+    } else {
+      goTo(currentIdx); // 원래 위치로
+    }
+  }, { passive: true });
+
+  // 좌우 화살표 키보드 지원
+  function onKey(e) {
+    if (e.key === 'ArrowRight') goTo(currentIdx + 1);
+    if (e.key === 'ArrowLeft') goTo(currentIdx - 1);
+    if (e.key === 'Escape') closeModal();
+  }
+  document.addEventListener('keydown', onKey);
+
+  // 모달 닫힐 때 이벤트 제거
+  const origClose = window.closeModal;
+  window.closeModal = function() {
+    document.removeEventListener('keydown', onKey);
+    window.closeModal = origClose;
+    origClose();
+  };
 }
 
 // Expose
