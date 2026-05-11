@@ -568,7 +568,7 @@ function renderInput() {
         </button>
       </div>
 
-      <button class="unsorted-banner" data-modal="quickTip">
+      <button class="unsorted-banner" onclick="openPendingList()">
         <span class="pill pill-warn">📋 미정리 ${M.unsorted}</span>
         <span>탭해서 정리하기</span>
         <span style="margin-left: auto;">›</span>
@@ -916,6 +916,162 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ls) ls.style.display = 'none';
   }, 800);
 });
+
+// ===== 미정리 목록 =====
+function openPendingList() {
+  const pending = window.FB?.pending || {};
+  const list = Object.entries(pending)
+    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+
+  function renderList() {
+    return list.map(([key, p]) => {
+      const isDone = p.status === 'done';
+      const date = p.date || '';
+      const amount = p.totalAmount ? p.totalAmount.toLocaleString('ko-KR') + '원' : '금액 미입력';
+      const statusColor = isDone ? '#2e7d32' : p.status === 'progress' ? '#b07d00' : '#9A4B2E';
+      const statusBg = isDone ? '#e8f5e9' : p.status === 'progress' ? '#fff3cd' : '#fdecea';
+      const statusLabel = isDone ? '완료' : p.status === 'progress' ? '정리중' : '임시저장';
+      return `
+        <div style="background:#fff;border-radius:14px;border:1px solid var(--hair);padding:14px 16px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${p.site || '현장 미지정'}</div>
+              <div style="font-size:12px;color:var(--muted);">${date} · ${p.writer || ''}</div>
+            </div>
+            <span style="background:${statusBg};color:${statusColor};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0;margin-left:8px;">${statusLabel}</span>
+          </div>
+          ${p.memo ? `<div style="font-size:13px;color:var(--ink-2);margin-bottom:8px;">${p.memo}</div>` : ''}
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;">${amount}</div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="editPending('${key}')"
+              style="flex:1;padding:10px;background:var(--surface-2);border:1px solid var(--hair);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
+              ✏️ 수정
+            </button>
+            <button onclick="deletePending('${key}')"
+              style="flex:1;padding:10px;background:#fdecea;border:1px solid #f5c6c6;border-radius:10px;font-size:13px;font-weight:600;color:#9A4B2E;cursor:pointer;font-family:inherit;">
+              🗑️ 삭제
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('') || '<div style="text-align:center;padding:40px;color:var(--muted);">미정리 내역이 없어요 ✅</div>';
+  }
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" style="max-height:90vh;" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">📋 미정리 내역</div>
+            <div class="modal-sub">총 ${list.length}건</div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()">✕</button>
+        </div>
+        <div style="overflow-y:auto;max-height:70vh;padding:0 var(--pad) var(--pad);">
+          ${renderList()}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.style.overflow = 'hidden';
+}
+
+async function deletePending(key) {
+  if (!confirm('이 미정리 내역을 삭제할까요?')) return;
+  try {
+    await db.ref('pending/' + key).remove();
+    // 모달 새로고침
+    openPendingList();
+  } catch(e) {
+    alert('삭제 실패');
+  }
+}
+
+function editPending(key) {
+  const p = window.FB?.pending?.[key] || {};
+  closeModal();
+
+  const sitesOpts = (window.MOCK?.sites || []).map(s =>
+    `<option value="${s.name}" ${p.site === s.name ? 'selected' : ''}>${s.name}</option>`
+  ).join('');
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div><div class="modal-title">✏️ 미정리 수정</div></div>
+          <button class="btn-icon" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label class="field-label">현장</label>
+            <select class="input" id="pend-site">
+              <option value="">선택</option>
+              ${sitesOpts}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">금액 (원)</label>
+            <input class="input" type="number" id="pend-amount"
+              value="${p.totalAmount || ''}" placeholder="총 금액">
+          </div>
+          <div class="field">
+            <label class="field-label">날짜</label>
+            <input class="input" type="date" id="pend-date" value="${p.date || ''}">
+          </div>
+          <div class="field">
+            <label class="field-label">메모</label>
+            <textarea class="input" id="pend-memo" rows="2">${p.memo || ''}</textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">상태</label>
+            <div class="chip-group">
+              <button type="button" class="chip ${p.status === 'temp' || !p.status ? 'is-active' : ''}"
+                onclick="pendChip(this,'temp')">임시저장</button>
+              <button type="button" class="chip ${p.status === 'progress' ? 'is-active' : ''}"
+                onclick="pendChip(this,'progress')">정리중</button>
+              <button type="button" class="chip ${p.status === 'done' ? 'is-active' : ''}"
+                onclick="pendChip(this,'done')">완료</button>
+            </div>
+            <input type="hidden" id="pend-status" value="${p.status || 'temp'}">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="openPendingList()">← 목록</button>
+          <button class="btn btn-primary" onclick="savePending('${key}')">저장</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.style.overflow = 'hidden';
+}
+
+function pendChip(el, val) {
+  el.closest('.chip-group').querySelectorAll('.chip').forEach(b => b.classList.remove('is-active'));
+  el.classList.add('is-active');
+  document.getElementById('pend-status').value = val;
+}
+
+async function savePending(key) {
+  const site = document.getElementById('pend-site')?.value || '';
+  const amount = parseInt(document.getElementById('pend-amount')?.value) || null;
+  const date = document.getElementById('pend-date')?.value || '';
+  const memo = document.getElementById('pend-memo')?.value?.trim() || '';
+  const status = document.getElementById('pend-status')?.value || 'temp';
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    await db.ref('pending/' + key).update({ site, totalAmount: amount, date, memo, status });
+    openPendingList();
+  } catch(e) {
+    alert('저장 실패');
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
+}
 
 // ===== Pull to Refresh =====
 (function() {
