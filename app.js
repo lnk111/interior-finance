@@ -903,10 +903,51 @@ document.addEventListener('input', (e) => {
   }
 });
 
+
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', function() {
   const loggedIn = bootAuth();
   if (loggedIn) {
     navigate('home');
   }
+  // 로딩 화면 제거
+  setTimeout(() => {
+    const ls = document.getElementById('loading-screen');
+    if (ls) ls.style.display = 'none';
+  }, 800);
 });
+
+// ===== Pull to Refresh =====
+(function() {
+  let startY = 0, pulling = false, threshold = 80;
+  const indicator = document.getElementById('pull-indicator');
+
+  document.addEventListener('touchstart', e => {
+    if (window.scrollY === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0 && window.scrollY === 0) {
+      const h = Math.min(dy * 0.5, 56);
+      if (indicator) {
+        indicator.style.height = h + 'px';
+        indicator.textContent = dy > threshold ? '🔄 놓으면 새로고침!' : '↓ 당겨서 새로고침';
+      }
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!pulling) return;
+    pulling = false;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (indicator) indicator.style.height = '0';
+    if (dy > threshold && window.scrollY === 0) {
+      location.reload();
+    }
+  }, { passive: true });
+})();
