@@ -857,6 +857,27 @@ input, textarea, select { font-family: inherit; }
 .menu-card .mc-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .menu-card .chev { color: var(--faint); font-size: 18px; }
 
+
+/* 탭바 SVG 클릭 통과 */
+.tabbar-item svg,
+.tabbar-item svg *,
+.tabbar-fab svg,
+.tabbar-fab svg * {
+  pointer-events: none;
+}
+
+/* 현장 카드 SVG 클릭 통과 */
+.site-card svg,
+.site-card svg * {
+  pointer-events: none;
+}
+
+/* 전체 앱 SVG 기본 클릭 통과 */
+button svg,
+button svg * {
+  pointer-events: none;
+}
+
 /* Photo gallery */
 .photo-gallery {
   display: grid;
