@@ -516,13 +516,13 @@ function renderSiteDetail() {
     const endStr = p.doneDate ? p.doneDate.slice(5).replace('-', '.') : '';
     const dateStr = startStr && endStr ? startStr + ' – ' + endStr : startStr || endStr || '';
     return `
-    <button class="tl-row" data-modal="phase" style="width: 100%; text-align: left;">
+    <button class="tl-row" onclick="openProcEditModal('${p.id}','${(window.MOCK?.sites?.[0]?.name||'').replace(/'/g,"\\'")}')" style="width: 100%; text-align: left;">
       <span class="tl-dot ${dotClass[st] || 'todo'}"></span>
       <div>
         <div class="tl-name">${p.name} <span class="pill ${stClass[st] || 'pill-muted'}" style="margin-left: 6px; font-size: 9px; padding: 1px 6px;">${stLabel[st] || '대기'}</span></div>
         ${dateStr ? `<div class="tl-meta">${dateStr}</div>` : ''}
       </div>
-      <span class="tl-cost num"></span>
+      <span style="color:var(--muted);font-size:14px;">›</span>
     </button>`;
   }).join('') : '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">등록된 공정이 없어요</div>';
 
@@ -738,26 +738,26 @@ function openPhotoAlbum(photosEncoded) {
 
   function renderViewer() {
     return `
-      <div id="photo-viewer" style="position:fixed;inset:0;z-index:999;background:#000;display:flex;flex-direction:column;touch-action:pan-y;">
+      <div id="photo-viewer" style="position:fixed;inset:0;z-index:999;background:#000;display:flex;flex-direction:column;touch-action:none;overflow:hidden;">
         <!-- 상단 헤더 -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 20px;padding-top:calc(52px + env(safe-area-inset-top));">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;padding-top:calc(44px + env(safe-area-inset-top));flex-shrink:0;">
           <span style="color:rgba(255,255,255,0.7);font-size:14px;font-weight:600;">${currentIdx+1} / ${photos.length}</span>
           <button onclick="closeModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:50%;width:44px;height:44px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
 
         <!-- 슬라이드 영역 -->
-        <div style="flex:1;overflow:hidden;position:relative;" id="slide-container">
+        <div style="flex:1;overflow:hidden;position:relative;min-height:0;" id="slide-container">
           <div id="slide-track" style="display:flex;transition:transform .25s ease;height:100%;will-change:transform;">
             ${photos.map((p, i) => `
-              <div style="min-width:100vw;width:100vw;height:100%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#000;">
-                <img src="${p}" style="width:100%;height:auto;max-height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none;">
+              <div style="min-width:100vw;width:100vw;height:100%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#000;box-sizing:border-box;">
+                <img src="${p}" style="max-width:100vw;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none;">
               </div>
             `).join('')}
           </div>
         </div>
 
         <!-- 하단 인디케이터 -->
-        <div style="display:flex;justify-content:center;gap:6px;padding:16px 0;padding-bottom:calc(16px + env(safe-area-inset-bottom));">
+        <div style="display:flex;justify-content:center;gap:6px;padding:14px 0;padding-bottom:calc(14px + env(safe-area-inset-bottom));flex-shrink:0;">
           ${photos.map((_, i) => `
             <div id="dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'#fff':'rgba(255,255,255,0.4)'};transition:all .2s;"></div>
           `).join('')}
@@ -847,4 +847,90 @@ function openPhotoAlbum(photosEncoded) {
 }
 
 // Expose
+// 공정 수정 모달
+function openProcEditModal(phaseId, siteName) {
+  // Firebase에서 공정 데이터 가져오기
+  const procKey = siteName.replace(/[.#$/ \[\]]/g, '_');
+  db.ref('procData/' + procKey + '/' + phaseId).once('value').then(snap => {
+    const ph = snap.val() || {};
+
+    const root = document.getElementById('modal-root');
+    root.innerHTML = `
+      <div class="modal-backdrop" onclick="closeModal()">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <div class="modal-title">⚙️ 공정 수정</div>
+              <div class="modal-sub">${ph.name || ''}</div>
+            </div>
+            <button class="btn-icon" onclick="closeModal()">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="field">
+              <label class="field-label">공정명</label>
+              <input class="input" id="proc-name" value="${ph.name || ''}">
+            </div>
+            <div class="field">
+              <label class="field-label">상태</label>
+              <div class="chip-group">
+                <button type="button" class="chip ${(ph.status||'wait')==='wait'?'is-active':''}" onclick="procEditChip(this,'wait')">⏳ 대기</button>
+                <button type="button" class="chip ${ph.status==='active'?'is-active':''}" onclick="procEditChip(this,'active')">🔨 진행중</button>
+                <button type="button" class="chip ${ph.status==='done'?'is-active':''}" onclick="procEditChip(this,'done')">✅ 완료</button>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-label">🟢 시작일</label>
+                <input class="input" type="date" id="proc-start" value="${ph.startDate || ''}">
+              </div>
+              <div class="field">
+                <label class="field-label">🔴 완료일</label>
+                <input class="input" type="date" id="proc-end" value="${ph.doneDate || ''}">
+              </div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+            <button class="btn btn-primary" onclick="saveProcEdit('${procKey}','${phaseId}')">저장</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.style.overflow = 'hidden';
+    window._procEditStatus = ph.status || 'wait';
+  });
+}
+
+function procEditChip(el, status) {
+  el.closest('.chip-group').querySelectorAll('.chip').forEach(b => b.classList.remove('is-active'));
+  el.classList.add('is-active');
+  window._procEditStatus = status;
+}
+
+async function saveProcEdit(procKey, phaseId) {
+  const name = document.getElementById('proc-name')?.value?.trim();
+  const startDate = document.getElementById('proc-start')?.value || null;
+  const doneDate = document.getElementById('proc-end')?.value || null;
+  const status = window._procEditStatus || 'wait';
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    await db.ref('procData/' + procKey + '/' + phaseId).update({
+      name, status,
+      startDate: startDate || null,
+      doneDate: doneDate || null,
+    });
+    closeModal();
+    // 현장 상세 다시 렌더링
+    if (window.navigate) window.navigate('siteDetail');
+  } catch(e) {
+    alert('저장 실패');
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
+}
+
 window.PAGES_EXTRA = { renderCalendar, renderSettings, renderTax, renderSiteDetail, renderPhotos };

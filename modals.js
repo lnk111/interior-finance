@@ -1111,6 +1111,129 @@ async function photoSave() {
   }
 }
 
+// ===== 공정 수정 모달 =====
+function openProcEditModal(phaseId, siteName) {
+  // 현재 공정 데이터 찾기
+  const encKey = s => s.replace(/[.#$/ \[\]]/g, '_');
+  const procData = window.FB?._procAll?.[encKey(siteName)] || {};
+  const ph = procData[phaseId] || {};
+
+  const statusOpts = [
+    { val: 'wait', label: '대기', color: 'var(--muted)' },
+    { val: 'active', label: '진행중', color: 'var(--warn)' },
+    { val: 'done', label: '완료', color: 'var(--accent)' },
+  ];
+
+  // 현재 상태 자동 계산
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let autoStatus = ph.status || 'wait';
+  if (ph.startDate && todayStr >= ph.startDate) autoStatus = 'active';
+  if (ph.doneDate && todayStr > ph.doneDate) autoStatus = 'done';
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">⚙️ ${ph.name || '공정'} 수정</div>
+            <div class="modal-sub">${siteName}</div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()">${window.MODAL_BACK || '✕'}</button>
+        </div>
+        <div class="modal-body">
+
+          <div class="field">
+            <label class="field-label">상태</label>
+            <div class="chip-group">
+              ${statusOpts.map(s => `
+                <button type="button" class="chip ${autoStatus === s.val ? 'is-active' : ''}"
+                  onclick="procEditChipStatus(this,'${s.val}')"
+                  style="${autoStatus === s.val ? 'color:'+s.color+';border-color:'+s.color+';' : ''}">
+                  ${s.label}
+                </button>
+              `).join('')}
+            </div>
+            <input type="hidden" id="proc-edit-status" value="${autoStatus}">
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label">🟢 시작일</label>
+              <input class="input" type="date" id="proc-edit-start" value="${ph.startDate || ''}">
+            </div>
+            <div class="field">
+              <label class="field-label">🔴 완료일</label>
+              <input class="input" type="date" id="proc-edit-end" value="${ph.doneDate || ''}">
+            </div>
+          </div>
+
+          <div style="background:rgba(91,124,181,0.08);border:1px solid rgba(91,124,181,0.2);border-radius:10px;padding:10px 12px;font-size:12px;color:#5B7CB5;line-height:1.6;">
+            💡 날짜를 입력하면 오늘 기준으로 상태가 자동으로 계산돼요
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+          <button class="btn btn-primary" onclick="saveProcEdit('${phaseId}','${siteName.replace(/'/g,"\\'")}')">저장</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.style.overflow = 'hidden';
+}
+
+function procEditChipStatus(el, val) {
+  el.closest('.chip-group').querySelectorAll('.chip').forEach(b => {
+    b.classList.remove('is-active');
+    b.style.color = '';
+    b.style.borderColor = '';
+  });
+  el.classList.add('is-active');
+  const colorMap = { wait: 'var(--muted)', active: 'var(--warn)', done: 'var(--accent)' };
+  el.style.color = colorMap[val] || '';
+  el.style.borderColor = colorMap[val] || '';
+  const inp = document.getElementById('proc-edit-status');
+  if (inp) inp.value = val;
+}
+
+async function saveProcEdit(phaseId, siteName) {
+  const encKey = s => s.replace(/[.#$/ \[\]]/g, '_');
+  const startDate = document.getElementById('proc-edit-start')?.value || null;
+  const doneDate = document.getElementById('proc-edit-end')?.value || null;
+
+  // 날짜 기준 자동 상태 계산
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let status = document.getElementById('proc-edit-status')?.value || 'wait';
+  if (startDate && doneDate) {
+    if (todayStr < startDate) status = 'wait';
+    else if (todayStr > doneDate) status = 'done';
+    else status = 'active';
+  }
+
+  const updates = { status };
+  if (startDate) updates.startDate = startDate;
+  else updates.startDate = null;
+  if (doneDate) updates.doneDate = doneDate;
+  else updates.doneDate = null;
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
+  try {
+    await db.ref('procData/' + encKey(siteName) + '/' + phaseId).update(updates);
+    // 캐시 업데이트
+    if (window.FB?._procAll?.[encKey(siteName)]?.[phaseId]) {
+      Object.assign(window.FB._procAll[encKey(siteName)][phaseId], updates);
+    }
+    closeModal();
+    // 현장 상세 새로고침
+    if (window.navigate) window.navigate('siteDetail');
+  } catch(e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
+}
+
 // Modal dispatcher
 window.MODALS = {
   site: modalSiteRegister,
