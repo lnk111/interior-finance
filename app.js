@@ -81,15 +81,11 @@ function renderHome() {
       <button class="btn-icon">${ICON.bell}</button>
     </div>
     <div class="page-body">
-
-      <!-- ① 브리핑 -->
       <div class="briefing">
         <div class="briefing-eyebrow">오늘의 브리핑</div>
         <div class="briefing-title">오늘 챙길 일 <span class="num">${M.briefing.length}</span>건</div>
         <div class="briefing-list">${briefingHtml}</div>
       </div>
-
-      <!-- ② 현장 현황 탭 -->
       <div class="section-label">현장 현황 <span class="more" data-goto="sites">전체 ›</span></div>
       <div style="background:#fff;border-radius:16px;border:1px solid var(--hair);overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;border-bottom:1px solid var(--hair);">
@@ -104,8 +100,6 @@ function renderHome() {
         </div>
         <div id="site-tab-content" style="padding:0;">${renderActiveSitesHtml()}</div>
       </div>
-
-      <!-- ③ 현장 노하우 -->
       <div class="section-label">💡 현장 노하우 <span class="more"><span data-modal="tip">+ 기록</span></span></div>
       <div class="tip-filter-row">
         <button class="filter-chip is-active">📌 핀 고정</button>
@@ -117,8 +111,6 @@ function renderHome() {
       </div>
       ${pinnedTips.map(tipCard).join('')}
       ${otherTips.map(tipCard).join('')}
-
-      <!-- ④ 손익 현황 -->
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:9px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
@@ -147,12 +139,8 @@ function renderHome() {
         <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:var(--accent);">+${fmtSlim(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${t.margin}%</div><div class="stat-delta flat">목표 ${t.targetMargin}%</div></div>
       </div>
-
-      <!-- ⑤ 최근 거래 -->
       <div class="section-label">최근 거래 <span class="pill pill-warn" style="cursor:pointer;" onclick="openPendingList()">미정리 ${M.unsorted}건</span></div>
       <div class="list">${recentHtml}</div>
-
-      <!-- ⑥ 부가세 알림 -->
       ${AUTH.can('tax') ? `
       <button class="alert" data-goto="tax" style="width:100%;text-align:left;margin-top:8px;">
         <div>
@@ -162,11 +150,9 @@ function renderHome() {
         </div>
         <span class="alert-arrow">›</span>
       </button>` : ''}
-
     </div>`;
 }
 
-// ===== 공사중 현장 =====
 let _siteTab = 'active';
 
 function renderActiveSitesHtml() {
@@ -288,7 +274,6 @@ function switchSiteTab(tab) {
   }
 }
 
-// 현장 상세로 이동하는 공통 함수
 function openSiteDetail(siteName) {
   const found = (window.MOCK?.sites||[]).find(s=>s.name===siteName);
   if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s=>s.name!==siteName))];
@@ -416,7 +401,6 @@ function renderInput() {
   const fmtAmt = Number(inputState.amount||0).toLocaleString('ko-KR');
   const vat = Math.round(Number(inputState.amount||0)*0.1);
   const today = new Date().toISOString().slice(0,10);
-
   return `
     <div class="page-header"><div><div class="h-eyebrow">새 거래</div><h1 class="h-title">거래 입력</h1></div></div>
     <div class="page-body">
@@ -503,7 +487,6 @@ function renderInput() {
     </div>`;
 }
 
-// 거래 입력 사진 첨부
 window._entryPhotos=[];
 function entryOpenCamera() { document.getElementById('entry-file-camera')?.click(); }
 function entryOpenGallery() { document.getElementById('entry-file-gallery')?.click(); }
@@ -602,26 +585,28 @@ function navigate(page) {
   const activeTab=routes[page].tab;
   $$('.tabbar-item,.tabbar-fab').forEach(b=>b.classList.toggle('is-active',b.dataset.page===activeTab));
   $('#app').innerHTML=`<div class="page is-active">${routes[page].render()}</div>`;
+  // 로딩 화면 숨기기
+  const ls=document.getElementById('loading-screen');
+  if (ls) ls.style.display='none';
+  // 탭바 보이기
+  const tb=document.getElementById('tabbar');
+  if (tb) tb.style.display='flex';
   window.scrollTo(0,0);
 }
+// 즉시 전역 등록 (DOMContentLoaded 이전에도 firebase.js 에서 호출 가능)
 window.navigate=navigate;
 
 // ===== Events =====
 document.addEventListener('click',e=>{
   if (e.target.closest('[data-modal]')||e.target.closest('[data-modal-close]')) return;
-
   const tab=e.target.closest('[data-page]');
   if (tab) { e.preventDefault(); navigate(tab.dataset.page); return; }
-
   const goto=e.target.closest('[data-goto]');
   if (goto) { e.preventDefault(); navigate(goto.dataset.goto); return; }
-
   const filter=e.target.closest('[data-filter]');
   if (filter&&currentPage==='sites') { sitesFilter=filter.dataset.filter; navigate('sites'); return; }
-
   const inputTab=e.target.closest('[data-tab]');
   if (inputTab&&(currentPage==='input'||currentPage==='quickInput')) { inputState.tab=inputTab.dataset.tab; navigate('input'); return; }
-
   const stage=e.target.closest('[data-stage]');
   if (stage) { inputState.stage=stage.dataset.stage; navigate('input'); return; }
   const pay=e.target.closest('[data-pay]');
@@ -632,7 +617,6 @@ document.addEventListener('click',e=>{
   if (inputter) { inputState.inputter=inputter.dataset.inputter; navigate('input'); return; }
   const mode=e.target.closest('[data-mode]');
   if (mode) { inputState.mode=mode.dataset.mode; navigate('input'); return; }
-
   if (e.target.closest('#invoice-toggle')) { inputState.invoice=!inputState.invoice; navigate('input'); return; }
   if (e.target.closest('#logout-btn')) { if(confirm('로그아웃 하시겠어요?')) { AUTH.logout(); location.reload(); } return; }
 });
@@ -660,11 +644,10 @@ function openPendingList() {
     .filter(([,p])=>p.status!=='done')
     .sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
   const renderList=()=>list.map(([key,p])=>{
-    const isDone=p.status==='done';
     const amount=p.totalAmount?p.totalAmount.toLocaleString('ko-KR')+'원':'금액 미입력';
-    const statusColor=isDone?'#2e7d32':p.status==='progress'?'#b07d00':'#9A4B2E';
-    const statusBg=isDone?'#e8f5e9':p.status==='progress'?'#fff3cd':'#fdecea';
-    const statusLabel=isDone?'완료':p.status==='progress'?'정리중':'임시저장';
+    const statusColor=p.status==='progress'?'#b07d00':'#9A4B2E';
+    const statusBg=p.status==='progress'?'#fff3cd':'#fdecea';
+    const statusLabel=p.status==='progress'?'정리중':'임시저장';
     return `
       <div style="background:#fff;border-radius:14px;border:1px solid var(--hair);padding:14px 16px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
@@ -762,10 +745,30 @@ async function savePending(key) {
 }
 
 // ===== Init =====
-document.addEventListener('DOMContentLoaded',function(){
-  const loggedIn=bootAuth();
-  if (loggedIn) navigate('home');
-  setTimeout(()=>{ const ls=document.getElementById('loading-screen'); if(ls) ls.style.display='none'; },800);
+document.addEventListener('DOMContentLoaded', function() {
+  // window.navigate 즉시 등록 (firebase.js initFirebase 에서 호출 가능하도록)
+  window.navigate = navigate;
+  window.currentPage = 'home';
+
+  const loggedIn = bootAuth();
+
+  if (!loggedIn) {
+    // 로그인 안된 경우 로딩 화면 숨기기
+    const ls = document.getElementById('loading-screen');
+    if (ls) ls.style.display = 'none';
+  } else {
+    // 로그인된 경우 Firebase 데이터 로드 후 navigate 호출됨
+    // 최대 5초 후 강제로 로딩 화면 숨기기 (안전장치)
+    setTimeout(() => {
+      const ls = document.getElementById('loading-screen');
+      if (ls && ls.style.display !== 'none') {
+        ls.style.display = 'none';
+        if (!document.querySelector('.page.is-active')) {
+          navigate('home');
+        }
+      }
+    }, 5000);
+  }
 });
 
 // ===== Pull to Refresh =====
