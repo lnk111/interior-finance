@@ -11,8 +11,37 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+#loading-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #FAF7F1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+}
+.loading-logo { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: #1B1814; }
+.loading-logo span { color: #2F6B47; }
+.loading-spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid #EAE4DB; border-top-color: #2F6B47;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#pull-indicator {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  height: 0; overflow: hidden; background: #2F6B47;
+  transition: height .2s; color: #fff; font-size: 13px; font-weight: 700;
+}
+</style>
 </head>
 <body>
+
+<div id="loading-screen">
+  <div class="loading-logo">디자인<span>포</span></div>
+  <div class="loading-spinner"></div>
+</div>
+<div id="pull-indicator">↓ 새로고침</div>
+  
 <!-- Login screen (shown if not logged in) -->
 <div id="login-screen" class="login-screen">
   <div class="login-card">
