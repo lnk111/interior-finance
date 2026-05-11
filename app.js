@@ -11,7 +11,6 @@ function fmtSlim(n) {
   if (a >= 10_000) return sign + '₩' + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
   return sign + '₩' + a.toLocaleString('ko-KR');
 }
-function fmtSlim2(n) { return fmtSlim(n); }
 function fmtFull(n) { return '₩' + n.toLocaleString('ko-KR'); }
 
 const ICON = {
