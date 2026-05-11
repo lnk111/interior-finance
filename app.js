@@ -921,6 +921,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function openPendingList() {
   const pending = window.FB?.pending || {};
   const list = Object.entries(pending)
+    .filter(([, p]) => p.status !== 'done')
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
 
   function renderList() {
