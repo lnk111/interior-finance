@@ -842,12 +842,10 @@ document.addEventListener('click', (e) => {
   if (filter && currentPage === 'sites') { sitesFilter = filter.dataset.filter; navigate('sites'); return; }
 
   const siteCard = e.target.closest('[data-site]');
-  if (siteCard && currentPage === 'sites') {
+  if (siteCard) {
     const siteName = siteCard.dataset.site;
-    // PMS.sites[0] 을 선택한 현장으로 설정
     const found = (window.MOCK?.sites || []).find(s => s.name === siteName);
     if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s => s.name !== siteName))];
-    // Firebase procData 로드
     window._procCache = {};
     const key = siteName.replace(/[.#$/ \[\]]/g, '_');
     db.ref('procData/' + key).once('value').then(snap => {
