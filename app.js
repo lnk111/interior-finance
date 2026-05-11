@@ -11,6 +11,7 @@ function fmtSlim(n) {
   if (a >= 10_000) return sign + '₩' + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
   return sign + '₩' + a.toLocaleString('ko-KR');
 }
+function fmtSlim2(n) { return fmtSlim(n); }
 function fmtFull(n) { return '₩' + n.toLocaleString('ko-KR'); }
 
 const ICON = {
@@ -23,7 +24,7 @@ const ICON = {
   search: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg>',
 };
 
-function ymRow(year = 2026, month = 5) {
+function ymRow(year, month) {
   const years = [2024, 2025, 2026, 2027];
   const yh = years.map(y => `<option ${y === year ? 'selected' : ''}>${y}</option>`).join('');
   const mh = [...Array(12)].map((_, i) => `<option ${i + 1 === month ? 'selected' : ''}>${i + 1}월</option>`).join('');
@@ -33,127 +34,75 @@ function ymRow(year = 2026, month = 5) {
 // ===== HOME =====
 function renderHome() {
   const t = M.totals;
+  const now = new Date();
+
   const briefingHtml = M.briefing.map(b => {
-    // kind별 이동 대상 설정
-    const gotoMap = {
-      'as': 'home',      // AS → 홈 AS관리 탭으로
-      'task': 'sites',   // 공사중 → 현장 탭
-      'pay': 'sites',    // 잔금 → 현장 탭
-      'cal': 'calendar', // 일정 → 달력
-    };
-    const goto = gotoMap[b.kind] || '';
     const clickAction = b.kind === 'as'
       ? `onclick="navigate('home');setTimeout(()=>switchSiteTab('as'),100)"`
-      : b.kind === 'task'
-      ? `onclick="navigate('sites')"`
-      : b.kind === 'pay'
-      ? `onclick="navigate('sites')"`
-      : b.kind === 'cal'
-      ? `onclick="navigate('calendar')"`
-      : '';
-
+      : b.kind === 'task' ? `onclick="navigate('sites')"`
+      : b.kind === 'pay'  ? `onclick="navigate('sites')"`
+      : b.kind === 'cal'  ? `onclick="navigate('calendar')"`
+      : b.kind === 'unsorted' ? `onclick="openPendingList()"` : '';
     return `
     <div class="briefing-item" style="cursor:pointer;" ${clickAction}>
-      <div class="dot" style="background: var(--${b.color}-soft); color: var(--${b.color});">${b.icon}</div>
-      <div>
-        <div class="label">${b.label}</div>
-        <div class="meta">${b.meta}</div>
-      </div>
-      <span style="color: var(--muted); font-size: 16px;">›</span>
-    </div>
-  `}).join('');
-
-  const topSites = M.sites.filter(s => s.profit > 0).sort((a, b) => b.profit - a.profit).slice(0, 3);
-  const ranksHtml = AUTH.can('top3') ? topSites.map((s, i) => `
-    <div class="rank-row">
-      <span class="rk-num num">0${i + 1}</span>
-      <div>
-        <div class="rk-title">${s.name}</div>
-        <div class="rk-meta">${s.client} · 이익률 ${s.margin}%</div>
-      </div>
-      <span class="rk-amount num">+${fmtSlim(s.profit)}</span>
-    </div>
-  `).join('') : '';
+      <div class="dot" style="background:var(--${b.color}-soft);color:var(--${b.color});">${b.icon}</div>
+      <div><div class="label">${b.label}</div><div class="meta">${b.meta}</div></div>
+      <span style="color:var(--muted);font-size:16px;">›</span>
+    </div>`;
+  }).join('');
 
   const recentHtml = M.recent.slice(0, 5).map(r => {
     const cls = r.kind === '매출' ? 'pill-accent' : r.kind === 'AS' ? 'pill-pin' : 'pill-warn';
     const sign = r.kind === '매출' ? '+' : '−';
     return `
-      <button class="list-row" onclick="modalTxEdit('${r._key||r.id}')" style="width: 100%; text-align: left;">
+      <button class="list-row" onclick="modalTxEdit('${r._key||r.id||''}')" style="width:100%;text-align:left;">
         <span class="pill ${cls}">${r.kind}</span>
-        <div>
-          <div class="lr-title">${r.site}</div>
-          <div class="lr-meta">${r.stage || r.phase} · ${r.pay || ''} · ${r.when}</div>
-        </div>
+        <div><div class="lr-title">${r.site}</div><div class="lr-meta">${r.stage||r.phase||''} · ${r.pay||''} · ${r.when||''}</div></div>
         <span class="lr-amount num">${sign}${fmtSlim(r.amount)}</span>
-      </button>
-    `;
+      </button>`;
   }).join('');
 
-  const asActive = M.asList.filter(a => a.status !== '완료');
-  const asHtml = asActive.map(a => `
-    <div class="as-row">
-      <div class="as-status">
-        <span class="pill ${a.status === '예정' ? 'pill-warn' : 'pill-muted'}">${a.status}</span>
-      </div>
-      <div>
-        <div class="as-title">${a.site}</div>
-        <div class="as-issue">${a.issue}</div>
-        <div class="as-meta">${a.client} · ${a.phone} · ${a.staff} · ${a.date}</div>
-      </div>
-    </div>
-  `).join('');
-
   const pinnedTips = M.tips.filter(t => t.pinned);
-  const otherTips = M.tips.filter(t => !t.pinned).slice(0, 2);
-  const tipCard = (tp) => {
-    const cls = tp.cat === '실수' ? 'pill-warn' : tp.cat === '팁' ? 'pill-accent' : tp.cat === '자재' ? 'pill-pin' : 'pill-info';
-    const ic = tp.cat === '실수' ? '😓' : tp.cat === '팁' ? '💡' : tp.cat === '자재' ? '🔩' : '🤝';
-    return `
-      <div class="tip-card ${tp.pinned ? 'pinned' : ''}">
-        <div class="tip-head">
-          <span class="pill ${cls}">${ic} ${tp.cat}</span>
-          <span class="tip-meta">${tp.by} · ${tp.site}</span>
-        </div>
-        <div class="tip-title">${tp.title}</div>
-      </div>
-    `;
+  const otherTips  = M.tips.filter(t => !t.pinned).slice(0, 2);
+  const tipCard = tp => {
+    const cls = tp.cat==='실수'?'pill-warn':tp.cat==='팁'?'pill-accent':tp.cat==='자재'?'pill-pin':'pill-info';
+    const ic  = tp.cat==='실수'?'😓':tp.cat==='팁'?'💡':tp.cat==='자재'?'🔩':'🤝';
+    return `<div class="tip-card ${tp.pinned?'pinned':''}">
+      <div class="tip-head"><span class="pill ${cls}">${ic} ${tp.cat}</span><span class="tip-meta">${tp.by} · ${tp.site}</span></div>
+      <div class="tip-title">${tp.title}</div></div>`;
   };
 
   return `
     <div class="page-header">
       <div>
-        <div class="h-eyebrow">${new Date().getFullYear()}년 ${new Date().getMonth()+1}월 · ${M.company}</div>
+        <div class="h-eyebrow">${now.getFullYear()}년 ${now.getMonth()+1}월 · ${M.company}</div>
         <h1 class="h-title">안녕하세요, ${M.user} ${M.role}님</h1>
       </div>
       <button class="btn-icon">${ICON.bell}</button>
     </div>
-
     <div class="page-body">
 
-      <!-- ① 오늘의 브리핑 -->
+      <!-- ① 브리핑 -->
       <div class="briefing">
         <div class="briefing-eyebrow">오늘의 브리핑</div>
         <div class="briefing-title">오늘 챙길 일 <span class="num">${M.briefing.length}</span>건</div>
         <div class="briefing-list">${briefingHtml}</div>
       </div>
 
-      <!-- ② 공사중 / AS관리 탭 -->
+      <!-- ② 현장 현황 탭 -->
       <div class="section-label">현장 현황 <span class="more" data-goto="sites">전체 ›</span></div>
       <div style="background:#fff;border-radius:16px;border:1px solid var(--hair);overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;border-bottom:1px solid var(--hair);">
           <button id="site-tab-active" onclick="switchSiteTab('active')"
             style="flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-            🔨 공사중 <span style="background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 7px;font-size:11px;">${(window.MOCK?.sites||[]).filter(s=>s.status==='공사중').length}</span>
+            🔨 공사중 <span style="background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 7px;font-size:11px;">${(M.sites||[]).filter(s=>s.status==='공사중').length}</span>
           </button>
           <button id="site-tab-as" onclick="switchSiteTab('as')"
             style="flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-            🔧 AS관리 <span id="as-badge" style="background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:1px 7px;font-size:11px;">${(window.MOCK?.sites||[]).filter(s=>s.status==='AS관리').length}</span>
+            🔧 AS관리 <span id="as-badge" style="background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:1px 7px;font-size:11px;">${(M.asList||[]).filter(a=>!a.done&&a.status!=='완료').length}</span>
           </button>
         </div>
-        <div id="site-tab-content" style="padding:0;">
-          ${renderActiveSitesHtml()}
-        </div>
+        <div id="site-tab-content" style="padding:0;">${renderActiveSitesHtml()}</div>
       </div>
 
       <!-- ③ 현장 노하우 -->
@@ -170,106 +119,90 @@ function renderHome() {
       ${otherTips.map(tipCard).join('')}
 
       <!-- ④ 손익 현황 -->
-      <div class="section-label" style="margin-top:8px;">손익 현황 <span class="more"><span class="pill pill-muted" style="font-size: 9px;">${AUTH.roleLabel()} 모드</span></span></div>
-      ${ymRow(new Date().getFullYear(), new Date().getMonth()+1)}
+      <div class="section-label" style="margin-top:8px;">손익 현황
+        <span class="more"><span class="pill pill-muted" style="font-size:9px;">${AUTH.roleLabel()} 모드</span></span>
+      </div>
+      ${ymRow(now.getFullYear(), now.getMonth()+1)}
       ${AUTH.can('finalProfit') ? `
-      <div class="hero" style="margin-top: 10px;">
+      <div class="hero" style="margin-top:10px;">
         <div class="hero-eyebrow">🏢 이번 달 최종 영업이익</div>
         <div class="hero-amount num">${fmtSlim(t.finalProfit)}<span class="unit">원</span></div>
         <div class="hero-meta">순이익 − 고정비(임대료·급여 등) − 부가세</div>
         <div class="stack-bar">
-          <span style="flex:${t.finalProfit}; background: var(--accent);"></span>
-          <span style="flex:${t.fixed}; background: var(--faint);"></span>
-          <span style="flex:${t.vat}; background: var(--warn); opacity: .85;"></span>
+          <span style="flex:${Math.max(t.finalProfit,1)};background:var(--accent);"></span>
+          <span style="flex:${Math.max(t.fixed,1)};background:var(--faint);"></span>
+          <span style="flex:${Math.max(t.vat,1)};background:var(--warn);opacity:.85;"></span>
         </div>
         <div class="stack-legend">
-          <div><div class="lk"><span class="ldot" style="background: var(--accent);"></span>이익</div><span class="lv num">${fmtSlim(t.finalProfit)}</span></div>
-          <div><div class="lk"><span class="ldot" style="background: var(--faint);"></span>고정비</div><span class="lv num">${fmtSlim(t.fixed)}</span></div>
-          <div><div class="lk"><span class="ldot" style="background: var(--warn);"></span>부가세</div><span class="lv num">${fmtSlim(t.vat)}</span></div>
+          <div><div class="lk"><span class="ldot" style="background:var(--accent);"></span>이익</div><span class="lv num">${fmtSlim(t.finalProfit)}</span></div>
+          <div><div class="lk"><span class="ldot" style="background:var(--faint);"></span>고정비</div><span class="lv num">${fmtSlim(t.fixed)}</span></div>
+          <div><div class="lk"><span class="ldot" style="background:var(--warn);"></span>부가세</div><span class="lv num">${fmtSlim(t.vat)}</span></div>
         </div>
-      </div>
-      ` : ''}
+      </div>` : ''}
       <div class="stat-row">
-        <div class="stat">
-          <div class="stat-label">총 매출</div>
-          <div class="stat-value num">${fmtSlim(t.revenue)}</div>
-          <div class="stat-delta flat">고객에게 받은 금액</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">총 매입</div>
-          <div class="stat-value num">${fmtSlim(t.cost)}</div>
-          <div class="stat-delta flat">업체에 지급한 금액</div>
-        </div>
+        <div class="stat"><div class="stat-label">총 매출</div><div class="stat-value num">${fmtSlim(t.revenue)}</div><div class="stat-delta flat">고객에게 받은 금액</div></div>
+        <div class="stat"><div class="stat-label">총 매입</div><div class="stat-value num">${fmtSlim(t.cost)}</div><div class="stat-delta flat">업체에 지급한 금액</div></div>
       </div>
       <div class="stat-row">
-        <div class="stat">
-          <div class="stat-label">현장 순이익</div>
-          <div class="stat-value num" style="color: var(--accent);">+${fmtSlim(t.siteProfit)}</div>
-          <div class="stat-delta flat">매출 − 매입 − AS</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">이익률</div>
-          <div class="stat-value num">${t.margin}%</div>
-          <div class="stat-delta flat">목표 ${t.targetMargin}%</div>
-        </div>
+        <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:var(--accent);">+${fmtSlim(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
+        <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${t.margin}%</div><div class="stat-delta flat">목표 ${t.targetMargin}%</div></div>
       </div>
 
       <!-- ⑤ 최근 거래 -->
-      <div class="section-label">최근 거래 <span class="pill pill-warn">미정리 ${M.unsorted}건</span></div>
+      <div class="section-label">최근 거래 <span class="pill pill-warn" style="cursor:pointer;" onclick="openPendingList()">미정리 ${M.unsorted}건</span></div>
       <div class="list">${recentHtml}</div>
 
       <!-- ⑥ 부가세 알림 -->
       ${AUTH.can('tax') ? `
-      <button class="alert" data-goto="tax" style="width: 100%; text-align: left; margin-top: 8px;">
+      <button class="alert" data-goto="tax" style="width:100%;text-align:left;margin-top:8px;">
         <div>
           <div class="alert-eyebrow">D-${M.tax.daysLeft} · 부가세 납부</div>
           <div class="alert-amount num">${fmtSlim(M.tax.vatPayable)}</div>
           <div class="alert-meta">${M.tax.nextDue}</div>
         </div>
         <span class="alert-arrow">›</span>
-      </button>
-      ` : ''}
+      </button>` : ''}
 
-    </div>
-  `;
+    </div>`;
 }
 
+// ===== 공사중 현장 =====
 let _siteTab = 'active';
 
 function renderActiveSitesHtml() {
-  const activeSites = (window.MOCK?.sites || []).filter(s => s.status === '공사중');
+  const activeSites = (M.sites||[]).filter(s => s.status==='공사중');
   if (!activeSites.length) return '<div class="empty" style="padding:24px;">진행중인 공사 현장이 없어요</div>';
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  function calcPhaseStatus(startDate, endDate) {
-    if (!startDate && !endDate) return 'wait';
-    if (startDate && todayStr < startDate) return 'wait';
-    if (endDate && todayStr > endDate) return 'done';
+  const todayStr = new Date().toISOString().slice(0,10);
+  function calcSt(s,e) {
+    if (!s&&!e) return 'wait';
+    if (s&&todayStr<s) return 'wait';
+    if (e&&todayStr>e) return 'done';
     return 'active';
   }
-
   return activeSites.map(s => {
-    const procData = window.FB?._procAll?.[(s.name||'').replace(/[.#$/ \[\]]/g,'_')] || {};
-    const phases = Object.values(procData).sort((a,b)=>(a.order||0)-(b.order||0));
-    const done = phases.filter(p => calcPhaseStatus(p.startDate, p.doneDate) === 'done').length;
+    const key = (s.name||'').replace(/[.#$/ \[\]]/g,'_');
+    const pd = window.FB?._procAll?.[key] || {};
+    const phases = Object.values(pd).sort((a,b)=>(a.order||0)-(b.order||0));
+    const done  = phases.filter(p=>calcSt(p.startDate,p.doneDate)==='done').length;
     const total = phases.length;
-    const pct = total > 0 ? Math.round(done/total*100) : 0;
-    const activePh = phases.find(p => calcPhaseStatus(p.startDate, p.doneDate) === 'active');
+    const pct   = total>0 ? Math.round(done/total*100) : 0;
+    const actPh = phases.find(p=>calcSt(p.startDate,p.doneDate)==='active');
     return `
-      <div style="padding:14px 16px;border-bottom:1px solid var(--hair);cursor:pointer;" data-site="${s.name}">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--hair);cursor:pointer;"
+        onclick="openSiteDetail('${s.name.replace(/'/g,"\\'")}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div>
             <div style="font-size:14px;font-weight:700;">${s.name}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${activePh ? '🔨 '+activePh.name+' 진행중' : s.start !== '—' ? s.start : ''}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${actPh?'🔨 '+actPh.name+' 진행중':s.start&&s.start!=='—'?s.start:'공정 정보 없음'}</div>
           </div>
-          <span style="font-size:12px;font-weight:700;color:var(--accent);">${pct}%</span>
+          <span style="font-size:13px;font-weight:800;color:var(--accent);">${pct}%</span>
         </div>
-        <div style="height:6px;background:var(--hair);border-radius:4px;overflow:hidden;">
+        <div style="height:8px;background:var(--hair);border-radius:4px;overflow:hidden;">
           <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:4px;transition:width .4s;"></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:8px;">
           <span style="font-size:11px;color:var(--muted);">${done}/${total} 공정 완료</span>
-          <span style="font-size:11px;color:var(--accent);font-weight:700;">+${fmtSlim(s.profit)}</span>
+          <span style="font-size:11px;color:var(--accent);font-weight:700;">${s.profit>0?'+':''}${fmtSlim(s.profit)}</span>
         </div>
       </div>`;
   }).join('');
@@ -278,40 +211,30 @@ function renderActiveSitesHtml() {
 function renderAsSitesHtml() {
   const asData = window.FB?.asData || {};
   if (!Object.keys(asData).length) return '<div class="empty" style="padding:24px;">AS 데이터가 없어요</div>';
-
-  // asData를 현장별로 그룹핑
   const grouped = {};
-  Object.entries(asData).forEach(([key, a]) => {
-    const site = a.site || '현장 미지정';
-    if (!grouped[site]) grouped[site] = [];
-    grouped[site].push({ ...a, _key: key });
+  Object.entries(asData).forEach(([key,a]) => {
+    const site = a.site||'현장 미지정';
+    if (!grouped[site]) grouped[site]=[];
+    grouped[site].push({...a,_key:key});
   });
-
-  // 미처리 있는 현장 먼저, 최근순 정렬
-  const sortedSites = Object.entries(grouped).sort((a, b) => {
-    const aPending = a[1].filter(x => !x.done).length;
-    const bPending = b[1].filter(x => !x.done).length;
-    if (aPending !== bPending) return bPending - aPending;
-    const aLatest = Math.max(...a[1].map(x => x.createdAt || 0));
-    const bLatest = Math.max(...b[1].map(x => x.createdAt || 0));
-    return bLatest - aLatest;
+  const sorted = Object.entries(grouped).sort((a,b)=>{
+    const ap=a[1].filter(x=>!x.done).length, bp=b[1].filter(x=>!x.done).length;
+    if(ap!==bp) return bp-ap;
+    return Math.max(...b[1].map(x=>x.createdAt||0))-Math.max(...a[1].map(x=>x.createdAt||0));
   });
-
-  return sortedSites.map(([siteName, items]) => {
-    const pending = items.filter(a => !a.done);
-    const done = items.filter(a => a.done);
-
-    const pendingHtml = pending.map(a => `
+  return sorted.map(([siteName,items])=>{
+    const pending=items.filter(a=>!a.done);
+    const done=items.filter(a=>a.done);
+    const pendHtml=pending.map(a=>`
       <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#fffdf8;cursor:pointer;"
         onclick="modalAS('${a._key}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;color:#1B1814;margin-bottom:3px;">${a.content || '내용 없음'}</div>
+            <div style="font-size:13px;font-weight:700;margin-bottom:3px;">${a.content||'내용 없음'}</div>
             <div style="font-size:11px;color:var(--muted);line-height:1.6;">
-              ${a.phone && a.phone !== '없음' ? '📞 '+a.phone+'<br>' : ''}
-              ${a.manager ? '👤 담당: '+a.manager : ''}
-              ${a.worker ? ' · 작업자: '+a.worker : ''}<br>
-              📅 ${a.date === '날짜 조율중' ? '🕐 날짜 조율중' : (a.date || '날짜 미정')}
+              ${a.phone&&a.phone!=='없음'?'📞 '+a.phone+'<br>':''}
+              ${a.manager?'👤 '+a.manager:''}${a.worker?' · 작업자: '+a.worker:''}<br>
+              📅 ${a.date==='날짜 조율중'?'🕐 날짜 조율중':(a.date||'날짜 미정')}
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -319,23 +242,18 @@ function renderAsSitesHtml() {
             <span style="font-size:10px;color:var(--muted);">탭하여 수정 ›</span>
           </div>
         </div>
-      </div>
-    `).join('');
-
-    const doneHtml = done.map(a => `
-      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#f8faf8;opacity:0.7;cursor:pointer;"
+      </div>`).join('');
+    const doneHtml=done.map(a=>`
+      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#f8faf8;opacity:.7;cursor:pointer;"
         onclick="modalAS('${a._key}')">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;color:var(--muted);text-decoration:line-through;">${a.content || ''}</div>
-            <div style="font-size:11px;color:var(--muted);">${a.date || ''}</div>
+            <div style="font-size:12px;color:var(--muted);text-decoration:line-through;">${a.content||''}</div>
+            <div style="font-size:11px;color:var(--muted);">${a.date||''}</div>
           </div>
           <span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;flex-shrink:0;">✅ 완료</span>
         </div>
-      </div>
-    `).join('');
-
-    const isOpen = pending.length > 0;
+      </div>`).join('');
     return `
       <div style="border-bottom:2px solid var(--hair);">
         <div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#fff;"
@@ -344,15 +262,11 @@ function renderAsSitesHtml() {
             <div style="font-size:14px;font-weight:700;">${siteName}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px;">전체 ${items.length}건 · 미처리 ${pending.length}건</div>
           </div>
-          ${pending.length > 0
-            ? `<span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">미처리 ${pending.length}건</span>`
-            : `<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">✅ 완료</span>`
-          }
+          ${pending.length>0
+            ?`<span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">미처리 ${pending.length}건</span>`
+            :`<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">✅ 완료</span>`}
         </div>
-        <div style="${isOpen ? '' : 'display:none;'}">
-          ${pendingHtml}
-          ${doneHtml}
-        </div>
+        <div style="${pending.length>0?'':'display:none;'}">${pendHtml}${doneHtml}</div>
       </div>`;
   }).join('');
 }
@@ -362,270 +276,189 @@ function switchSiteTab(tab) {
   const content = document.getElementById('site-tab-content');
   const btnActive = document.getElementById('site-tab-active');
   const btnAs = document.getElementById('site-tab-as');
-  if (!content || !btnActive || !btnAs) return;
-  if (tab === 'active') {
-    btnActive.style.background = 'var(--accent)'; btnActive.style.color = '#fff';
-    btnAs.style.background = '#fff'; btnAs.style.color = 'var(--muted)';
+  if (!content||!btnActive||!btnAs) return;
+  if (tab==='active') {
+    btnActive.style.cssText='flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
+    btnAs.style.cssText='flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
     content.innerHTML = renderActiveSitesHtml();
   } else {
-    btnAs.style.background = 'var(--accent)'; btnAs.style.color = '#fff';
-    btnActive.style.background = '#fff'; btnActive.style.color = 'var(--muted)';
+    btnAs.style.cssText='flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
+    btnActive.style.cssText='flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
     content.innerHTML = renderAsSitesHtml();
   }
 }
 
-// ===== INPUT (거래 입력) =====
+// 현장 상세로 이동하는 공통 함수
+function openSiteDetail(siteName) {
+  const found = (window.MOCK?.sites||[]).find(s=>s.name===siteName);
+  if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s=>s.name!==siteName))];
+  const key = siteName.replace(/[.#$/ \[\]]/g,'_');
+  db.ref('procData/'+key).once('value').then(snap=>{
+    if (!window.FB) window.FB={};
+    if (!window.FB._procAll) window.FB._procAll={};
+    window.FB._procAll[key] = snap.val()||{};
+    window._procCache = snap.val()||{};
+    navigate('siteDetail');
+  }).catch(()=>navigate('siteDetail'));
+}
+
+// ===== INPUT =====
 let inputState = {
-  tab: '매입',
-  mode: 'detail',
-  stage: '중도금',
-  payMethod: '계좌이체',
-  phase: '도배',
-  amount: '',
-  invoice: true,
-  inputter: '김실장',
-  site: '',
+  tab:'매입', mode:'detail', stage:'중도금', payMethod:'계좌이체',
+  phase:'도배', amount:'', invoice:true, inputter:'', site:'',
 };
 
-// 최근 선택 현장 (localStorage)
 function getRecentSites() {
-  try { return JSON.parse(localStorage.getItem('recent_sites') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('recent_sites')||'[]'); } catch { return []; }
 }
 function addRecentSite(name) {
-  let arr = getRecentSites().filter(s => s !== name);
+  let arr = getRecentSites().filter(s=>s!==name);
   arr.unshift(name);
-  localStorage.setItem('recent_sites', JSON.stringify(arr.slice(0, 5)));
+  localStorage.setItem('recent_sites', JSON.stringify(arr.slice(0,5)));
 }
 
 async function submitEntry() {
-  const siteInp = document.getElementById('site-input');
+  const siteInp   = document.getElementById('site-input');
   const amountInp = document.getElementById('amount-input');
-  const dateInp = document.querySelector('#pg-input input[type=date]') || document.querySelector('input[type=date]');
-
-  const site = siteInp?.value?.trim() || inputState.site;
-  const rawAmount = amountInp?.value?.replace(/[^0-9]/g, '') || '';
-  const amount = parseInt(rawAmount) || 0;
-  const date = dateInp?.value || new Date().toISOString().slice(0, 10);
-
-  if (!site) { alert('현장을 선택해주세요'); siteInp?.focus(); return; }
+  const dateInp   = document.querySelector('input[type=date]');
+  const site   = siteInp?.value?.trim() || inputState.site;
+  const rawAmt = amountInp?.value?.replace(/[^0-9]/g,'')||'';
+  const amount = parseInt(rawAmt)||0;
+  const date   = dateInp?.value || new Date().toISOString().slice(0,10);
+  if (!site)   { alert('현장을 선택해주세요'); siteInp?.focus(); return; }
   if (!amount) { alert('금액을 입력해주세요'); amountInp?.focus(); return; }
-
-  // 입력자 확인
   const activeChip = document.querySelector('.chip-group .chip.is-active');
-  const writer = activeChip?.textContent?.trim() || AUTH.current()?.name || '';
-
-  // 공정
-  const phaseChips = document.querySelectorAll('.phase-chips .chip.is-active');
-  const process = Array.from(phaseChips).map(c => c.textContent.trim()).join(', ') || inputState.phase || '';
-
-  // 메모
+  const writer = activeChip?.textContent?.trim() || AUTH.current()?.name||'';
   const memoInp = document.querySelector('textarea.input');
-  const memo = memoInp?.value?.trim() || '';
-
+  const memo = memoInp?.value?.trim()||'';
   const entry = {
-    type: inputState.tab === '매출' ? 'revenue' : inputState.tab === 'AS' ? 'as' : 'cost',
-    site, amount, date, process, memo, writer,
-    payMethod: inputState.payMethod || '',
-    payStage: inputState.stage || '',
-    taxInvoice: inputState.invoice && inputState.tab === '매출',
-    imageBase64: window._entryPhotos?.[0] || null,
-    extraPhotos: window._entryPhotos?.slice(1) || [],
+    type: inputState.tab==='매출'?'revenue':inputState.tab==='AS'?'as':'cost',
+    site, amount, date, process:inputState.phase||'', memo, writer,
+    payMethod:inputState.payMethod||'', payStage:inputState.stage||'',
+    taxInvoice:inputState.invoice&&inputState.tab==='매출',
+    imageBase64:window._entryPhotos?.[0]||null,
+    extraPhotos:window._entryPhotos?.slice(1)||[],
   };
-
   const btn = document.querySelector('.form-submit .btn');
-  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
-
+  if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
     await window.FB_API.saveEntry(entry);
-    // 초기화
-    inputState.site = '';
-    inputState.amount = '';
-    window._entryPhotos = [];
-    if (siteInp) siteInp.value = '';
-    if (amountInp) amountInp.value = '';
-    if (memoInp) memoInp.value = '';
+    inputState.site=''; inputState.amount=''; window._entryPhotos=[];
+    if (siteInp) siteInp.value='';
+    if (amountInp) amountInp.value='';
+    if (memoInp) memoInp.value='';
     navigate('input');
-    setTimeout(() => alert('✅ 저장 완료!'), 100);
+    setTimeout(()=>alert('✅ 저장 완료!'),100);
   } catch(e) {
     alert('저장 실패. 다시 시도해주세요.');
-    if (btn) { btn.disabled = false; btn.textContent = '+ 입력 완료'; }
+    if (btn) { btn.disabled=false; btn.textContent='+ 입력 완료'; }
   }
 }
 
 function openSiteDropdown() {
   const dd = document.getElementById('site-dropdown');
   if (!dd) return;
-  dd.style.display = 'block';
-  filterSiteDropdown(document.getElementById('site-input')?.value || '');
+  dd.style.display='block';
+  filterSiteDropdown(document.getElementById('site-input')?.value||'');
 }
-
 function closeSiteDropdown() {
   const dd = document.getElementById('site-dropdown');
-  if (dd) dd.style.display = 'none';
+  if (dd) dd.style.display='none';
 }
-
 function filterSiteDropdown(query) {
   const dd = document.getElementById('site-dropdown-list');
   if (!dd) return;
-  const allSites = (window.MOCK?.sites || []).map(s => s.name);
-  const recent = getRecentSites().filter(s => allSites.includes(s));
+  const allSites = (M.sites||[]).map(s=>s.name);
+  const recent = getRecentSites().filter(s=>allSites.includes(s));
   const q = query.trim().toLowerCase();
-
-  let html = '';
-
-  // 최근 선택
-  const recentFiltered = recent.filter(s => !q || s.toLowerCase().includes(q));
-  if (recentFiltered.length > 0) {
-    html += `<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">🕐 최근 선택</div>`;
-    html += recentFiltered.map(s => `
-      <div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
-        style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
-        onmousedown="event.preventDefault()">
-        ${s}
-      </div>`).join('');
+  let html='';
+  const rF = recent.filter(s=>!q||s.toLowerCase().includes(q));
+  if (rF.length) {
+    html+=`<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">🕐 최근 선택</div>`;
+    html+=rF.map(s=>`<div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
+      style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
+      onmousedown="event.preventDefault()">${s}</div>`).join('');
   }
-
-  // 전체 현장
-  const others = allSites.filter(s => !recent.includes(s) && (!q || s.toLowerCase().includes(q)));
-  if (others.length > 0) {
-    html += `<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">전체 현장</div>`;
-    html += others.map(s => `
-      <div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
-        style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
-        onmousedown="event.preventDefault()">
-        ${s}
-      </div>`).join('');
+  const others = allSites.filter(s=>!recent.includes(s)&&(!q||s.toLowerCase().includes(q)));
+  if (others.length) {
+    html+=`<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">전체 현장</div>`;
+    html+=others.map(s=>`<div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
+      style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
+      onmousedown="event.preventDefault()">${s}</div>`).join('');
   }
-
-  if (!html) {
-    html = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">검색 결과 없음</div>`;
-  }
-
-  dd.innerHTML = html;
-  document.getElementById('site-dropdown').style.display = 'block';
+  if (!html) html=`<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">검색 결과 없음</div>`;
+  dd.innerHTML=html;
+  document.getElementById('site-dropdown').style.display='block';
 }
-
 function selectSite(name) {
-  inputState.site = name;
-  addRecentSite(name);
-  const inp = document.getElementById('site-input');
-  if (inp) inp.value = name;
+  inputState.site=name; addRecentSite(name);
+  const inp=document.getElementById('site-input');
+  if (inp) inp.value=name;
   closeSiteDropdown();
 }
-
-// 외부 클릭 시 드롭다운 닫기
-document.addEventListener('click', (e) => {
-  const inp = document.getElementById('site-input');
-  const dd = document.getElementById('site-dropdown');
-  if (dd && inp && !inp.contains(e.target) && !dd.contains(e.target)) {
-    closeSiteDropdown();
-  }
+document.addEventListener('click',e=>{
+  const inp=document.getElementById('site-input');
+  const dd=document.getElementById('site-dropdown');
+  if (dd&&inp&&!inp.contains(e.target)&&!dd.contains(e.target)) closeSiteDropdown();
 });
 
 function renderInput() {
-  const tabsHtml = [
-    { k: '매입', i: '📦' },
-    { k: '매출', i: '💰' },
-    { k: 'AS', i: '🔧' },
-  ].map(t => `
-    <button class="tab ${inputState.tab === t.k ? 'is-active' : ''}" data-tab="${t.k}">${t.i} ${t.k}</button>
-  `).join('');
-
-  const stageIcons = { '계약금': '📋', '착수금': '🔨', '중도금': '💼', '잔금': '✅' };
-  const stagesHtml = M.paymentStages.map(s => `
-    <button class="chip ${inputState.stage === s ? 'is-active' : ''}" data-stage="${s}">${stageIcons[s]} ${s}</button>
-  `).join('');
-
-  const payIcons = { '현금': '💵', '계좌이체': '🏦', '신용카드': '💳' };
-  const payHtml = M.paymentMethods.map(p => `
-    <button class="chip ${inputState.payMethod === p ? 'is-active' : ''}" data-pay="${p}">${payIcons[p]} ${p}</button>
-  `).join('');
-
-  const phasesHtml = M.phases.map(p => `
-    <button class="chip ${inputState.phase === p ? 'is-active' : ''}" data-phase="${p}">${p}</button>
-  `).join('') + '<button class="chip">✏️ 직접</button>';
-
-  const inputtersHtml = M.inputters.map(n => `
-    <button class="chip ${inputState.inputter === n ? 'is-active' : ''}" data-inputter="${n}">${n}</button>
-  `).join('') + '<button class="chip">✏️ 직접</button>';
-
-  const formattedAmount = Number(inputState.amount || 0).toLocaleString('ko-KR');
-  const vat = Math.round(Number(inputState.amount || 0) * 0.1);
+  const tabsHtml = ['매입','매출','AS'].map((k,i)=>{
+    const ic=['📦','💰','🔧'][i];
+    return `<button class="tab ${inputState.tab===k?'is-active':''}" data-tab="${k}">${ic} ${k}</button>`;
+  }).join('');
+  const stageIcons={'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
+  const stagesHtml=(M.paymentStages||[]).map(s=>`<button class="chip ${inputState.stage===s?'is-active':''}" data-stage="${s}">${stageIcons[s]||''} ${s}</button>`).join('');
+  const payIcons={'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
+  const payHtml=(M.paymentMethods||[]).map(p=>`<button class="chip ${inputState.payMethod===p?'is-active':''}" data-pay="${p}">${payIcons[p]||''} ${p}</button>`).join('');
+  const phasesHtml=(M.phases||[]).map(p=>`<button class="chip ${inputState.phase===p?'is-active':''}" data-phase="${p}">${p}</button>`).join('')+'<button class="chip">✏️ 직접</button>';
+  const inputtersHtml=(M.inputters||[]).map(n=>`<button class="chip ${inputState.inputter===n?'is-active':''}" data-inputter="${n}">${n}</button>`).join('')+'<button class="chip">✏️ 직접</button>';
+  const fmtAmt = Number(inputState.amount||0).toLocaleString('ko-KR');
+  const vat = Math.round(Number(inputState.amount||0)*0.1);
+  const today = new Date().toISOString().slice(0,10);
 
   return `
-    <div class="page-header">
-      <div>
-        <div class="h-eyebrow">새 거래</div>
-        <h1 class="h-title">거래 입력</h1>
-      </div>
-    </div>
+    <div class="page-header"><div><div class="h-eyebrow">새 거래</div><h1 class="h-title">거래 입력</h1></div></div>
     <div class="page-body">
-      <!-- 상단: 빠른입력 버튼 -->
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-        <button onclick="window.MODALS.quickTip()" 
-          style="background:var(--warn-soft);color:var(--warn);border:1.5px solid var(--warn);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
+        <button onclick="window.MODALS.quickTip()"
+          style="background:var(--warn-soft);color:var(--warn);border:1.5px solid var(--warn);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
           ⚡ 빠른입력
         </button>
       </div>
-
       <button class="unsorted-banner" onclick="openPendingList()">
         <span class="pill pill-warn">📋 미정리 ${M.unsorted}</span>
         <span>탭해서 정리하기</span>
-        <span style="margin-left: auto;">›</span>
+        <span style="margin-left:auto;">›</span>
       </button>
-
       <div class="tabs">${tabsHtml}</div>
-
       <div class="field" style="position:relative;">
         <label class="field-label">현장 <span class="req">*</span></label>
         <input class="input" id="site-input" placeholder="현장을 선택하거나 직접 입력" autocomplete="off"
-          value="${inputState.site || ''}"
-          oninput="filterSiteDropdown(this.value)"
-          onfocus="openSiteDropdown()"
-        >
+          value="${inputState.site||''}" oninput="filterSiteDropdown(this.value)" onfocus="openSiteDropdown()">
         <div id="site-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:200;background:#fff;border:1.5px solid var(--hair);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:220px;overflow-y:auto;margin-top:4px;">
           <div id="site-dropdown-list"></div>
         </div>
       </div>
-
       <div class="field">
         <label class="field-label">금액 (원) <span class="req">*</span></label>
         <div class="input-wrap">
-          <input class="input input-amount num" id="amount-input" value="${formattedAmount}" placeholder="금액을 입력해주세요">
+          <input class="input input-amount num" id="amount-input" value="${fmtAmt}" placeholder="금액을 입력해주세요">
           <span class="input-suffix">원</span>
         </div>
       </div>
-
       <div class="field">
         <label class="field-label">날짜</label>
-        <input class="input" type="date" value="2026-05-06">
+        <input class="input" type="date" value="${today}">
       </div>
-
-      ${inputState.tab === '매출' ? `
-        <div class="field">
-          <label class="field-label">결제 단계</label>
-          <div class="chip-group">${stagesHtml}</div>
-        </div>
-        <div class="field">
-          <label class="field-label">결제 방법</label>
-          <div class="chip-group">${payHtml}</div>
-        </div>
-      ` : `
-        <div class="field">
-          <label class="field-label">공정</label>
-          <div class="chip-group">${phasesHtml}</div>
-        </div>
-        <div class="field">
-          <label class="field-label">결제 방법</label>
-          <div class="chip-group">${payHtml}</div>
-        </div>
+      ${inputState.tab==='매출'?`
+        <div class="field"><label class="field-label">결제 단계</label><div class="chip-group">${stagesHtml}</div></div>
+        <div class="field"><label class="field-label">결제 방법</label><div class="chip-group">${payHtml}</div></div>
+      `:`
+        <div class="field"><label class="field-label">공정</label><div class="chip-group">${phasesHtml}</div></div>
+        <div class="field"><label class="field-label">결제 방법</label><div class="chip-group">${payHtml}</div></div>
       `}
-
-      <div class="field">
-        <label class="field-label">메모</label>
-        <textarea class="input" rows="2" placeholder="선택사항"></textarea>
-      </div>
-
+      <div class="field"><label class="field-label">메모</label><textarea class="input" rows="2" placeholder="선택사항"></textarea></div>
       <div class="field">
         <label class="field-label">📎 영수증 첨부 <span class="muted">선택사항</span></label>
         <div class="grid-2" style="margin-bottom:8px;">
@@ -636,155 +469,108 @@ function renderInput() {
         <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
         <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
-
-      ${inputState.tab === '매출' ? `
-      <div class="invoice-toggle ${inputState.invoice ? '' : 'off'}" id="invoice-toggle">
-        <div class="checkbox">
-          <svg viewBox="0 0 12 9" fill="none"><path d="M1 4.5L4 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div>
-          <div class="it-title">📄 세금계산서 발행</div>
-          <div class="it-meta">${inputState.invoice ? `부가세 ₩${vat.toLocaleString('ko-KR')} 자동 계산` : '체크하면 부가세(10%) 자동 계산됩니다'}</div>
-        </div>
-      </div>` : ''}
-
-      <div class="field">
-        <label class="field-label">입력자</label>
-        <div class="chip-group">${inputtersHtml}</div>
-      </div>
-
+      ${inputState.tab==='매출'?`
+      <div class="invoice-toggle ${inputState.invoice?'':'off'}" id="invoice-toggle">
+        <div class="checkbox"><svg viewBox="0 0 12 9" fill="none"><path d="M1 4.5L4 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><div class="it-title">📄 세금계산서 발행</div>
+        <div class="it-meta">${inputState.invoice?`부가세 ₩${vat.toLocaleString('ko-KR')} 자동 계산`:'체크하면 부가세(10%) 자동 계산됩니다'}</div></div>
+      </div>`:''}
+      <div class="field"><label class="field-label">입력자</label><div class="chip-group">${inputtersHtml}</div></div>
       <div class="form-submit">
         <button class="btn btn-primary btn-block" onclick="submitEntry()">+ 입력 완료</button>
       </div>
-
       <div class="section-label">📌 최근 입력 내역</div>
       <div class="list">
-        ${Object.entries(window.FB?.entries || {})
-          .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
-          .slice(0, 5)
-          .map(([key, e]) => {
-            const cls = e.type === 'revenue' ? 'pill-accent' : e.type === 'as' ? 'pill-pin' : 'pill-warn';
-            const label = e.type === 'revenue' ? '매출' : e.type === 'as' ? 'AS' : '매입';
-            const sign = e.type === 'revenue' ? '+' : '−';
-            const date = e.date ? e.date.slice(5).replace('-', '/') : '';
-            // 메타 정보 조합 (공정/결제단계 · 결제방법 · 날짜 · 입력자 · 메모)
-            const metaParts = [
-              e.process || e.payStage || '',
-              e.payMethod || '',
-              date,
-              e.writer || '',
-              e.memo || '',
-            ].filter(Boolean);
-            const meta = metaParts.join(' · ');
-            return `
-              <button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
-                <span class="pill ${cls}">${label}</span>
-                <div style="min-width:0;">
-                  <div class="lr-title">${e.site || ''}</div>
-                  <div class="lr-meta" style="white-space:normal;line-height:1.4;">${meta}</div>
-                </div>
-                <span class="lr-amount num" style="flex-shrink:0;">${sign}${fmtSlim(e.amount || 0)}</span>
-              </button>
-            `;
-          }).join('') || '<div class="empty">입력 내역이 없어요</div>'}
+        ${Object.entries(window.FB?.entries||{})
+          .sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0))
+          .slice(0,5)
+          .map(([key,e])=>{
+            const cls=e.type==='revenue'?'pill-accent':e.type==='as'?'pill-pin':'pill-warn';
+            const label=e.type==='revenue'?'매출':e.type==='as'?'AS':'매입';
+            const sign=e.type==='revenue'?'+':'−';
+            const date=e.date?e.date.slice(5).replace('-','/'):'';
+            const metaParts=[e.process||e.payStage||'',e.payMethod||'',date,e.writer||'',e.memo||''].filter(Boolean);
+            return `<button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
+              <span class="pill ${cls}">${label}</span>
+              <div style="min-width:0;">
+                <div class="lr-title">${e.site||''}</div>
+                <div class="lr-meta" style="white-space:normal;line-height:1.4;">${metaParts.join(' · ')}</div>
+              </div>
+              <span class="lr-amount num" style="flex-shrink:0;">${sign}${fmtSlim(e.amount||0)}</span>
+            </button>`;
+          }).join('')||'<div class="empty">입력 내역이 없어요</div>'}
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
-// ===== 거래 입력 사진 첨부 =====
-window._entryPhotos = [];
-
-function entryOpenCamera() {
-  document.getElementById('entry-file-camera')?.click();
-}
-function entryOpenGallery() {
-  document.getElementById('entry-file-gallery')?.click();
-}
+// 거래 입력 사진 첨부
+window._entryPhotos=[];
+function entryOpenCamera() { document.getElementById('entry-file-camera')?.click(); }
+function entryOpenGallery() { document.getElementById('entry-file-gallery')?.click(); }
 function entryHandleFile(e) {
-  const files = Array.from(e.target.files || []);
-  files.forEach(file => {
-    if (window._entryPhotos.length >= 5) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      window._entryPhotos.push(ev.target.result);
-      entryRenderPhotos();
-    };
-    reader.readAsDataURL(file);
+  Array.from(e.target.files||[]).forEach(file=>{
+    if (window._entryPhotos.length>=5) return;
+    const r=new FileReader();
+    r.onload=ev=>{ window._entryPhotos.push(ev.target.result); entryRenderPhotos(); };
+    r.readAsDataURL(file);
   });
-  e.target.value = '';
+  e.target.value='';
 }
 function entryRenderPhotos() {
-  const wrap = document.getElementById('entry-photo-preview');
+  const wrap=document.getElementById('entry-photo-preview');
   if (!wrap) return;
-  wrap.innerHTML = window._entryPhotos.map((p, i) => `
+  wrap.innerHTML=window._entryPhotos.map((p,i)=>`
     <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
       <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
       <button onclick="entryRemovePhoto(${i})"
         style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
-function entryRemovePhoto(idx) {
-  window._entryPhotos.splice(idx, 1);
-  entryRenderPhotos();
-}
+function entryRemovePhoto(idx) { window._entryPhotos.splice(idx,1); entryRenderPhotos(); }
 
 // ===== SITES =====
-let sitesFilter = '공사중';
-let sitesQuery = '';
+let sitesFilter='공사중', sitesQuery='';
+
 function renderSites() {
-  const filters = ['공사중', '전체', '계약완료', 'AS관리'];
-  let list = sitesFilter === '전체' ? [...M.sites] : M.sites.filter(s => s.status === sitesFilter);
-  // 공사중 먼저, 나머지 최근 등록순 (createdAt 역순)
-  list.sort((a, b) => {
-    const aActive = a.status === '공사중' ? 1 : 0;
-    const bActive = b.status === '공사중' ? 1 : 0;
-    if (aActive !== bActive) return bActive - aActive;
-    return (b._createdAt || 0) - (a._createdAt || 0);
+  const filters=['공사중','전체','계약완료','AS관리'];
+  let list = sitesFilter==='전체'?[...M.sites]:M.sites.filter(s=>s.status===sitesFilter);
+  list.sort((a,b)=>{
+    const aa=a.status==='공사중'?1:0, bb=b.status==='공사중'?1:0;
+    if(aa!==bb) return bb-aa;
+    return (b._createdAt||0)-(a._createdAt||0);
   });
-  if (sitesQuery) list = list.filter(s => s.name.includes(sitesQuery) || s.client.includes(sitesQuery));
-
-  const filterHtml = filters.map(f => `
-    <button class="filter-chip ${sitesFilter === f ? 'is-active' : ''}" data-filter="${f}">${f}</button>
-  `).join('');
-
-  const cardsHtml = list.map(s => `
-    <div class="site-card" data-site="${s.name}">
+  if (sitesQuery) list=list.filter(s=>s.name.includes(sitesQuery)||s.client.includes(sitesQuery));
+  const filterHtml=filters.map(f=>`<button class="filter-chip ${sitesFilter===f?'is-active':''}" data-filter="${f}">${f}</button>`).join('');
+  const cardsHtml=list.map(s=>`
+    <div class="site-card" onclick="openSiteDetail('${s.name.replace(/'/g,"\\'")}')">
       <div class="site-card-head">
         <div>
           <div class="site-card-name">${s.name}</div>
-          <div class="site-card-meta">${s.client} · ${s.start}${s.end !== '—' ? ' – ' + s.end : ''}</div>
+          <div class="site-card-meta">${s.client} · ${s.start}${s.end&&s.end!=='—'?' – '+s.end:''}</div>
         </div>
         <span class="pill status-${s.status}">${s.status}</span>
       </div>
       <div class="site-card-stats">
         <div><div class="s-k">매출</div><div class="s-v num">${fmtSlim(s.revenue)}</div></div>
         <div><div class="s-k">매입</div><div class="s-v num">${fmtSlim(s.cost)}</div></div>
-        <div><div class="s-k">이익</div><div class="s-v num ${s.profit > 0 ? 'profit' : ''}">${s.profit > 0 ? '+' : ''}${fmtSlim(s.profit)}</div></div>
+        <div><div class="s-k">이익</div><div class="s-v num ${s.profit>0?'profit':''}">${s.profit>0?'+':''}${fmtSlim(s.profit)}</div></div>
       </div>
-      ${s.progress > 0 ? `
-      <div class="progress-row">
+      ${s.progress>0?`<div class="progress-row">
         <span class="p-label">${s.phase}</span>
-        <div class="p-track"><div class="p-fill" style="width: ${s.progress}%"></div></div>
+        <div class="p-track"><div class="p-fill" style="width:${s.progress}%"></div></div>
         <span class="p-pct num">${s.progress}%</span>
-      </div>` : ''}
-    </div>
-  `).join('') || '<div class="empty">결과가 없습니다</div>';
-
+      </div>`:''}
+    </div>`).join('')||'<div class="empty">결과가 없습니다</div>';
   return `
     <div class="page-header">
       <div>
-        <div class="h-eyebrow">현장 ${M.sites.length}개 · 진행중 ${M.sites.filter(x => x.status === '공사중').length}</div>
+        <div class="h-eyebrow">현장 ${M.sites.length}개 · 진행중 ${M.sites.filter(x=>x.status==='공사중').length}</div>
         <h1 class="h-title">현장 관리</h1>
       </div>
       <button class="btn btn-primary btn-sm" data-modal="site">+ 등록</button>
     </div>
-    <div style="padding: 0 var(--pad) 12px;">
-      <div class="search-box">
-        ${ICON.search}
-        <input class="search-input" placeholder="현장명·고객명 검색" id="sites-search" value="${sitesQuery}">
-      </div>
+    <div style="padding:0 var(--pad) 12px;">
+      <div class="search-box">${ICON.search}<input class="search-input" placeholder="현장명·고객명 검색" id="sites-search" value="${sitesQuery}"></div>
     </div>
     <div class="filter-row">${filterHtml}</div>
     <div class="page-body">
@@ -793,210 +579,134 @@ function renderSites() {
         <button class="btn btn-ghost btn-sm">📤 구글 캘린더</button>
       </div>
       ${cardsHtml}
-    </div>
-  `;
+    </div>`;
 }
 
 // ===== Router =====
-const routes = {
-  home: { render: renderHome, tab: 'home' },
-  sites: { render: renderSites, tab: 'sites' },
-  siteDetail: { render: () => window.PAGES_EXTRA.renderSiteDetail(), tab: 'sites' },
-  input: { render: renderInput, tab: 'input' },
-  quickInput: { render: renderInput, tab: 'input' },
-  calendar: { render: () => window.PAGES_EXTRA.renderCalendar(), tab: 'calendar' },
-  settings: { render: () => window.PAGES_EXTRA.renderSettings(), tab: 'settings' },
-  photos: { render: () => window.PAGES_EXTRA.renderPhotos(), tab: 'settings' },
-  tax: { render: () => window.PAGES_EXTRA.renderTax(), tab: 'home' },
+const routes={
+  home:       { render:renderHome,   tab:'home' },
+  sites:      { render:renderSites,  tab:'sites' },
+  siteDetail: { render:()=>window.PAGES_EXTRA.renderSiteDetail(), tab:'sites' },
+  input:      { render:renderInput,  tab:'input' },
+  quickInput: { render:renderInput,  tab:'input' },
+  calendar:   { render:()=>window.PAGES_EXTRA.renderCalendar(),  tab:'calendar' },
+  settings:   { render:()=>window.PAGES_EXTRA.renderSettings(),  tab:'settings' },
+  photos:     { render:()=>window.PAGES_EXTRA.renderPhotos(),    tab:'settings' },
+  tax:        { render:()=>window.PAGES_EXTRA.renderTax(),       tab:'home' },
 };
 
-let currentPage = 'home';
+let currentPage='home';
 function navigate(page) {
   if (!routes[page]) return;
-  currentPage = page;
-  window.currentPage = page;
-
-  // 탭바 즉시 업데이트
-  const activeTab = routes[page].tab;
-  $$('.tabbar-item, .tabbar-fab').forEach(b => {
-    b.classList.toggle('is-active', b.dataset.page === activeTab);
-  });
-
-  // 콘텐츠 렌더링
-  $('#app').innerHTML = `<div class="page is-active">${routes[page].render()}</div>`;
-  window.scrollTo(0, 0);
+  currentPage=page; window.currentPage=page;
+  const activeTab=routes[page].tab;
+  $$('.tabbar-item,.tabbar-fab').forEach(b=>b.classList.toggle('is-active',b.dataset.page===activeTab));
+  $('#app').innerHTML=`<div class="page is-active">${routes[page].render()}</div>`;
+  window.scrollTo(0,0);
 }
-window.navigate = navigate;
+window.navigate=navigate;
 
 // ===== Events =====
-document.addEventListener('click', (e) => {
-  if (e.target.closest('[data-modal]') || e.target.closest('[data-modal-close]')) return;
+document.addEventListener('click',e=>{
+  if (e.target.closest('[data-modal]')||e.target.closest('[data-modal-close]')) return;
 
-  const tab = e.target.closest('[data-page]');
+  const tab=e.target.closest('[data-page]');
   if (tab) { e.preventDefault(); navigate(tab.dataset.page); return; }
 
-  const goto = e.target.closest('[data-goto]');
+  const goto=e.target.closest('[data-goto]');
   if (goto) { e.preventDefault(); navigate(goto.dataset.goto); return; }
 
-  const filter = e.target.closest('[data-filter]');
-  if (filter && currentPage === 'sites') { sitesFilter = filter.dataset.filter; navigate('sites'); return; }
+  const filter=e.target.closest('[data-filter]');
+  if (filter&&currentPage==='sites') { sitesFilter=filter.dataset.filter; navigate('sites'); return; }
 
-  const siteCard = e.target.closest('[data-site]');
-  if (siteCard) {
-    const siteName = siteCard.dataset.site;
-    const found = (window.MOCK?.sites || []).find(s => s.name === siteName);
-    if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s => s.name !== siteName))];
-    window._procCache = {};
-    const key = siteName.replace(/[.#$/ \[\]]/g, '_');
-    db.ref('procData/' + key).once('value').then(snap => {
-      window._procCache = snap.val() || {};
-      navigate('siteDetail');
-    }).catch(() => navigate('siteDetail'));
-    return;
-  }
+  const inputTab=e.target.closest('[data-tab]');
+  if (inputTab&&(currentPage==='input'||currentPage==='quickInput')) { inputState.tab=inputTab.dataset.tab; navigate('input'); return; }
 
-  const inputTab = e.target.closest('[data-tab]');
-  if (inputTab && (currentPage === 'input' || currentPage === 'quickInput')) {
-    inputState.tab = inputTab.dataset.tab; navigate('input'); return;
-  }
-  const stage = e.target.closest('[data-stage]');
-  if (stage) { inputState.stage = stage.dataset.stage; navigate('input'); return; }
-  const pay = e.target.closest('[data-pay]');
-  if (pay) { inputState.payMethod = pay.dataset.pay; navigate('input'); return; }
-  const phase = e.target.closest('[data-phase]');
-  if (phase) { inputState.phase = phase.dataset.phase; navigate('input'); return; }
-  const inputter = e.target.closest('[data-inputter]');
-  if (inputter) { inputState.inputter = inputter.dataset.inputter; navigate('input'); return; }
-  const mode = e.target.closest('[data-mode]');
-  if (mode) { inputState.mode = mode.dataset.mode; navigate('input'); return; }
+  const stage=e.target.closest('[data-stage]');
+  if (stage) { inputState.stage=stage.dataset.stage; navigate('input'); return; }
+  const pay=e.target.closest('[data-pay]');
+  if (pay) { inputState.payMethod=pay.dataset.pay; navigate('input'); return; }
+  const phase=e.target.closest('[data-phase]');
+  if (phase) { inputState.phase=phase.dataset.phase; navigate('input'); return; }
+  const inputter=e.target.closest('[data-inputter]');
+  if (inputter) { inputState.inputter=inputter.dataset.inputter; navigate('input'); return; }
+  const mode=e.target.closest('[data-mode]');
+  if (mode) { inputState.mode=mode.dataset.mode; navigate('input'); return; }
 
-  if (e.target.closest('#invoice-toggle')) { inputState.invoice = !inputState.invoice; navigate('input'); return; }
-
-  if (e.target.closest('#logout-btn')) {
-    if (confirm('로그아웃 하시겠어요?')) { AUTH.logout(); location.reload(); }
-    return;
-  }
+  if (e.target.closest('#invoice-toggle')) { inputState.invoice=!inputState.invoice; navigate('input'); return; }
+  if (e.target.closest('#logout-btn')) { if(confirm('로그아웃 하시겠어요?')) { AUTH.logout(); location.reload(); } return; }
 });
 
-document.addEventListener('input', (e) => {
-  if (e.target.id === 'amount-input') {
-    const raw = e.target.value.replace(/[^0-9]/g, '');
-    inputState.amount = raw;
-    e.target.value = Number(raw || 0).toLocaleString('ko-KR');
-    const meta = $('.invoice-toggle .it-meta');
-    if (meta && inputState.invoice) {
-      const vat = Math.round(Number(raw || 0) * 0.1);
-      meta.textContent = `부가세 ₩${vat.toLocaleString('ko-KR')} 자동 계산`;
-    }
+document.addEventListener('input',e=>{
+  if (e.target.id==='amount-input') {
+    const raw=e.target.value.replace(/[^0-9]/g,'');
+    inputState.amount=raw;
+    e.target.value=Number(raw||0).toLocaleString('ko-KR');
+    const meta=$('.invoice-toggle .it-meta');
+    if (meta&&inputState.invoice) meta.textContent=`부가세 ₩${Math.round(Number(raw||0)*.1).toLocaleString('ko-KR')} 자동 계산`;
   }
-  if (e.target.id === 'sites-search') {
-    sitesQuery = e.target.value;
-    // partial re-render to keep focus
-    const body = $('.page-body');
-    if (body) {
-      navigate('sites');
-      const search = $('#sites-search');
-      if (search) { search.focus(); search.setSelectionRange(sitesQuery.length, sitesQuery.length); }
-    }
+  if (e.target.id==='sites-search') {
+    sitesQuery=e.target.value;
+    navigate('sites');
+    const s=$('#sites-search');
+    if (s) { s.focus(); s.setSelectionRange(sitesQuery.length,sitesQuery.length); }
   }
-});
-
-
-// ===== Init =====
-document.addEventListener('DOMContentLoaded', function() {
-  const loggedIn = bootAuth();
-  if (loggedIn) {
-    navigate('home');
-  }
-  // 로딩 화면 제거
-  setTimeout(() => {
-    const ls = document.getElementById('loading-screen');
-    if (ls) ls.style.display = 'none';
-  }, 800);
 });
 
 // ===== 미정리 목록 =====
 function openPendingList() {
-  const pending = window.FB?.pending || {};
-  const list = Object.entries(pending)
-    .filter(([, p]) => p.status !== 'done')
-    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-
-  function renderList() {
-    return list.map(([key, p]) => {
-      const isDone = p.status === 'done';
-      const date = p.date || '';
-      const amount = p.totalAmount ? p.totalAmount.toLocaleString('ko-KR') + '원' : '금액 미입력';
-      const statusColor = isDone ? '#2e7d32' : p.status === 'progress' ? '#b07d00' : '#9A4B2E';
-      const statusBg = isDone ? '#e8f5e9' : p.status === 'progress' ? '#fff3cd' : '#fdecea';
-      const statusLabel = isDone ? '완료' : p.status === 'progress' ? '정리중' : '임시저장';
-      return `
-        <div style="background:#fff;border-radius:14px;border:1px solid var(--hair);padding:14px 16px;margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${p.site || '현장 미지정'}</div>
-              <div style="font-size:12px;color:var(--muted);">${date} · ${p.writer || ''}</div>
-            </div>
-            <span style="background:${statusBg};color:${statusColor};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0;margin-left:8px;">${statusLabel}</span>
+  const pending=window.FB?.pending||{};
+  const list=Object.entries(pending)
+    .filter(([,p])=>p.status!=='done')
+    .sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+  const renderList=()=>list.map(([key,p])=>{
+    const isDone=p.status==='done';
+    const amount=p.totalAmount?p.totalAmount.toLocaleString('ko-KR')+'원':'금액 미입력';
+    const statusColor=isDone?'#2e7d32':p.status==='progress'?'#b07d00':'#9A4B2E';
+    const statusBg=isDone?'#e8f5e9':p.status==='progress'?'#fff3cd':'#fdecea';
+    const statusLabel=isDone?'완료':p.status==='progress'?'정리중':'임시저장';
+    return `
+      <div style="background:#fff;border-radius:14px;border:1px solid var(--hair);padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${p.site||'현장 미지정'}</div>
+            <div style="font-size:12px;color:var(--muted);">${p.date||''} · ${p.writer||''}</div>
           </div>
-          ${p.memo ? `<div style="font-size:13px;color:var(--ink-2);margin-bottom:8px;">${p.memo}</div>` : ''}
-          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;">${amount}</div>
-          <div style="display:flex;gap:8px;">
-            <button onclick="editPending('${key}')"
-              style="flex:1;padding:10px;background:var(--surface-2);border:1px solid var(--hair);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
-              ✏️ 수정
-            </button>
-            <button onclick="deletePending('${key}')"
-              style="flex:1;padding:10px;background:#fdecea;border:1px solid #f5c6c6;border-radius:10px;font-size:13px;font-weight:600;color:#9A4B2E;cursor:pointer;font-family:inherit;">
-              🗑️ 삭제
-            </button>
-          </div>
+          <span style="background:${statusBg};color:${statusColor};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0;margin-left:8px;">${statusLabel}</span>
         </div>
-      `;
-    }).join('') || '<div style="text-align:center;padding:40px;color:var(--muted);">미정리 내역이 없어요 ✅</div>';
-  }
-
-  const root = document.getElementById('modal-root');
-  root.innerHTML = `
+        ${p.memo?`<div style="font-size:13px;color:var(--ink-2);margin-bottom:8px;">${p.memo}</div>`:''}
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;">${amount}</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="editPending('${key}')"
+            style="flex:1;padding:10px;background:var(--surface-2);border:1px solid var(--hair);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">✏️ 수정</button>
+          <button onclick="deletePending('${key}')"
+            style="flex:1;padding:10px;background:#fdecea;border:1px solid #f5c6c6;border-radius:10px;font-size:13px;font-weight:600;color:#9A4B2E;cursor:pointer;font-family:inherit;">🗑️ 삭제</button>
+        </div>
+      </div>`;
+  }).join('')||'<div style="text-align:center;padding:40px;color:var(--muted);">미정리 내역이 없어요 ✅</div>';
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`
     <div class="modal-backdrop" onclick="closeModal()">
       <div class="modal-sheet" style="max-height:90vh;" onclick="event.stopPropagation()">
         <div class="modal-head">
-          <div>
-            <div class="modal-title">📋 미정리 내역</div>
-            <div class="modal-sub">총 ${list.length}건</div>
-          </div>
+          <div><div class="modal-title">📋 미정리 내역</div><div class="modal-sub">총 ${list.length}건</div></div>
           <button class="btn-icon" onclick="closeModal()">✕</button>
         </div>
-        <div style="overflow-y:auto;max-height:70vh;padding:0 var(--pad) var(--pad);">
-          ${renderList()}
-        </div>
+        <div style="overflow-y:auto;max-height:70vh;padding:0 var(--pad) var(--pad);">${renderList()}</div>
       </div>
-    </div>
-  `;
-  document.body.style.overflow = 'hidden';
+    </div>`;
+  document.body.style.overflow='hidden';
 }
-
 async function deletePending(key) {
   if (!confirm('이 미정리 내역을 삭제할까요?')) return;
-  try {
-    await db.ref('pending/' + key).remove();
-    // 모달 새로고침
-    openPendingList();
-  } catch(e) {
-    alert('삭제 실패');
-  }
+  try { await db.ref('pending/'+key).remove(); openPendingList(); }
+  catch(e) { alert('삭제 실패'); }
 }
-
 function editPending(key) {
-  const p = window.FB?.pending?.[key] || {};
-  closeModal();
-
-  const sitesOpts = (window.MOCK?.sites || []).map(s =>
-    `<option value="${s.name}" ${p.site === s.name ? 'selected' : ''}>${s.name}</option>`
-  ).join('');
-
-  const root = document.getElementById('modal-root');
-  root.innerHTML = `
+  const p=window.FB?.pending?.[key]||{};
+  const sitesOpts=(M.sites||[]).map(s=>`<option value="${s.name}" ${p.site===s.name?'selected':''}>${s.name}</option>`).join('');
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`
     <div class="modal-backdrop" onclick="closeModal()">
       <div class="modal-sheet" onclick="event.stopPropagation()">
         <div class="modal-head">
@@ -1004,37 +714,21 @@ function editPending(key) {
           <button class="btn-icon" onclick="closeModal()">✕</button>
         </div>
         <div class="modal-body">
-          <div class="field">
-            <label class="field-label">현장</label>
-            <select class="input" id="pend-site">
-              <option value="">선택</option>
-              ${sitesOpts}
-            </select>
-          </div>
-          <div class="field">
-            <label class="field-label">금액 (원)</label>
-            <input class="input" type="number" id="pend-amount"
-              value="${p.totalAmount || ''}" placeholder="총 금액">
-          </div>
-          <div class="field">
-            <label class="field-label">날짜</label>
-            <input class="input" type="date" id="pend-date" value="${p.date || ''}">
-          </div>
-          <div class="field">
-            <label class="field-label">메모</label>
-            <textarea class="input" id="pend-memo" rows="2">${p.memo || ''}</textarea>
-          </div>
-          <div class="field">
-            <label class="field-label">상태</label>
+          <div class="field"><label class="field-label">현장</label>
+            <select class="input" id="pend-site"><option value="">선택</option>${sitesOpts}</select></div>
+          <div class="field"><label class="field-label">금액 (원)</label>
+            <input class="input" type="number" id="pend-amount" value="${p.totalAmount||''}" placeholder="총 금액"></div>
+          <div class="field"><label class="field-label">날짜</label>
+            <input class="input" type="date" id="pend-date" value="${p.date||''}"></div>
+          <div class="field"><label class="field-label">메모</label>
+            <textarea class="input" id="pend-memo" rows="2">${p.memo||''}</textarea></div>
+          <div class="field"><label class="field-label">상태</label>
             <div class="chip-group">
-              <button type="button" class="chip ${p.status === 'temp' || !p.status ? 'is-active' : ''}"
-                onclick="pendChip(this,'temp')">임시저장</button>
-              <button type="button" class="chip ${p.status === 'progress' ? 'is-active' : ''}"
-                onclick="pendChip(this,'progress')">정리중</button>
-              <button type="button" class="chip ${p.status === 'done' ? 'is-active' : ''}"
-                onclick="pendChip(this,'done')">완료</button>
+              <button type="button" class="chip ${p.status==='temp'||!p.status?'is-active':''}" onclick="pendChip(this,'temp')">임시저장</button>
+              <button type="button" class="chip ${p.status==='progress'?'is-active':''}" onclick="pendChip(this,'progress')">정리중</button>
+              <button type="button" class="chip ${p.status==='done'?'is-active':''}" onclick="pendChip(this,'done')">완료</button>
             </div>
-            <input type="hidden" id="pend-status" value="${p.status || 'temp'}">
+            <input type="hidden" id="pend-status" value="${p.status||'temp'}">
           </div>
         </div>
         <div class="modal-foot">
@@ -1042,67 +736,58 @@ function editPending(key) {
           <button class="btn btn-primary" onclick="savePending('${key}')">저장</button>
         </div>
       </div>
-    </div>
-  `;
-  document.body.style.overflow = 'hidden';
+    </div>`;
+  document.body.style.overflow='hidden';
 }
-
-function pendChip(el, val) {
-  el.closest('.chip-group').querySelectorAll('.chip').forEach(b => b.classList.remove('is-active'));
+function pendChip(el,val) {
+  el.closest('.chip-group').querySelectorAll('.chip').forEach(b=>b.classList.remove('is-active'));
   el.classList.add('is-active');
-  document.getElementById('pend-status').value = val;
+  document.getElementById('pend-status').value=val;
 }
-
 async function savePending(key) {
-  const site = document.getElementById('pend-site')?.value || '';
-  const amount = parseInt(document.getElementById('pend-amount')?.value) || null;
-  const date = document.getElementById('pend-date')?.value || '';
-  const memo = document.getElementById('pend-memo')?.value?.trim() || '';
-  const status = document.getElementById('pend-status')?.value || 'temp';
-
-  const btn = document.querySelector('.modal-foot .btn-primary');
-  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
-
+  const site=document.getElementById('pend-site')?.value||'';
+  const amount=parseInt(document.getElementById('pend-amount')?.value)||null;
+  const date=document.getElementById('pend-date')?.value||'';
+  const memo=document.getElementById('pend-memo')?.value?.trim()||'';
+  const status=document.getElementById('pend-status')?.value||'temp';
+  const btn=document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
-    await db.ref('pending/' + key).update({ site, totalAmount: amount, date, memo, status });
+    await db.ref('pending/'+key).update({site,totalAmount:amount,date,memo,status});
     openPendingList();
   } catch(e) {
     alert('저장 실패');
-    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+    if (btn) { btn.disabled=false; btn.textContent='저장'; }
   }
 }
 
+// ===== Init =====
+document.addEventListener('DOMContentLoaded',function(){
+  const loggedIn=bootAuth();
+  if (loggedIn) navigate('home');
+  setTimeout(()=>{ const ls=document.getElementById('loading-screen'); if(ls) ls.style.display='none'; },800);
+});
+
 // ===== Pull to Refresh =====
-(function() {
-  let startY = 0, pulling = false, threshold = 80;
-  const indicator = document.getElementById('pull-indicator');
-
-  document.addEventListener('touchstart', e => {
-    if (window.scrollY === 0) {
-      startY = e.touches[0].clientY;
-      pulling = true;
-    }
-  }, { passive: true });
-
-  document.addEventListener('touchmove', e => {
+(function(){
+  let startY=0, pulling=false, threshold=80;
+  const indicator=document.getElementById('pull-indicator');
+  document.addEventListener('touchstart',e=>{
+    if (window.scrollY===0) { startY=e.touches[0].clientY; pulling=true; }
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
     if (!pulling) return;
-    const dy = e.touches[0].clientY - startY;
-    if (dy > 0 && window.scrollY === 0) {
-      const h = Math.min(dy * 0.5, 56);
-      if (indicator) {
-        indicator.style.height = h + 'px';
-        indicator.textContent = dy > threshold ? '🔄 놓으면 새로고침!' : '↓ 당겨서 새로고침';
-      }
+    const dy=e.touches[0].clientY-startY;
+    if (dy>0&&window.scrollY===0) {
+      const h=Math.min(dy*.5,56);
+      if (indicator) { indicator.style.height=h+'px'; indicator.textContent=dy>threshold?'🔄 놓으면 새로고침!':'↓ 당겨서 새로고침'; }
     }
-  }, { passive: true });
-
-  document.addEventListener('touchend', e => {
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
     if (!pulling) return;
-    pulling = false;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (indicator) indicator.style.height = '0';
-    if (dy > threshold && window.scrollY === 0) {
-      location.reload();
-    }
-  }, { passive: true });
+    pulling=false;
+    const dy=e.changedTouches[0].clientY-startY;
+    if (indicator) indicator.style.height='0';
+    if (dy>threshold&&window.scrollY===0) location.reload();
+  },{passive:true});
 })();
