@@ -489,6 +489,76 @@ function renderTax() {
 // ===== Site Detail (with phase modal trigger) =====
 function encKey(s) { return s.replace(/[.#$/ \[\]]/g, '_'); }
 
+let _entryGrouped = true;
+
+function toggleEntryGrouping() {
+  _entryGrouped = !_entryGrouped;
+  const btn = document.getElementById('group-toggle-btn');
+  if (btn) {
+    btn.textContent = _entryGrouped ? '공정별 묶기 ON' : '공정별 묶기 OFF';
+    btn.style.background = _entryGrouped ? 'var(--accent)' : 'var(--muted)';
+  }
+  const siteName = window.MOCK?.sites?.[0]?.name || '';
+  const wrap = document.getElementById('entry-list-wrap');
+  if (wrap) wrap.innerHTML = renderEntryList(siteName, _entryGrouped);
+}
+
+function renderEntr
+  yList(siteName, grouped) {
+  const entries = Object.entries(window.FB?.entries || {})
+    .filter(([, e]) => e.site === siteName)
+    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+
+  if (!entries.length) return '<div class="empty" style="padding:16px;">거래 내역이 없어요</div>';
+
+  function entryRow([key, e]) {
+    const cls = e.type === 'revenue' ? 'pill-accent' : e.type === 'as' ? 'pill-pin' : 'pill-warn';
+    const label = e.type === 'revenue' ? '매출' : e.type === 'as' ? 'AS' : '매입';
+    const sign = e.type === 'revenue' ? '+' : '−';
+    const date = e.date ? e.date.slice(5).replace('-', '/') : '';
+    return `
+      <button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
+        <span class="pill ${cls}">${label}</span>
+        <div style="min-width:0;">
+          <div class="lr-title">${e.process || e.payStage || '기타'}</div>
+          <div class="lr-meta">${e.writer || ''} · ${date}</div>
+          ${e.memo ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;white-space:normal;line-height:1.4;">💬 ${e.memo}</div>` : ''}
+        </div>
+        <span class="lr-amount num" style="flex-shrink:0;">${sign}${fmtSlim2(e.amount || 0)}</span>
+      </button>`;
+  }
+
+  if (!grouped) {
+    return `<div class="list">${entries.map(entryRow).join('')}</div>`;
+  }
+
+  // 공정별 그룹핑
+  const groups = {};
+  entries.forEach(([key, e]) => {
+    const g = e.process || e.payStage || '기타';
+    if (!groups[g]) groups[g] = { entries: [], total: 0 };
+    groups[g].entries.push([key, e]);
+    const sign = e.type === 'revenue' ? 1 : -1;
+    groups[g].total += (e.amount || 0) * sign;
+  });
+
+  return Object.entries(groups).map(([groupName, g]) => {
+    const totalColor = g.total >= 0 ? 'var(--accent)' : 'var(--warn)';
+    const totalSign = g.total >= 0 ? '+' : '−';
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--surface-2);border-radius:10px 10px 0 0;border:1px solid var(--hair);border-bottom:none;">
+          <div style="font-size:12px;font-weight:700;color:var(--ink);">📦 ${groupName}</div>
+          <div style="font-size:13px;font-weight:800;color:${totalColor};">${totalSign}${fmtSlim2(Math.abs(g.total))}</div>
+        </div>
+        <div class="list" style="border-radius:0 0 10px 10px;">
+          ${g.entries.map(entryRow).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderSiteDetail() {
   const s = PMS.sites[0];
 
@@ -596,30 +666,16 @@ function renderSiteDetail() {
 
       <!-- 거래 내역 -->
       <div class="section-label" style="margin-top:8px;">거래 내역
-        <span class="more" onclick="modalTxEdit && navigate('input')" style="cursor:pointer;">+ 입력</span>
+        <span style="display:flex;gap:6px;align-items:center;">
+          <button onclick="toggleEntryGrouping()" id="group-toggle-btn"
+            style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">
+            공정별 묶기 ON
+          </button>
+          <span class="more" onclick="navigate('input')" style="cursor:pointer;">+ 입력</span>
+        </span>
       </div>
-      <div class="list">
-        ${(() => {
-          const entries = Object.entries(window.FB?.entries || {})
-            .filter(([, e]) => e.site === s.name)
-            .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-          if (!entries.length) return '<div class="empty" style="padding:16px;">거래 내역이 없어요</div>';
-          return entries.map(([key, e]) => {
-            const cls = e.type === 'revenue' ? 'pill-accent' : e.type === 'as' ? 'pill-pin' : 'pill-warn';
-            const label = e.type === 'revenue' ? '매출' : e.type === 'as' ? 'AS' : '매입';
-            const sign = e.type === 'revenue' ? '+' : '−';
-            const date = e.date ? e.date.slice(5).replace('-','/') : '';
-            return `
-              <button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
-                <span class="pill ${cls}">${label}</span>
-                <div>
-                  <div class="lr-title">${e.process || e.payStage || ''}</div>
-                  <div class="lr-meta">${e.writer||''} · ${date}</div>
-                </div>
-                <span class="lr-amount num">${sign}${fmtSlim2(e.amount||0)}</span>
-              </button>`;
-          }).join('');
-        })()}
+      <div id="entry-list-wrap">
+        ${renderEntryList(s.name, true)}
       </div>
 
       <button class="btn btn-ghost btn-block" onclick="modalAS(null)" style="margin-top: 14px;">🔧 AS 등록</button>
