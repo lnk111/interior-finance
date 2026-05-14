@@ -401,8 +401,8 @@ document.addEventListener('click',e=>{
 function renderInput() {
   const st = inputState;
   if (!st.step) st.step = 1;
-  const total = 5;
-  const stepLabel = ['거래 종류', '현장 선택', st.tab==='매출' ? '결제 단계' : '공정 선택', '금액 입력', '입력 확인'];
+  const total = 9;
+  const stepLabel = ['거래 종류', '현장 선택', st.tab==='매출' ? '결제 단계' : '공정 선택', '금액 입력', '결제 방법', '입력자', '메모', '영수증 첨부', '입력 확인'];
   const header = `
     <div style="display:flex;align-items:center;gap:10px;padding:14px var(--pad) 8px;">
       <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--hair);background:#fff;cursor:pointer;font-size:17px;flex-shrink:0;${st.step===1?'visibility:hidden;':''}">‹</button>
@@ -422,6 +422,10 @@ function renderInput() {
   else if (st.step===2) body = inputStepSite();
   else if (st.step===3) body = inputStepMid();
   else if (st.step===4) body = inputStepAmount();
+  else if (st.step===5) body = inputStepPay();
+  else if (st.step===6) body = inputStepWriter();
+  else if (st.step===7) body = inputStepMemo();
+  else if (st.step===8) body = inputStepReceipt();
   else body = inputStepConfirm();
   return `${header}<div style="padding:0 0 28px;">${body}</div>`;
 }
@@ -547,9 +551,80 @@ function inputStepAmount() {
     </div>`;
 }
 
-function _confRow(k, v, last) {
-  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;${last?'':'border-bottom:1px solid var(--hair-soft);'}font-size:13px;">
-    <span style="color:var(--muted);">${k}</span><span style="font-weight:700;max-width:62%;text-align:right;">${v}</span></div>`;
+function _confRow(k, v, step, last) {
+  return `<button data-iact="goto" data-step="${step}" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;${last?'':'border-bottom:1px solid var(--hair-soft);'}padding:12px 0;font-size:13px;font-family:inherit;cursor:pointer;text-align:left;">
+    <span style="color:var(--muted);">${k}</span>
+    <span style="display:flex;align-items:center;gap:6px;font-weight:700;max-width:64%;justify-content:flex-end;"><span style="text-align:right;">${v}</span><span style="color:#ccc;font-size:13px;">›</span></span>
+  </button>`;
+}
+
+function inputStepPay() {
+  const st = inputState;
+  const payIcons={'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">결제 방법은요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">기본값은 계좌이체예요 · 탭하면 다음으로</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${(M.paymentMethods||[]).map(p=>{
+          const on = st.payMethod===p;
+          return `<button data-iact="pay" data-val="${p}" style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid ${on?'var(--accent)':'var(--hair)'};border-radius:13px;padding:15px 14px;cursor:pointer;font-family:inherit;text-align:left;">
+            <span style="font-size:20px;">${payIcons[p]||''}</span>
+            <span style="flex:1;font-size:14.5px;font-weight:700;">${p}</span>
+            <span style="color:${on?'var(--accent)':'#ccc'};font-size:16px;">${on?'✓':'›'}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function inputStepWriter() {
+  const st = inputState;
+  if (!st.inputter) st.inputter = (window.AUTH && AUTH.current && AUTH.current()?.name) || (M.inputters||[])[0] || '';
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">누가 입력하나요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">탭하면 다음으로</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${(M.inputters||[]).map(n=>{
+          const on = st.inputter===n;
+          return `<button data-iact="inputter" data-val="${n}" style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid ${on?'var(--accent)':'var(--hair)'};border-radius:13px;padding:13px 14px;cursor:pointer;font-family:inherit;text-align:left;">
+            <span style="width:34px;height:34px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${String(n).slice(0,1)}</span>
+            <span style="flex:1;font-size:14.5px;font-weight:700;">${n}</span>
+            <span style="color:${on?'var(--accent)':'#ccc'};font-size:16px;">${on?'✓':'›'}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function inputStepMemo() {
+  const st = inputState;
+  const has = (st.memo||'').trim();
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">메모를 남길까요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 비워두고 넘어가도 돼요</div>
+      <textarea class="input" id="iflow-memo" rows="4" placeholder="예: 락카 1개, 자재 추가 구매" style="margin-bottom:16px;">${st.memo||''}</textarea>
+      <button data-iact="next" id="iflow-memo-next" class="btn btn-primary btn-block">${has?'다음':'메모 없이 계속'}</button>
+    </div>`;
+}
+
+function inputStepReceipt() {
+  const n = (window._entryPhotos||[]).length;
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">영수증을 첨부할까요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 최대 5장</div>
+      <div class="grid-2" style="margin-bottom:12px;">
+        <button type="button" class="attach" onclick="entryOpenCamera()">📷 카메라 촬영</button>
+        <button type="button" class="attach" onclick="entryOpenGallery()">🖼️ 갤러리 업로드</button>
+      </div>
+      <input type="file" id="entry-file-camera" accept="image/*" capture="environment" style="display:none" onchange="entryHandleFile(event)">
+      <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
+      <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;min-height:44px;margin-bottom:16px;"></div>
+      <button data-iact="next" id="iflow-receipt-next" class="btn btn-primary btn-block">${n?`다음 · 영수증 ${n}장`:'영수증 없이 계속'}</button>
+    </div>`;
 }
 
 function inputStepConfirm() {
@@ -559,44 +634,25 @@ function inputStepConfirm() {
   const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
   const midK = st.tab==='매출' ? '결제 단계' : '공정';
   const midV = st.tab==='매출' ? (st.stage||'-') : (st.phase||'-');
-  const payIcons={'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
+  const nPhoto = (window._entryPhotos||[]).length;
   const vat = Math.round(amt*0.1);
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">이대로 저장할까요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">고른 내용을 확인하세요</div>
-      <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:2px 14px;margin-bottom:18px;">
-        ${_confRow('종류', st.tab)}
-        ${_confRow('현장', st.site||'-')}
-        ${_confRow(midK, midV)}
-        ${_confRow('금액', `<span style="font-size:19px;font-weight:800;">${amt.toLocaleString('ko-KR')}원</span>`, true)}
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">각 항목을 탭하면 그 단계로 돌아가 수정할 수 있어요</div>
+      <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:2px 14px;margin-bottom:16px;">
+        ${_confRow('종류', st.tab, 1)}
+        ${_confRow('현장', st.site||'-', 2)}
+        ${_confRow(midK, midV, 3)}
+        ${_confRow('금액', `<span style="font-size:18px;font-weight:800;">${amt.toLocaleString('ko-KR')}원</span>`, 4)}
+        ${_confRow('결제 방법', st.payMethod||'-', 5)}
+        ${_confRow('입력자', st.inputter||'-', 6)}
+        ${_confRow('메모', (st.memo||'').trim()||'없음', 7)}
+        ${_confRow('영수증', nPhoto?nPhoto+'장':'없음', 8, true)}
       </div>
-      <div style="font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:8px;">부가 정보 · 기본값이 채워져 있어요</div>
       <div class="field">
         <label class="field-label">날짜</label>
         <input class="input" type="date" id="iflow-date" value="${st.date}">
-      </div>
-      <div class="field">
-        <label class="field-label">결제 방법</label>
-        <div class="chip-group">${(M.paymentMethods||[]).map(p=>`<button data-iact="pay" data-val="${p}" class="chip ${st.payMethod===p?'is-active':''}">${payIcons[p]||''} ${p}</button>`).join('')}</div>
-      </div>
-      <div class="field">
-        <label class="field-label">입력자</label>
-        <div class="chip-group">${(M.inputters||[]).map(n=>`<button data-iact="inputter" data-val="${n}" class="chip ${st.inputter===n?'is-active':''}">${n}</button>`).join('')}</div>
-      </div>
-      <div class="field">
-        <label class="field-label">메모 <span class="muted">선택</span></label>
-        <textarea class="input" id="iflow-memo" rows="2" placeholder="선택사항">${st.memo||''}</textarea>
-      </div>
-      <div class="field">
-        <label class="field-label">📎 영수증 첨부 <span class="muted">선택</span></label>
-        <div class="grid-2" style="margin-bottom:8px;">
-          <button type="button" class="attach" onclick="entryOpenCamera()">📷 카메라 촬영</button>
-          <button type="button" class="attach" onclick="entryOpenGallery()">🖼️ 갤러리 업로드</button>
-        </div>
-        <input type="file" id="entry-file-camera" accept="image/*" capture="environment" style="display:none" onchange="entryHandleFile(event)">
-        <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
-        <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
       ${st.tab==='매출'?`
       <div class="invoice-toggle ${st.invoice?'':'off'}" id="invoice-toggle" data-iact="invoice">
@@ -647,9 +703,13 @@ function handleInputFlow(act, el) {
   } else if (act==='back') {
     if (st.step>1) { st.step--; navigate('input'); }
   } else if (act==='pay') {
-    st.payMethod = el.dataset.val; navigate('input');
+    st.payMethod = el.dataset.val; st.step=6; navigate('input');
   } else if (act==='inputter') {
-    st.inputter = el.dataset.val; navigate('input');
+    st.inputter = el.dataset.val; st.step=7; navigate('input');
+  } else if (act==='next') {
+    st.step++; navigate('input');
+  } else if (act==='goto') {
+    st.step = parseInt(el.dataset.step,10) || 1; navigate('input');
   } else if (act==='invoice') {
     st.invoice = !st.invoice; navigate('input');
   } else if (act==='pending') {
@@ -681,13 +741,19 @@ function entryHandleFile(e) {
 }
 function entryRenderPhotos() {
   const wrap=document.getElementById('entry-photo-preview');
-  if (!wrap) return;
+  if (wrap) {
   wrap.innerHTML=window._entryPhotos.map((p,i)=>`
     <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
       <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
       <button onclick="entryRemovePhoto(${i})"
         style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
     </div>`).join('');
+  }
+  const rb=document.getElementById('iflow-receipt-next');
+  if (rb) {
+    const n=window._entryPhotos.length;
+    rb.textContent = n ? `다음 · 영수증 ${n}장` : '영수증 없이 계속';
+  }
 }
 function entryRemovePhoto(idx) { window._entryPhotos.splice(idx,1); entryRenderPhotos(); }
 
@@ -801,7 +867,12 @@ document.addEventListener('input',e=>{
     if (list) list.innerHTML=inputSiteRows(e.target.value);
     return;
   }
-  if (e.target.id==='iflow-memo') { inputState.memo=e.target.value; return; }
+  if (e.target.id==='iflow-memo') {
+    inputState.memo=e.target.value;
+    const mb=document.getElementById('iflow-memo-next');
+    if (mb) mb.textContent = e.target.value.trim() ? '다음' : '메모 없이 계속';
+    return;
+  }
   if (e.target.id==='iflow-date') { inputState.date=e.target.value; return; }
   if (e.target.id==='sites-search') {
     sitesQuery=e.target.value;
