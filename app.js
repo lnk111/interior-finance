@@ -758,7 +758,7 @@ function entryRenderPhotos() {
 function entryRemovePhoto(idx) { window._entryPhotos.splice(idx,1); entryRenderPhotos(); }
 
 // ===== SITES =====
-let sitesFilter='공사중', sitesQuery='';
+let sitesFilter='공사중';
 
 function renderSites() {
   const filters=['공사중','전체','계약완료','AS관리'];
@@ -768,7 +768,6 @@ function renderSites() {
     if(aa!==bb) return bb-aa;
     return (b._createdAt||0)-(a._createdAt||0);
   });
-  if (sitesQuery) list=list.filter(s=>s.name.includes(sitesQuery)||s.client.includes(sitesQuery));
   const filterHtml=filters.map(f=>`<button class="filter-chip ${sitesFilter===f?'is-active':''}" data-filter="${f}">${f}</button>`).join('');
   const cardsHtml=list.map(s=>`
     <div class="site-card" onclick="openSiteDetail('${s.name.replace(/'/g,"\\'")}')">
@@ -797,9 +796,6 @@ function renderSites() {
         <h1 class="h-title">현장 관리</h1>
       </div>
       <button class="btn btn-primary btn-sm" data-modal="site">+ 등록</button>
-    </div>
-    <div style="padding:0 var(--pad) 12px;">
-      <div class="search-box">${ICON.search}<input class="search-input" placeholder="현장명·고객명 검색" id="sites-search" value="${sitesQuery}"></div>
     </div>
     <div class="filter-row">${filterHtml}</div>
     <div class="page-body">
@@ -874,12 +870,6 @@ document.addEventListener('input',e=>{
     return;
   }
   if (e.target.id==='iflow-date') { inputState.date=e.target.value; return; }
-  if (e.target.id==='sites-search') {
-    sitesQuery=e.target.value;
-    navigate('sites');
-    const s=$('#sites-search');
-    if (s) { s.focus(); s.setSelectionRange(sitesQuery.length,sitesQuery.length); }
-  }
 });
 
 // ===== 미정리 목록 =====
