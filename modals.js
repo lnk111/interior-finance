@@ -595,6 +595,19 @@ function modalTxEdit(entryKey) {
   window._txEditType = curType;
   window._txEditKey = entryKey;
 
+  // 이 거래에 첨부된 사진 모으기 (대표 사진 + 추가 사진)
+  const txePhotos = [];
+  if (entry.imageBase64) txePhotos.push(entry.imageBase64);
+  if (Array.isArray(entry.extraPhotos)) entry.extraPhotos.forEach(p => { if (p) txePhotos.push(p); });
+  window._txeViewPhotos = txePhotos;
+  const txePhotoSection = txePhotos.length ? `
+          <div class="field">
+            <label class="field-label">사진 <span class="muted">${txePhotos.length}장 · 탭하면 크게 보기</span></label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${txePhotos.map((p, i) => `<img src="${p}" onclick="txeViewPhoto(${i})" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);cursor:pointer;">`).join('')}
+            </div>
+          </div>` : '';
+
   const root = document.getElementById('modal-root');
   root.innerHTML = `
     <div class="modal-backdrop" onclick="closeModal()">
@@ -658,6 +671,7 @@ function modalTxEdit(entryKey) {
             <label class="field-label">메모</label>
             <textarea class="input" id="txe-memo" rows="2">${entry.memo||''}</textarea>
           </div>
+          ${txePhotoSection}
           <div class="field">
             <label class="field-label">입력자</label>
             <select class="input" id="txe-writer">
@@ -676,6 +690,18 @@ function modalTxEdit(entryKey) {
   window._txStage = entry.payStage || '';
   window._txPay = entry.payMethod || '';
   window._txPhase = entry.process || '';
+}
+
+// 거래 수정 화면에서 사진을 탭하면 전체화면으로 크게 보기
+function txeViewPhoto(idx) {
+  const photos = window._txeViewPhotos || [];
+  const src = photos[idx];
+  if (!src) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;';
+  overlay.innerHTML = `<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">`;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
 }
 
 function txEditSetType(type, el) {
