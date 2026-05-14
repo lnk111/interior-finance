@@ -288,9 +288,23 @@ function openSiteDetail(siteName) {
 
 // ===== INPUT =====
 let inputState = {
-  tab:'매입', mode:'detail', stage:'중도금', payMethod:'계좌이체',
-  phase:'도배', amount:'', invoice:true, inputter:'', site:'',
+  step:1, tab:'매입', mode:'detail', stage:'', payMethod:'계좌이체',
+  phase:'', amount:'', invoice:true, inputter:'', site:'', memo:'', date:'',
 };
+function resetInputFlow() {
+  inputState.step = 1;
+  inputState.tab = '매입';
+  inputState.stage = '';
+  inputState.phase = '';
+  inputState.amount = '';
+  inputState.payMethod = '계좌이체';
+  inputState.invoice = true;
+  inputState.inputter = '';
+  inputState.site = '';
+  inputState.memo = '';
+  inputState.date = '';
+  window._entryPhotos = [];
+}
 
 function getRecentSites() {
   try { return JSON.parse(localStorage.getItem('recent_sites')||'[]'); } catch { return []; }
@@ -302,40 +316,38 @@ function addRecentSite(name) {
 }
 
 async function submitEntry() {
-  const siteInp   = document.getElementById('site-input');
-  const amountInp = document.getElementById('amount-input');
-  const dateInp   = document.querySelector('input[type=date]');
-  const site   = siteInp?.value?.trim() || inputState.site;
-  const rawAmt = amountInp?.value?.replace(/[^0-9]/g,'')||'';
-  const amount = parseInt(rawAmt)||0;
-  const date   = dateInp?.value || new Date().toISOString().slice(0,10);
-  if (!site)   { alert('현장을 선택해주세요'); siteInp?.focus(); return; }
-  if (!amount) { alert('금액을 입력해주세요'); amountInp?.focus(); return; }
-  const activeChip = document.querySelector('.chip-group .chip.is-active');
-  const writer = activeChip?.textContent?.trim() || AUTH.current()?.name||'';
-  const memoInp = document.querySelector('textarea.input');
-  const memo = memoInp?.value?.trim()||'';
+  const st = inputState;
+  const site = (st.site || '').trim();
+  const amount = parseInt(String(st.amount || '').replace(/[^0-9]/g,'')) || 0;
+  const dateInp = document.getElementById('iflow-date');
+  const date = (dateInp && dateInp.value) || st.date || new Date().toISOString().slice(0,10);
+  const memoInp = document.getElementById('iflow-memo');
+  const memo = (memoInp && memoInp.value.trim()) || st.memo || '';
+  const writer = st.inputter || AUTH.current()?.name || '';
+  if (!site)   { alert('현장을 선택해주세요'); return; }
+  if (!amount) { alert('금액을 입력해주세요'); return; }
   const entry = {
-    type: inputState.tab==='매출'?'revenue':inputState.tab==='AS'?'as':'cost',
-    site, amount, date, process:inputState.phase||'', memo, writer,
-    payMethod:inputState.payMethod||'', payStage:inputState.stage||'',
-    taxInvoice:inputState.invoice&&inputState.tab==='매출',
-    imageBase64:window._entryPhotos?.[0]||null,
-    extraPhotos:window._entryPhotos?.slice(1)||[],
+    type: st.tab==='매출'?'revenue':st.tab==='AS'?'as':'cost',
+    site, amount, date,
+    process: st.tab==='매출' ? '' : (st.phase||''),
+    memo, writer,
+    payMethod: st.payMethod||'',
+    payStage: st.tab==='매출' ? (st.stage||'') : '',
+    taxInvoice: !!st.invoice && st.tab==='매출',
+    imageBase64: window._entryPhotos?.[0]||null,
+    extraPhotos: window._entryPhotos?.slice(1)||[],
   };
-  const btn = document.querySelector('.form-submit .btn');
+  const btn = document.querySelector('[data-iact="submit"]');
   if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
     await window.FB_API.saveEntry(entry);
-    inputState.site=''; inputState.amount=''; window._entryPhotos=[];
-    if (siteInp) siteInp.value='';
-    if (amountInp) amountInp.value='';
-    if (memoInp) memoInp.value='';
+    if (site) addRecentSite(site);
+    resetInputFlow();
     navigate('input');
     setTimeout(()=>alert('✅ 저장 완료!'),100);
   } catch(e) {
     alert('저장 실패. 다시 시도해주세요.');
-    if (btn) { btn.disabled=false; btn.textContent='+ 입력 완료'; }
+    if (btn) { btn.disabled=false; btn.textContent='✅ 저장하기'; }
   }
 }
 
@@ -387,63 +399,197 @@ document.addEventListener('click',e=>{
 });
 
 function renderInput() {
-  const tabsHtml = ['매입','매출','AS'].map((k,i)=>{
-    const ic=['📦','💰','🔧'][i];
-    return `<button class="tab ${inputState.tab===k?'is-active':''}" data-tab="${k}">${ic} ${k}</button>`;
-  }).join('');
-  const stageIcons={'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
-  const stagesHtml=(M.paymentStages||[]).map(s=>`<button class="chip ${inputState.stage===s?'is-active':''}" data-stage="${s}">${stageIcons[s]||''} ${s}</button>`).join('');
-  const payIcons={'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
-  const payHtml=(M.paymentMethods||[]).map(p=>`<button class="chip ${inputState.payMethod===p?'is-active':''}" data-pay="${p}">${payIcons[p]||''} ${p}</button>`).join('');
-  const phasesHtml=(M.phases||[]).map(p=>`<button class="chip ${inputState.phase===p?'is-active':''}" data-phase="${p}">${p}</button>`).join('')+'<button class="chip">✏️ 직접</button>';
-  const inputtersHtml=(M.inputters||[]).map(n=>`<button class="chip ${inputState.inputter===n?'is-active':''}" data-inputter="${n}">${n}</button>`).join('')+'<button class="chip">✏️ 직접</button>';
-  const fmtAmt = Number(inputState.amount||0).toLocaleString('ko-KR');
-  const vat = Math.round(Number(inputState.amount||0)*0.1);
-  const today = new Date().toISOString().slice(0,10);
-  return `
-    <div class="page-header"><div><div class="h-eyebrow">새 거래</div><h1 class="h-title">거래 입력</h1></div></div>
-    <div class="page-body">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-        <button onclick="window.MODALS.quickTip()"
-          style="background:var(--warn-soft);color:var(--warn);border:1.5px solid var(--warn);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
-          ⚡ 빠른입력
-        </button>
+  const st = inputState;
+  if (!st.step) st.step = 1;
+  const total = 5;
+  const stepLabel = ['거래 종류', '현장 선택', st.tab==='매출' ? '결제 단계' : '공정 선택', '금액 입력', '입력 확인'];
+  const header = `
+    <div style="display:flex;align-items:center;gap:10px;padding:14px var(--pad) 8px;">
+      <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--hair);background:#fff;cursor:pointer;font-size:17px;flex-shrink:0;${st.step===1?'visibility:hidden;':''}">‹</button>
+      <div style="flex:1;min-width:0;">
+        <div class="h-eyebrow">새 거래 · ${st.step}/${total}</div>
+        <div style="font-size:18px;font-weight:800;">${stepLabel[st.step-1]}</div>
       </div>
-      <button class="unsorted-banner" onclick="openPendingList()">
+      <button onclick="window.MODALS.quickTip()" style="background:var(--warn-soft);color:var(--warn);border:1.5px solid var(--warn);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">⚡ 빠른입력</button>
+    </div>
+    <div style="padding:0 var(--pad);margin-bottom:16px;">
+      <div style="height:4px;background:var(--hair);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${st.step/total*100}%;background:var(--accent);border-radius:2px;transition:width .25s;"></div>
+      </div>
+    </div>`;
+  let body = '';
+  if (st.step===1) body = inputStepType();
+  else if (st.step===2) body = inputStepSite();
+  else if (st.step===3) body = inputStepMid();
+  else if (st.step===4) body = inputStepAmount();
+  else body = inputStepConfirm();
+  return `${header}<div style="padding:0 0 28px;">${body}</div>`;
+}
+
+function _iBorder(active) { return active ? 'var(--accent)' : 'var(--hair)'; }
+
+function inputStepType() {
+  const types = [
+    ['매입','📦','자재·인건비 등 지출'],
+    ['매출','💰','고객에게 받은 금액'],
+    ['AS','🔧','시공 후 사후관리'],
+  ];
+  const banner = M.unsorted>0
+    ? `<button class="unsorted-banner" data-iact="pending" style="margin-bottom:14px;">
         <span class="pill pill-warn">📋 미정리 ${M.unsorted}</span>
         <span>탭해서 정리하기</span>
         <span style="margin-left:auto;">›</span>
+      </button>`
+    : '';
+  return `
+    <div style="padding:0 var(--pad);">
+      ${banner}
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어떤 거래인가요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">거래 종류를 먼저 선택하세요</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${types.map(([k,ic,desc])=>`
+          <button data-iact="type" data-val="${k}" style="display:flex;align-items:center;gap:13px;background:#fff;border:1.5px solid ${_iBorder(inputState.tab===k)};border-radius:14px;padding:16px 14px;cursor:pointer;font-family:inherit;text-align:left;">
+            <span style="font-size:24px;">${ic}</span>
+            <span style="flex:1;min-width:0;">
+              <span style="display:block;font-size:15px;font-weight:700;">${k}</span>
+              <span style="display:block;font-size:11.5px;color:var(--muted);margin-top:2px;">${desc}</span>
+            </span>
+            <span style="color:#ccc;font-size:18px;">›</span>
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function inputSiteRows(q) {
+  const allSites = (M.sites||[]).map(s=>s.name);
+  const recent = getRecentSites().filter(s=>allSites.includes(s));
+  const ordered = [...recent, ...allSites.filter(s=>!recent.includes(s))];
+  const query = (q||'').trim();
+  const list = ordered.filter(s=>!query||s.indexOf(query)>-1);
+  if (!list.length) return `<div style="font-size:12.5px;color:var(--muted);padding:10px 2px;line-height:1.5;">목록에 없어요. 위 버튼으로 입력한 이름을 그대로 쓸 수 있어요.</div>`;
+  return list.map(s=>{
+    const isRecent = recent.indexOf(s)>-1;
+    return `<button data-iact="site" data-val="${String(s).replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:13px;cursor:pointer;font-family:inherit;text-align:left;font-size:13.5px;">
+      <span style="font-size:16px;">${isRecent?'🕐':'📁'}</span>
+      <span style="flex:1;min-width:0;">${s}</span>
+      <span style="color:#ccc;font-size:16px;">›</span>
+    </button>`;
+  }).join('');
+}
+
+function inputStepSite() {
+  const cur = String(inputState.site||'').replace(/"/g,'&quot;');
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어느 현장이에요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">최근 현장에서 고르거나 검색·직접 입력하세요</div>
+      <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--hair);border-radius:11px;padding:11px 13px;margin-bottom:8px;">
+        <span style="color:var(--muted);display:flex;">${ICON.search}</span>
+        <input id="iflow-site-search" placeholder="현장명 검색 또는 직접 입력" autocomplete="off" value="${cur}"
+          style="border:0;background:transparent;font-family:inherit;font-size:13.5px;flex:1;outline:none;color:var(--ink);">
+      </div>
+      <button data-iact="site-direct" style="width:100%;text-align:left;background:var(--warn-soft);border:1.5px dashed var(--warn);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--warn);font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;">
+        ✏️ 입력한 이름으로 진행하기
       </button>
-      <div class="tabs">${tabsHtml}</div>
-      <div class="field" style="position:relative;">
-        <label class="field-label">현장 <span class="req">*</span></label>
-        <input class="input" id="site-input" placeholder="현장을 선택하거나 직접 입력" autocomplete="off"
-          value="${inputState.site||''}" oninput="filterSiteDropdown(this.value)" onfocus="openSiteDropdown()">
-        <div id="site-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:200;background:#fff;border:1.5px solid var(--hair);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:220px;overflow-y:auto;margin-top:4px;">
-          <div id="site-dropdown-list"></div>
+      <div style="font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:8px;">현장 목록</div>
+      <div id="iflow-site-list" style="display:flex;flex-direction:column;gap:8px;">${inputSiteRows('')}</div>
+    </div>`;
+}
+
+function inputStepMid() {
+  const st = inputState;
+  if (st.tab==='매출') {
+    const stageIcons={'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
+    return `
+      <div style="padding:0 var(--pad);">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어떤 결제 단계예요?</div>
+        <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">${st.site||''}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:9px;">
+          ${(M.paymentStages||[]).map(s=>{
+            const on = st.stage===s;
+            return `<button data-iact="stage" data-val="${s}" style="display:flex;align-items:center;gap:6px;background:${on?'#1B1814':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#1B1814':'var(--hair)'};border-radius:22px;padding:11px 16px;font-size:13.5px;font-family:inherit;cursor:pointer;">${stageIcons[s]||''} ${s}</button>`;
+          }).join('')}
         </div>
+      </div>`;
+  }
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어떤 공정이에요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">${st.site||''}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${(M.phases||[]).map(p=>{
+          const on = st.phase===p;
+          return `<button data-iact="proc" data-val="${p}" style="background:${on?'#1B1814':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#1B1814':'var(--hair)'};border-radius:20px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;">${p}</button>`;
+        }).join('')}
       </div>
-      <div class="field">
-        <label class="field-label">금액 (원) <span class="req">*</span></label>
-        <div class="input-wrap">
-          <input class="input input-amount num" id="amount-input" value="${fmtAmt}" placeholder="금액을 입력해주세요">
-          <span class="input-suffix">원</span>
-        </div>
+    </div>`;
+}
+
+function inputStepAmount() {
+  const st = inputState;
+  const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
+  const midV = st.tab==='매출' ? (st.stage||'') : (st.phase||'');
+  const keys = ['7','8','9','4','5','6','1','2','3','00','0','del'];
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">금액을 입력하세요</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">${st.tab}${midV?' · '+midV:''}</div>
+      <div style="text-align:center;font-size:34px;font-weight:800;margin:16px 0 6px;">
+        <span id="iflow-amount" style="color:${amt?'var(--ink)':'#cbc3b4'};">${amt.toLocaleString('ko-KR')}</span><span style="font-size:18px;margin-left:3px;">원</span>
       </div>
+      <div style="display:flex;gap:7px;justify-content:center;margin-bottom:14px;">
+        ${[['+1만',10000],['+10만',100000],['+100만',1000000]].map(([l,v])=>`<button data-iact="quick" data-val="${v}" style="background:#fff;border:1.5px solid var(--hair);border-radius:18px;padding:7px 13px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--accent);font-weight:700;">${l}</button>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;">
+        ${keys.map(k=>`<button data-iact="key" data-val="${k}" style="background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:15px 0;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">${k==='del'?'⌫':k}</button>`).join('')}
+      </div>
+      <button data-iact="amount-next" id="iflow-next" class="btn btn-primary btn-block"${amt?'':' disabled'} style="${amt?'':'opacity:.5;'}">다음</button>
+    </div>`;
+}
+
+function _confRow(k, v, last) {
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;${last?'':'border-bottom:1px solid var(--hair-soft);'}font-size:13px;">
+    <span style="color:var(--muted);">${k}</span><span style="font-weight:700;max-width:62%;text-align:right;">${v}</span></div>`;
+}
+
+function inputStepConfirm() {
+  const st = inputState;
+  if (!st.date) st.date = new Date().toISOString().slice(0,10);
+  if (!st.inputter) st.inputter = (window.AUTH && AUTH.current && AUTH.current()?.name) || (M.inputters||[])[0] || '';
+  const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
+  const midK = st.tab==='매출' ? '결제 단계' : '공정';
+  const midV = st.tab==='매출' ? (st.stage||'-') : (st.phase||'-');
+  const payIcons={'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
+  const vat = Math.round(amt*0.1);
+  return `
+    <div style="padding:0 var(--pad);">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">이대로 저장할까요?</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">고른 내용을 확인하세요</div>
+      <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:2px 14px;margin-bottom:18px;">
+        ${_confRow('종류', st.tab)}
+        ${_confRow('현장', st.site||'-')}
+        ${_confRow(midK, midV)}
+        ${_confRow('금액', `<span style="font-size:19px;font-weight:800;">${amt.toLocaleString('ko-KR')}원</span>`, true)}
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:8px;">부가 정보 · 기본값이 채워져 있어요</div>
       <div class="field">
         <label class="field-label">날짜</label>
-        <input class="input" type="date" value="${today}">
+        <input class="input" type="date" id="iflow-date" value="${st.date}">
       </div>
-      ${inputState.tab==='매출'?`
-        <div class="field"><label class="field-label">결제 단계</label><div class="chip-group">${stagesHtml}</div></div>
-        <div class="field"><label class="field-label">결제 방법</label><div class="chip-group">${payHtml}</div></div>
-      `:`
-        <div class="field"><label class="field-label">공정</label><div class="chip-group">${phasesHtml}</div></div>
-        <div class="field"><label class="field-label">결제 방법</label><div class="chip-group">${payHtml}</div></div>
-      `}
-      <div class="field"><label class="field-label">메모</label><textarea class="input" rows="2" placeholder="선택사항"></textarea></div>
       <div class="field">
-        <label class="field-label">📎 영수증 첨부 <span class="muted">선택사항</span></label>
+        <label class="field-label">결제 방법</label>
+        <div class="chip-group">${(M.paymentMethods||[]).map(p=>`<button data-iact="pay" data-val="${p}" class="chip ${st.payMethod===p?'is-active':''}">${payIcons[p]||''} ${p}</button>`).join('')}</div>
+      </div>
+      <div class="field">
+        <label class="field-label">입력자</label>
+        <div class="chip-group">${(M.inputters||[]).map(n=>`<button data-iact="inputter" data-val="${n}" class="chip ${st.inputter===n?'is-active':''}">${n}</button>`).join('')}</div>
+      </div>
+      <div class="field">
+        <label class="field-label">메모 <span class="muted">선택</span></label>
+        <textarea class="input" id="iflow-memo" rows="2" placeholder="선택사항">${st.memo||''}</textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">📎 영수증 첨부 <span class="muted">선택</span></label>
         <div class="grid-2" style="margin-bottom:8px;">
           <button type="button" class="attach" onclick="entryOpenCamera()">📷 카메라 촬영</button>
           <button type="button" class="attach" onclick="entryOpenGallery()">🖼️ 갤러리 업로드</button>
@@ -452,38 +598,73 @@ function renderInput() {
         <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
         <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
-      ${inputState.tab==='매출'?`
-      <div class="invoice-toggle ${inputState.invoice?'':'off'}" id="invoice-toggle">
+      ${st.tab==='매출'?`
+      <div class="invoice-toggle ${st.invoice?'':'off'}" id="invoice-toggle" data-iact="invoice">
         <div class="checkbox"><svg viewBox="0 0 12 9" fill="none"><path d="M1 4.5L4 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div><div class="it-title">📄 세금계산서 발행</div>
-        <div class="it-meta">${inputState.invoice?`부가세 ₩${vat.toLocaleString('ko-KR')} 자동 계산`:'체크하면 부가세(10%) 자동 계산됩니다'}</div></div>
+        <div>
+          <div class="it-title">📄 세금계산서 발행</div>
+          <div class="it-meta">${st.invoice?`부가세 ₩${vat.toLocaleString('ko-KR')} 자동 계산`:'체크하면 부가세(10%) 자동 계산됩니다'}</div>
+        </div>
       </div>`:''}
-      <div class="field"><label class="field-label">입력자</label><div class="chip-group">${inputtersHtml}</div></div>
-      <div class="form-submit">
-        <button class="btn btn-primary btn-block" onclick="submitEntry()">+ 입력 완료</button>
-      </div>
-      <div class="section-label">📌 최근 입력 내역</div>
-      <div class="list">
-        ${Object.entries(window.FB?.entries||{})
-          .sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0))
-          .slice(0,5)
-          .map(([key,e])=>{
-            const cls=e.type==='revenue'?'pill-accent':e.type==='as'?'pill-pin':'pill-warn';
-            const label=e.type==='revenue'?'매출':e.type==='as'?'AS':'매입';
-            const sign=e.type==='revenue'?'+':'−';
-            const date=e.date?e.date.slice(5).replace('-','/'):'';
-            const metaParts=[e.process||e.payStage||'',e.payMethod||'',date,e.writer||'',e.memo||''].filter(Boolean);
-            return `<button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
-              <span class="pill ${cls}">${label}</span>
-              <div style="min-width:0;">
-                <div class="lr-title">${e.site||''}</div>
-                <div class="lr-meta" style="white-space:normal;line-height:1.4;">${metaParts.join(' · ')}</div>
-              </div>
-              <span class="lr-amount num" style="flex-shrink:0;">${sign}${fmtSlim(e.amount||0)}</span>
-            </button>`;
-          }).join('')||'<div class="empty">입력 내역이 없어요</div>'}
+      <div class="form-submit" style="margin-top:10px;">
+        <button class="btn btn-primary btn-block" data-iact="submit">✅ 저장하기</button>
       </div>
     </div>`;
+}
+
+function handleInputFlow(act, el) {
+  const st = inputState;
+  if (act==='type') {
+    st.tab = el.dataset.val; st.phase=''; st.stage=''; st.step=2; navigate('input');
+  } else if (act==='site') {
+    st.site = el.dataset.val; addRecentSite(st.site); st.step=3; navigate('input');
+  } else if (act==='site-direct') {
+    const inp = document.getElementById('iflow-site-search');
+    const v = (inp && inp.value.trim()) || '';
+    if (!v) { alert('현장명을 입력하거나 목록에서 선택해주세요'); return; }
+    st.site = v; addRecentSite(v); st.step=3; navigate('input');
+  } else if (act==='proc') {
+    st.phase = el.dataset.val; st.step=4; navigate('input');
+  } else if (act==='stage') {
+    st.stage = el.dataset.val; st.step=4; navigate('input');
+  } else if (act==='key') {
+    let cur = String(st.amount||'').replace(/[^0-9]/g,'');
+    if (el.dataset.val==='del') cur = cur.slice(0,-1);
+    else cur = (cur + el.dataset.val);
+    cur = cur.replace(/^0+/,'');
+    if (cur.length>12) cur = cur.slice(0,12);
+    st.amount = cur;
+    updateAmountDisplay();
+  } else if (act==='quick') {
+    let cur = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
+    cur += parseInt(el.dataset.val,10) || 0;
+    st.amount = String(cur);
+    updateAmountDisplay();
+  } else if (act==='amount-next') {
+    const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
+    if (!amt) { alert('금액을 입력해주세요'); return; }
+    st.step=5; navigate('input');
+  } else if (act==='back') {
+    if (st.step>1) { st.step--; navigate('input'); }
+  } else if (act==='pay') {
+    st.payMethod = el.dataset.val; navigate('input');
+  } else if (act==='inputter') {
+    st.inputter = el.dataset.val; navigate('input');
+  } else if (act==='invoice') {
+    st.invoice = !st.invoice; navigate('input');
+  } else if (act==='pending') {
+    openPendingList();
+  } else if (act==='submit') {
+    submitEntry();
+  }
+}
+
+function updateAmountDisplay() {
+  const amt = parseInt(String(inputState.amount||'').replace(/[^0-9]/g,'')) || 0;
+  const el = document.getElementById('iflow-amount');
+  if (el) { el.textContent = amt.toLocaleString('ko-KR'); el.style.color = amt ? 'var(--ink)' : '#cbc3b4'; }
+  const nx = document.getElementById('iflow-next');
+  if (nx) { nx.disabled = !amt; nx.style.opacity = amt ? '1' : '.5'; }
 }
 
 window._entryPhotos=[];
@@ -580,6 +761,9 @@ const routes={
 let currentPage='home';
 function navigate(page) {
   if (!routes[page]) return;
+  if (page==='input' && currentPage!=='input' && currentPage!=='quickInput') {
+    resetInputFlow();
+  }
   currentPage=page; window.currentPage=page;
   const activeTab=routes[page].tab;
   $$('.tabbar-item,.tabbar-fab').forEach(b=>b.classList.toggle('is-active',b.dataset.page===activeTab));
@@ -591,6 +775,7 @@ function navigate(page) {
   const tb=document.getElementById('tabbar');
   if (tb) tb.style.display='flex';
   window.scrollTo(0,0);
+  if (page==='input') { try { entryRenderPhotos(); } catch(e){} }
 }
 // 즉시 전역 등록 (DOMContentLoaded 이전에도 firebase.js 에서 호출 가능)
 window.navigate=navigate;
@@ -604,30 +789,20 @@ document.addEventListener('click',e=>{
   if (goto) { e.preventDefault(); navigate(goto.dataset.goto); return; }
   const filter=e.target.closest('[data-filter]');
   if (filter&&currentPage==='sites') { sitesFilter=filter.dataset.filter; navigate('sites'); return; }
-  const inputTab=e.target.closest('[data-tab]');
-  if (inputTab&&(currentPage==='input'||currentPage==='quickInput')) { inputState.tab=inputTab.dataset.tab; navigate('input'); return; }
-  const stage=e.target.closest('[data-stage]');
-  if (stage) { inputState.stage=stage.dataset.stage; navigate('input'); return; }
-  const pay=e.target.closest('[data-pay]');
-  if (pay) { inputState.payMethod=pay.dataset.pay; navigate('input'); return; }
-  const phase=e.target.closest('[data-phase]');
-  if (phase) { inputState.phase=phase.dataset.phase; navigate('input'); return; }
-  const inputter=e.target.closest('[data-inputter]');
-  if (inputter) { inputState.inputter=inputter.dataset.inputter; navigate('input'); return; }
-  const mode=e.target.closest('[data-mode]');
-  if (mode) { inputState.mode=mode.dataset.mode; navigate('input'); return; }
-  if (e.target.closest('#invoice-toggle')) { inputState.invoice=!inputState.invoice; navigate('input'); return; }
+  const iact=e.target.closest('[data-iact]');
+  if (iact) { e.preventDefault(); handleInputFlow(iact.dataset.iact, iact); return; }
   if (e.target.closest('#logout-btn')) { if(confirm('로그아웃 하시겠어요?')) { AUTH.logout(); location.reload(); } return; }
 });
 
 document.addEventListener('input',e=>{
-  if (e.target.id==='amount-input') {
-    const raw=e.target.value.replace(/[^0-9]/g,'');
-    inputState.amount=raw;
-    e.target.value=Number(raw||0).toLocaleString('ko-KR');
-    const meta=$('.invoice-toggle .it-meta');
-    if (meta&&inputState.invoice) meta.textContent=`부가세 ₩${Math.round(Number(raw||0)*.1).toLocaleString('ko-KR')} 자동 계산`;
+  if (e.target.id==='iflow-site-search') {
+    inputState.site=e.target.value;
+    const list=document.getElementById('iflow-site-list');
+    if (list) list.innerHTML=inputSiteRows(e.target.value);
+    return;
   }
+  if (e.target.id==='iflow-memo') { inputState.memo=e.target.value; return; }
+  if (e.target.id==='iflow-date') { inputState.date=e.target.value; return; }
   if (e.target.id==='sites-search') {
     sitesQuery=e.target.value;
     navigate('sites');

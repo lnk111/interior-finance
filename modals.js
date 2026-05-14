@@ -760,77 +760,181 @@ async function txEditDelete() {
   } catch(e) { alert('삭제 실패'); }
 }
 
-// 8. Quick tip / quick record modal
+// 8. Quick tip / quick record modal — 토스식 단계 입력
 function modalQuickTip() {
   window._qtPhotos = [];
-  const today = new Date().toISOString().slice(0, 10);
-  const sitesOpts = (window.MOCK?.sites || []).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-  const writersOpts = (window.MOCK?.inputters || []).map(n => `<option value="${n}">${n}</option>`).join('');
+  window._qtState = {
+    step: 1,
+    site: '',
+    date: new Date().toISOString().slice(0, 10),
+    writer: (window.MOCK?.inputters || [])[0] || '',
+    memo: '',
+  };
+  qtRender();
+  document.body.style.overflow = 'hidden';
+}
 
+function qtRender() {
+  const s = window._qtState;
+  const stepLabel = ['현장 선택', '사진 첨부', '메모 · 작성자'];
+  let body = '';
+  if (s.step === 1) body = qtStepSite();
+  else if (s.step === 2) body = qtStepPhoto();
+  else body = qtStepMemo();
+  const prog = `<div style="height:4px;background:var(--hair);border-radius:2px;overflow:hidden;margin-bottom:16px;"><div style="height:100%;width:${Math.round(s.step / 3 * 100)}%;background:var(--accent);border-radius:2px;transition:width .25s;"></div></div>`;
   const root = document.getElementById('modal-root');
   root.innerHTML = `
     <div class="modal-backdrop" onclick="closeModal()">
       <div class="modal-sheet" onclick="event.stopPropagation()">
         <div class="modal-head">
-          <div>
-            <div class="modal-title">⚡ 빠른 기록</div>
-            <div class="modal-sub">현장에서 즉석으로 메모, 나중에 정리</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${s.step > 1 ? `<button class="btn-icon" onclick="qtBack()" style="background:var(--surface-2);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:17px;">‹</button>` : ''}
+            <div>
+              <div class="modal-title">⚡ 빠른 기록 · ${s.step}/3</div>
+              <div class="modal-sub">${stepLabel[s.step - 1]}</div>
+            </div>
           </div>
           <button class="btn-icon" onclick="closeModal()" style="background:var(--surface-2);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">${MODAL_BACK}</button>
         </div>
-        <div class="modal-body">
-          <div class="callout warm">
-            <div class="callout-icon">⚡</div>
-            <div>
-              <div class="callout-title">자동 설정</div>
-              <div class="callout-body">현장을 선택하고 사진·메모만 남기세요. 금액·공정은 나중에 미정리 탭에서 정리할 수 있어요.</div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="field-label">현장 선택 <span class="req">*</span></label>
-            <select class="input" id="qt-site">
-              <option value="">현장을 선택해주세요</option>
-              ${sitesOpts}
-            </select>
-          </div>
-
-          <div class="field">
-            <label class="field-label">날짜</label>
-            <input class="input" type="date" id="qt-date" value="${today}">
-          </div>
-
-          <div class="field">
-            <label class="field-label">📎 사진 첨부 <span class="muted">선택사항</span></label>
-            <div class="grid-2" style="margin-bottom:10px;">
-              <button type="button" class="attach" onclick="qtOpenCamera()">📷 카메라 촬영</button>
-              <button type="button" class="attach" onclick="qtOpenGallery()">🖼️ 갤러리 업로드</button>
-            </div>
-            <input type="file" id="qt-file-camera" accept="image/*" capture="environment" style="display:none" onchange="qtHandleFile(event)">
-            <input type="file" id="qt-file-gallery" accept="image/*" multiple style="display:none" onchange="qtHandleFile(event)">
-            <div id="qt-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-          </div>
-
-          <div class="field">
-            <label class="field-label">작성자 <span class="req">*</span></label>
-            <select class="input" id="qt-writer">
-              ${writersOpts}
-            </select>
-          </div>
-
-          <div class="field">
-            <label class="field-label">메모 <span class="muted">선택</span></label>
-            <textarea class="input" id="qt-memo" rows="3" placeholder="현장 상황을 빠르게 기록"></textarea>
-          </div>
-        </div>
-        <div class="modal-foot">
-          <button class="btn btn-ghost" onclick="closeModal()">취소</button>
-          <button class="btn btn-primary" onclick="qtSave()">⚡ 임시 저장</button>
-        </div>
+        <div class="modal-body">${prog}${body}</div>
+        ${qtFooter()}
       </div>
     </div>
   `;
-  document.body.style.overflow = 'hidden';
+  if (s.step === 2) qtRenderPhotos();
+}
+
+function qtStepSite() {
+  const cur = (window._qtState.site || '').replace(/"/g, '&quot;');
+  return `
+    <div class="callout warm" style="margin-bottom:14px;">
+      <div class="callout-icon">⚡</div>
+      <div>
+        <div class="callout-title">자동 설정</div>
+        <div class="callout-body">현장만 고르면 끝이에요. 금액·공정은 나중에 미정리 탭에서 정리할 수 있어요.</div>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:8px;">
+      <label class="field-label">현장 <span class="req">*</span></label>
+      <input class="input" id="qt-site-search" placeholder="현장명 검색 또는 직접 입력" autocomplete="off" value="${cur}" oninput="qtFilterSites(this.value)">
+    </div>
+    <div style="font-size:11.5px;color:var(--muted);font-weight:700;margin:14px 0 8px;">현장 목록 · 탭하면 다음으로</div>
+    <div id="qt-site-list" style="display:flex;flex-direction:column;gap:8px;">${qtSiteRows('')}</div>
+  `;
+}
+
+function qtSiteRows(q) {
+  const sites = window.MOCK?.sites || [];
+  const query = (q || '').trim();
+  let html = '';
+  sites.forEach((site, i) => {
+    if (query && site.name.indexOf(query) === -1) return;
+    html += `<button onclick="qtPickSite(${i})" style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--hair);border-radius:11px;padding:12px;cursor:pointer;font-family:inherit;text-align:left;font-size:13px;">
+      <span>📁</span><span style="flex:1;min-width:0;">${site.name}</span><span style="color:#ccc;">›</span>
+    </button>`;
+  });
+  if (!html) html = `<div style="font-size:12.5px;color:var(--muted);padding:8px 2px;line-height:1.5;">목록에 없어요. 입력한 이름 그대로 "다음"을 누르면 진행돼요.</div>`;
+  return html;
+}
+
+function qtFilterSites(v) {
+  window._qtState.site = v;
+  const list = document.getElementById('qt-site-list');
+  if (list) list.innerHTML = qtSiteRows(v);
+}
+
+function qtPickSite(i) {
+  const site = window.MOCK?.sites?.[i];
+  if (!site) return;
+  window._qtState.site = site.name;
+  window._qtState.step = 2;
+  qtRender();
+}
+
+function qtStepPhoto() {
+  return `
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px;">사진을 첨부할까요?</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">${window._qtState.site} · 사진은 선택사항이에요</div>
+    <div class="grid-2" style="margin-bottom:12px;">
+      <button type="button" class="attach" onclick="qtOpenCamera()">📷 카메라 촬영</button>
+      <button type="button" class="attach" onclick="qtOpenGallery()">🖼️ 갤러리 업로드</button>
+    </div>
+    <input type="file" id="qt-file-camera" accept="image/*" capture="environment" style="display:none" onchange="qtHandleFile(event)">
+    <input type="file" id="qt-file-gallery" accept="image/*" multiple style="display:none" onchange="qtHandleFile(event)">
+    <div id="qt-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;min-height:44px;"></div>
+  `;
+}
+
+function qtStepMemo() {
+  const s = window._qtState;
+  const writers = window.MOCK?.inputters || [];
+  const n = (window._qtPhotos || []).length;
+  return `
+    <div style="background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:2px 14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--hair-soft);font-size:13px;"><span style="color:var(--muted);">현장</span><span style="font-weight:700;max-width:64%;text-align:right;">${s.site}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;font-size:13px;"><span style="color:var(--muted);">사진</span><span style="font-weight:700;">${n ? n + '장' : '없음'}</span></div>
+    </div>
+    <div class="field">
+      <label class="field-label">날짜</label>
+      <input class="input" type="date" id="qt-date" value="${s.date}" oninput="window._qtState.date=this.value">
+    </div>
+    <div class="field">
+      <label class="field-label">작성자 <span class="req">*</span></label>
+      <div class="chip-group">${writers.map(w => `<button class="chip ${s.writer === w ? 'is-active' : ''}" onclick="qtSetWriter('${w}')">${w}</button>`).join('')}</div>
+    </div>
+    <div class="field">
+      <label class="field-label">메모 <span class="muted">선택</span></label>
+      <textarea class="input" id="qt-memo" rows="3" placeholder="현장 상황을 빠르게 기록" oninput="window._qtState.memo=this.value">${s.memo || ''}</textarea>
+    </div>
+  `;
+}
+
+function qtSetWriter(w) {
+  window._qtState.writer = w;
+  qtRender();
+}
+
+function qtFooter() {
+  const s = window._qtState;
+  if (s.step === 1) {
+    return `<div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="qtNext()">다음</button>
+    </div>`;
+  }
+  if (s.step === 2) {
+    const n = (window._qtPhotos || []).length;
+    return `<div class="modal-foot">
+      <button class="btn btn-ghost" onclick="qtBack()">이전</button>
+      <button class="btn btn-primary" onclick="qtNext()">${n ? `다음 · 사진 ${n}장` : '사진 없이 계속'}</button>
+    </div>`;
+  }
+  return `<div class="modal-foot">
+    <button class="btn btn-ghost" onclick="qtBack()">이전</button>
+    <button class="btn btn-primary" onclick="qtSave()">⚡ 임시 저장</button>
+  </div>`;
+}
+
+function qtBack() {
+  if (window._qtState.step > 1) {
+    window._qtState.step--;
+    qtRender();
+  }
+}
+
+function qtNext() {
+  const s = window._qtState;
+  if (s.step === 1) {
+    const inp = document.getElementById('qt-site-search');
+    const v = (inp && inp.value.trim()) || s.site || '';
+    if (!v) { alert('현장을 선택하거나 입력해주세요'); return; }
+    s.site = v;
+    s.step = 2;
+    qtRender();
+  } else if (s.step === 2) {
+    s.step = 3;
+    qtRender();
+  }
 }
 
 function qtOpenCamera() {
@@ -857,14 +961,23 @@ function qtHandleFile(e) {
 
 function qtRenderPhotos() {
   const wrap = document.getElementById('qt-photo-preview');
-  if (!wrap) return;
-  wrap.innerHTML = window._qtPhotos.map((p, i) => `
-    <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
-      <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
-      <button onclick="qtRemovePhoto(${i})"
-        style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
-    </div>
-  `).join('');
+  if (wrap) {
+    wrap.innerHTML = window._qtPhotos.map((p, i) => `
+      <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+        <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
+        <button onclick="qtRemovePhoto(${i})"
+          style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
+      </div>
+    `).join('');
+  }
+  const s = window._qtState;
+  if (s && s.step === 2) {
+    const nb = document.querySelector('.modal-foot .btn-primary');
+    if (nb) {
+      const n = window._qtPhotos.length;
+      nb.textContent = n ? `다음 · 사진 ${n}장` : '사진 없이 계속';
+    }
+  }
 }
 
 function qtRemovePhoto(idx) {
@@ -873,10 +986,13 @@ function qtRemovePhoto(idx) {
 }
 
 async function qtSave() {
-  const site = document.getElementById('qt-site')?.value;
-  const date = document.getElementById('qt-date')?.value;
-  const writer = document.getElementById('qt-writer')?.value;
-  const memo = document.getElementById('qt-memo')?.value?.trim();
+  const s = window._qtState || {};
+  const dateInp = document.getElementById('qt-date');
+  const memoInp = document.getElementById('qt-memo');
+  const site = s.site || '';
+  const date = (dateInp && dateInp.value) || s.date || new Date().toISOString().slice(0, 10);
+  const writer = s.writer || '';
+  const memo = (memoInp && memoInp.value.trim()) || s.memo || '';
 
   if (!site) { alert('현장을 선택해주세요'); return; }
 
