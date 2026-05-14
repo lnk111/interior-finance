@@ -93,7 +93,7 @@ function _buildCalendarHtml() {
     const hasMore = ev.length > 2;
     cells.push(`<div class="cal-day ${isToday?'today':''} ${col===0?'sun':col===6?'sat':''}" onclick="openCalDayPopup('${dateStr}')" style="cursor:pointer;">
       <span class="num">${d}</span>${evHtml}
-      ${hasMore ? `<span style="font-size:9px;color:var(--muted);">+${ev.length-2}건</span>` : ''}
+      ${hasMore ? `<span style="font-size:11px;color:var(--muted);">+${ev.length-2}건</span>` : ''}
     </div>`);
   }
 
@@ -126,9 +126,9 @@ function _buildCalendarHtml() {
       <div class="list">
         ${upcoming.length > 0 ? upcoming.map(u => `
           <div class="list-row">
-            <span class="num" style="font-size:12px;color:var(--muted);font-weight:600;min-width:30px;">${u.d}</span>
+            <span class="num" style="font-size:13px;color:var(--muted);font-weight:600;min-width:30px;">${u.d}</span>
             <div><div class="lr-title">${u.t}</div></div>
-            <span class="pill pill-${u.c}" style="font-size:9px;">●</span>
+            <span class="pill pill-${u.c}" style="font-size:11px;">●</span>
           </div>`).join('') : '<div class="empty">다가오는 일정이 없어요</div>'}
       </div>
     </div>`;
@@ -180,7 +180,7 @@ function openCalDayPopup(dateStr) {
   });
 
   const procHtml = dayProcs.length > 0 ? `
-    <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;">🔨 공정 일정</div>
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🔨 공정 일정</div>
     ${dayProcs.map(p => {
       const stColor = p.status==='done'?'var(--accent)':p.status==='active'?'var(--warn)':'var(--faint)';
       const stLabel = p.status==='done'?'완료':p.status==='active'?'진행중':'대기';
@@ -188,24 +188,24 @@ function openCalDayPopup(dateStr) {
       return `<div style="background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:13px 14px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <div style="font-size:14px;font-weight:700;">${p.siteName}</div>
-          <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:${stColor}20;color:${stColor};">${stLabel}</span>
+          <span style="font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;background:${stColor}20;color:${stColor};">${stLabel}</span>
         </div>
         <div style="font-size:13px;color:var(--ink-2);">🔨 ${p.phName}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:3px;">📅 ${dateRange}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px;">📅 ${dateRange}</div>
       </div>`;
     }).join('')}` : '';
 
   const scheduleHtml = daySchedules.length > 0 ? `
-    <div style="font-size:11px;font-weight:700;color:var(--muted);margin:${dayProcs.length>0?'16px':'0'} 0 10px;">📌 추가 일정</div>
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin:${dayProcs.length>0?'16px':'0'} 0 10px;">📌 추가 일정</div>
     ${daySchedules.map(([key, sc]) => `
       <div style="background:var(--surface);border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:12px;padding:13px 14px;margin-bottom:8px;cursor:pointer;"
         onclick="closeCalDayPopup();modalSchedule('${key}')">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <div style="font-size:14px;font-weight:700;">${sc.title||''}</div>
-          ${sc.time ? `<span style="font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:20px;">${sc.time}</span>` : ''}
+          ${sc.time ? `<span style="font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:20px;">${sc.time}</span>` : ''}
         </div>
-        ${sc.memo ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;">${sc.memo}</div>` : ''}
-        ${sc.attendees&&sc.attendees.length ? `<div style="font-size:11px;color:var(--muted);margin-top:3px;">👥 ${sc.attendees.join(', ')}</div>` : ''}
+        ${sc.memo ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">${sc.memo}</div>` : ''}
+        ${sc.attendees&&sc.attendees.length ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">👥 ${sc.attendees.join(', ')}</div>` : ''}
       </div>`).join('')}` : '';
 
   const emptyHtml = (!dayProcs.length && !daySchedules.length) ?
@@ -288,11 +288,11 @@ function renderSettings() {
             <div style="display:flex;gap:12px;align-items:center;">
               <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">${s.name[0]}</div>
               <div>
-                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:12px;">${s.role}</span></div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px;">입사 ${s.joined}${canStaffSalary ? ` · ${(s.salary||0).toLocaleString('ko-KR')}원` : ''}</div>
+                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${s.role}</span></div>
+                <div style="font-size:13px;color:var(--muted);margin-top:2px;">입사 ${s.joined}${canStaffSalary ? ` · ${(s.salary||0).toLocaleString('ko-KR')}원` : ''}</div>
               </div>
             </div>
-            <span class="pill pill-accent" style="font-size:10px;">${s.status}</span>
+            <span class="pill pill-accent" style="font-size:12px;">${s.status}</span>
           </button>`).join('')}
       </div>
       <button class="btn btn-ghost btn-block" data-modal="staff" style="margin-top:8px;">+ 직원 추가</button>
@@ -303,14 +303,14 @@ function renderSettings() {
             <div style="display:flex;gap:12px;align-items:center;">
               <div class="avatar" style="width:36px;height:36px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">${s.name[0]}</div>
               <div>
-                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:12px;">${s.role}</span></div>
-                <div style="font-size:11px;color:var(--muted);margin-top:2px;">입사 ${s.joined}</div>
+                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${s.role}</span></div>
+                <div style="font-size:13px;color:var(--muted);margin-top:2px;">입사 ${s.joined}</div>
               </div>
             </div>
           </div>`).join('')}
       </div>
       ${!canStaffSalary ? '<div class="locked-inline">🔒 급여 정보는 대표만 볼 수 있어요</div>' : ''}`}
-      <div style="text-align:center;padding:32px 0 8px;color:var(--faint);font-size:11px;">머니플로우 v1.2 · ${PMS.company} · ${AUTH.roleLabel()}</div>
+      <div style="text-align:center;padding:32px 0 8px;color:var(--faint);font-size:13px;">머니플로우 v1.2 · ${PMS.company} · ${AUTH.roleLabel()}</div>
     </div>`;
 }
 
@@ -322,7 +322,7 @@ function renderTax() {
       <div><div class="lr-title">${q.q}</div><div class="lr-meta">매출 ${q.revenue>0?fmtSlim2(q.revenue):'—'}</div></div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span class="num" style="font-weight:600;font-size:13px;">${q.vat>0?fmtSlim2(q.vat):'—'}</span>
-        <span class="pill ${q.status==='paid'?'pill-accent':q.status==='pending'?'pill-warn':'pill-muted'}" style="font-size:9px;">
+        <span class="pill ${q.status==='paid'?'pill-accent':q.status==='pending'?'pill-warn':'pill-muted'}" style="font-size:11px;">
           ${q.status==='paid'?'납부':q.status==='pending'?'대기':'예정'}
         </span>
       </div>
@@ -377,7 +377,7 @@ function renderEntryList(siteName, grouped) {
         <div style="min-width:0;">
           <div class="lr-title">${e.process||e.payStage||'기타'}</div>
           <div class="lr-meta">${e.writer||''} · ${date}</div>
-          ${e.memo ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;white-space:normal;line-height:1.4;">💬 ${e.memo}</div>` : ''}
+          ${e.memo ? `<div style="font-size:13px;color:var(--muted);margin-top:2px;white-space:normal;line-height:1.4;">💬 ${e.memo}</div>` : ''}
         </div>
         <span class="lr-amount num" style="flex-shrink:0;${amtStyle}">${sign}${(e.amount||0).toLocaleString('ko-KR')}</span>
       </button>`;
@@ -399,7 +399,7 @@ function renderEntryList(siteName, grouped) {
     return `
       <div style="margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--surface-2);border-radius:10px 10px 0 0;border:1px solid var(--hair);border-bottom:none;">
-          <div style="font-size:12px;font-weight:700;color:var(--ink);">📦 ${groupName}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink);">📦 ${groupName}</div>
           <div style="font-size:13px;font-weight:800;color:${totalColor};">${totalSign}${Math.abs(g.total).toLocaleString('ko-KR')}</div>
         </div>
         <div class="list" style="border-radius:0 0 10px 10px;">${g.entries.map(entryRow).join('')}</div>
@@ -446,7 +446,7 @@ function renderSiteDetail() {
     <button class="tl-row" onclick="openProcEditModal('${p.id}','${(s.name||'').replace(/'/g,"\\'")}')  " style="width:100%;text-align:left;">
       <span class="tl-dot ${dotClass[st]||'todo'}"></span>
       <div>
-        <div class="tl-name">${p.name} <span class="pill ${stClass[st]||'pill-muted'}" style="margin-left:6px;font-size:9px;padding:1px 6px;">${stLabel[st]||'대기'}</span></div>
+        <div class="tl-name">${p.name} <span class="pill ${stClass[st]||'pill-muted'}" style="margin-left:6px;font-size:11px;padding:1px 6px;">${stLabel[st]||'대기'}</span></div>
         ${dateStr ? `<div class="tl-meta">${dateStr}</div>` : ''}
       </div>
       <span style="color:var(--muted);font-size:14px;">›</span>
@@ -479,14 +479,14 @@ function renderSiteDetail() {
     if (!ph) {
       const txt = role === 'prev' ? '시작 전' : role === 'next' ? '마지막 공정' : '-';
       return `<div style="flex:1;text-align:center;opacity:.45;">
-        <div style="font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:4px;">${labelMap[role]}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">${labelMap[role]}</div>
         <div style="display:flex;align-items:center;height:20px;">
           <div style="flex:1;height:2px;background:${lineL};"></div>
           <span style="width:11px;height:11px;border-radius:50%;background:var(--faint);flex-shrink:0;"></span>
           <div style="flex:1;height:2px;background:${lineR};"></div>
         </div>
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-top:5px;">${txt}</div>
-        <div style="font-size:10.5px;color:var(--muted);margin-top:1px;">&nbsp;</div>
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-top:5px;">${txt}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:1px;">&nbsp;</div>
       </div>`;
     }
     const st = calcStatus(ph.startDate, ph.doneDate);
@@ -498,14 +498,14 @@ function renderSiteDetail() {
     const nameColor = isCur ? 'var(--ink)' : 'var(--muted)';
     const nameWeight = isCur ? '800' : '700';
     return `<button onclick="openProcEditModal('${ph.id}','${(s.name || '').replace(/'/g, "\\'")}')" style="flex:1;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;text-align:center;">
-      <div style="font-size:10.5px;font-weight:700;color:${labelColor};margin-bottom:4px;">${labelMap[role]}</div>
+      <div style="font-size:12px;font-weight:700;color:${labelColor};margin-bottom:4px;">${labelMap[role]}</div>
       <div style="display:flex;align-items:center;height:20px;">
         <div style="flex:1;height:2px;background:${lineL};"></div>
         <span style="${dot}"></span>
         <div style="flex:1;height:2px;background:${lineR};"></div>
       </div>
-      <div style="font-size:12.5px;font-weight:${nameWeight};color:${nameColor};margin-top:5px;line-height:1.3;">${ph.name}</div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:1px;">${procMeta(ph)}</div>
+      <div style="font-size:13.5px;font-weight:${nameWeight};color:${nameColor};margin-top:5px;line-height:1.3;">${ph.name}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:1px;">${procMeta(ph)}</div>
     </button>`;
   }
   const _segL = prevP ? 'var(--accent)' : 'var(--hair)';
@@ -544,9 +544,9 @@ function renderSiteDetail() {
       <div class="section-label">공정 진행 <span class="more">${pct}% 완료</span></div>
       ${phases.length > 0 ? `
         ${subwayBar}
-        <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:11px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
           <span id="proc-toggle-label">전체 공정 ${phases.length}개 펼치기</span>
-          <span id="proc-toggle-arrow" style="font-size:10px;">▾</span>
+          <span id="proc-toggle-arrow" style="font-size:12px;">▾</span>
         </button>
         <div id="proc-full-list" style="display:none;margin-top:8px;">
           <div class="timeline">${tlHtml}</div>
@@ -555,7 +555,7 @@ function renderSiteDetail() {
       <div class="section-label" style="margin-top:8px;">거래 내역
         <span style="display:flex;gap:6px;align-items:center;">
           <button onclick="toggleEntryGrouping()" id="group-toggle-btn"
-            style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">
+            style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
             공정별 묶기 ON
           </button>
           <span class="more" onclick="navigate('input')" style="cursor:pointer;">+ 입력</span>
@@ -608,10 +608,10 @@ function renderPhotos() {
       <div style="cursor:pointer;" onclick="openPhotoAlbum('${enc}')">
         <div style="width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;position:relative;background:var(--surface-2);">
           <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async">
-          <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;">📷 ${a.photos.length}</div>
+          <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);color:#fff;font-size:12px;font-weight:700;padding:2px 7px;border-radius:10px;">📷 ${a.photos.length}</div>
         </div>
-        <div style="font-size:12px;font-weight:700;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.site||''}</div>
-        <div style="font-size:11px;color:var(--muted);">${a.phase||''} · ${date}</div>
+        <div style="font-size:13px;font-weight:700;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.site||''}</div>
+        <div style="font-size:13px;color:var(--muted);">${a.phase||''} · ${date}</div>
       </div>`;
   }).join('') : `<div class="empty" style="grid-column:span 2;padding:40px 0;text-align:center;">📷 ${searchQ?'"'+searchQ+'" 검색 결과 없음':'등록된 사진이 없어요'}</div>`;
 
@@ -630,7 +630,7 @@ function renderPhotos() {
     <div class="filter-row" style="padding-bottom:4px;overflow-x:auto;">${filterHtml}</div>
     <div class="filter-row" style="overflow-x:auto;">${phaseHtml}</div>
     <div class="page-body">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">총 ${display.length}개 앨범</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">총 ${display.length}개 앨범</div>
       <div class="photo-gallery">${albumHtml}</div>
     </div>`;
 }

@@ -303,7 +303,7 @@ function tipRenderPhotos(type) {
   let html = photos.map((p, i) => `
     <div style="position:relative;width:80px;height:80px;">
       <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid #e0e0e0;">
-      <button onclick="tipRemovePhoto('${type}',${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <button onclick="tipRemovePhoto('${type}',${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>`).join('');
   if(photos.length < 3) html += `<button type="button" class="photo-add" onclick="tipAddPhoto('${type}',${photos.length})">📷</button>`;
   row.innerHTML = html;
@@ -818,7 +818,7 @@ function qtStepSite() {
       <label class="field-label">현장 <span class="req">*</span></label>
       <input class="input" id="qt-site-search" placeholder="현장명 검색 또는 직접 입력" autocomplete="off" value="${cur}" oninput="qtFilterSites(this.value)">
     </div>
-    <div style="font-size:11.5px;color:var(--muted);font-weight:700;margin:14px 0 8px;">현장 목록 · 탭하면 다음으로</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700;margin:14px 0 8px;">현장 목록 · 탭하면 다음으로</div>
     <div id="qt-site-list" style="display:flex;flex-direction:column;gap:8px;">${qtSiteRows('')}</div>
   `;
 }
@@ -833,7 +833,7 @@ function qtSiteRows(q) {
       <span>📁</span><span style="flex:1;min-width:0;">${site.name}</span><span style="color:#ccc;">›</span>
     </button>`;
   });
-  if (!html) html = `<div style="font-size:12.5px;color:var(--muted);padding:8px 2px;line-height:1.5;">목록에 없어요. 입력한 이름 그대로 "다음"을 누르면 진행돼요.</div>`;
+  if (!html) html = `<div style="font-size:13.5px;color:var(--muted);padding:8px 2px;line-height:1.5;">목록에 없어요. 입력한 이름 그대로 "다음"을 누르면 진행돼요.</div>`;
   return html;
 }
 
@@ -854,7 +854,7 @@ function qtPickSite(i) {
 function qtStepPhoto() {
   return `
     <div style="font-size:14px;font-weight:700;margin-bottom:4px;">사진을 첨부할까요?</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">${window._qtState.site} · 사진은 선택사항이에요</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">${window._qtState.site} · 사진은 선택사항이에요</div>
     <div class="grid-2" style="margin-bottom:12px;">
       <button type="button" class="attach" onclick="qtOpenCamera()">📷 카메라 촬영</button>
       <button type="button" class="attach" onclick="qtOpenGallery()">🖼️ 갤러리 업로드</button>
@@ -1052,7 +1052,7 @@ function openPhotoUploadModal() {
           <!-- STEP 2: 공정 선택 -->
           <div id="photo-step-2" style="display:none;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-              <button onclick="photoBackToStep1()" style="background:var(--surface-2);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);">‹ 현장</button>
+              <button onclick="photoBackToStep1()" style="background:var(--surface-2);border:none;border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);">‹ 현장</button>
               <div style="font-size:13px;font-weight:700;color:var(--muted);">STEP 2 · 공정 선택</div>
             </div>
             <div id="photo-site-label" style="font-size:15px;font-weight:800;margin-bottom:14px;color:var(--accent);"></div>
@@ -1069,7 +1069,7 @@ function openPhotoUploadModal() {
           <!-- STEP 3: 사진 업로드 -->
           <div id="photo-step-3" style="display:none;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-              <button onclick="photoBackToStep2()" style="background:var(--surface-2);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);">‹ 공정</button>
+              <button onclick="photoBackToStep2()" style="background:var(--surface-2);border:none;border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);">‹ 공정</button>
               <div style="font-size:13px;font-weight:700;color:var(--muted);">STEP 3 · 사진 업로드</div>
             </div>
             <div id="photo-upload-label" style="font-size:15px;font-weight:800;margin-bottom:14px;"></div>
@@ -1310,7 +1310,7 @@ function openProcEditModal(phaseId, siteName) {
             </div>
           </div>
 
-          <div style="background:rgba(91,124,181,0.08);border:1px solid rgba(91,124,181,0.2);border-radius:10px;padding:10px 12px;font-size:12px;color:#5B7CB5;line-height:1.6;">
+          <div style="background:rgba(91,124,181,0.08);border:1px solid rgba(91,124,181,0.2);border-radius:10px;padding:10px 12px;font-size:13px;color:#5B7CB5;line-height:1.6;">
             💡 날짜를 입력하면 오늘 기준으로 상태가 자동으로 계산돼요
           </div>
         </div>

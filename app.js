@@ -90,11 +90,11 @@ function renderHome() {
         <div style="display:flex;border-bottom:1px solid var(--hair);">
           <button id="site-tab-active" onclick="switchSiteTab('active')"
             style="flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-            🔨 공사중 <span style="background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 7px;font-size:11px;">${(M.sites||[]).filter(s=>s.status==='공사중').length}</span>
+            🔨 공사중 <span style="background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 7px;font-size:13px;">${(M.sites||[]).filter(s=>s.status==='공사중').length}</span>
           </button>
           <button id="site-tab-as" onclick="switchSiteTab('as')"
             style="flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-            🔧 AS관리 <span id="as-badge" style="background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:1px 7px;font-size:11px;">${(M.asList||[]).filter(a=>!a.done&&a.status!=='완료').length}</span>
+            🔧 AS관리 <span id="as-badge" style="background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:1px 7px;font-size:13px;">${(M.asList||[]).filter(a=>!a.done&&a.status!=='완료').length}</span>
           </button>
         </div>
         <div id="site-tab-content" style="padding:0;">${renderActiveSitesHtml()}</div>
@@ -111,7 +111,7 @@ function renderHome() {
       ${pinnedTips.map(tipCard).join('')}
       ${otherTips.map(tipCard).join('')}
       <div class="section-label" style="margin-top:8px;">손익 현황
-        <span class="more"><span class="pill pill-muted" style="font-size:9px;">${AUTH.roleLabel()} 모드</span></span>
+        <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
       ${ymRow(now.getFullYear(), now.getMonth()+1)}
       ${AUTH.can('finalProfit') ? `
@@ -178,7 +178,7 @@ function renderActiveSitesHtml() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div>
             <div style="font-size:14px;font-weight:700;">${s.name}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${actPh?'🔨 '+actPh.name+' 진행중':s.start&&s.start!=='—'?s.start:'공정 정보 없음'}</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px;">${actPh?'🔨 '+actPh.name+' 진행중':s.start&&s.start!=='—'?s.start:'공정 정보 없음'}</div>
           </div>
           <span style="font-size:13px;font-weight:800;color:var(--accent);">${pct}%</span>
         </div>
@@ -186,8 +186,8 @@ function renderActiveSitesHtml() {
           <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:4px;transition:width .4s;"></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:8px;">
-          <span style="font-size:11px;color:var(--muted);">${done}/${total} 공정 완료</span>
-          <span style="font-size:11px;color:var(--accent);font-weight:700;">${s.profit>0?'+':''}${fmtSlim(s.profit)}</span>
+          <span style="font-size:13px;color:var(--muted);">${done}/${total} 공정 완료</span>
+          <span style="font-size:13px;color:var(--accent);font-weight:700;">${s.profit>0?'+':''}${fmtSlim(s.profit)}</span>
         </div>
       </div>`;
   }).join('');
@@ -216,15 +216,15 @@ function renderAsSitesHtml() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:700;margin-bottom:3px;">${a.content||'내용 없음'}</div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6;">
+            <div style="font-size:13px;color:var(--muted);line-height:1.6;">
               ${a.phone&&a.phone!=='없음'?'📞 '+a.phone+'<br>':''}
               ${a.manager?'👤 '+a.manager:''}${a.worker?' · 작업자: '+a.worker:''}<br>
               📅 ${a.date==='날짜 조율중'?'🕐 날짜 조율중':(a.date||'날짜 미정')}
             </div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-            <span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;">미처리</span>
-            <span style="font-size:10px;color:var(--muted);">탭하여 수정 ›</span>
+            <span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:3px 8px;font-size:12px;font-weight:700;">미처리</span>
+            <span style="font-size:12px;color:var(--muted);">탭하여 수정 ›</span>
           </div>
         </div>
       </div>`).join('');
@@ -233,10 +233,10 @@ function renderAsSitesHtml() {
         onclick="modalAS('${a._key}')">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;color:var(--muted);text-decoration:line-through;">${a.content||''}</div>
-            <div style="font-size:11px;color:var(--muted);">${a.date||''}</div>
+            <div style="font-size:13px;color:var(--muted);text-decoration:line-through;">${a.content||''}</div>
+            <div style="font-size:13px;color:var(--muted);">${a.date||''}</div>
           </div>
-          <span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:3px 8px;font-size:10px;font-weight:700;flex-shrink:0;">✅ 완료</span>
+          <span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:3px 8px;font-size:12px;font-weight:700;flex-shrink:0;">✅ 완료</span>
         </div>
       </div>`).join('');
     return `
@@ -245,11 +245,11 @@ function renderAsSitesHtml() {
           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
           <div>
             <div style="font-size:14px;font-weight:700;">${siteName}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">전체 ${items.length}건 · 미처리 ${pending.length}건</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px;">전체 ${items.length}건 · 미처리 ${pending.length}건</div>
           </div>
           ${pending.length>0
-            ?`<span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">미처리 ${pending.length}건</span>`
-            :`<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;">✅ 완료</span>`}
+            ?`<span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:700;">미처리 ${pending.length}건</span>`
+            :`<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:700;">✅ 완료</span>`}
         </div>
         <div style="${pending.length>0?'':'display:none;'}">${pendHtml}${doneHtml}</div>
       </div>`;
@@ -370,14 +370,14 @@ function filterSiteDropdown(query) {
   let html='';
   const rF = recent.filter(s=>!q||s.toLowerCase().includes(q));
   if (rF.length) {
-    html+=`<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">🕐 최근 선택</div>`;
+    html+=`<div style="padding:6px 12px;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface-2);">🕐 최근 선택</div>`;
     html+=rF.map(s=>`<div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
       style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
       onmousedown="event.preventDefault()">${s}</div>`).join('');
   }
   const others = allSites.filter(s=>!recent.includes(s)&&(!q||s.toLowerCase().includes(q)));
   if (others.length) {
-    html+=`<div style="padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);">전체 현장</div>`;
+    html+=`<div style="padding:6px 12px;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface-2);">전체 현장</div>`;
     html+=others.map(s=>`<div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
       style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
       onmousedown="event.preventDefault()">${s}</div>`).join('');
@@ -410,7 +410,7 @@ function renderInput() {
         <div class="h-eyebrow">새 거래 · ${st.step}/${total}</div>
         <div style="font-size:18px;font-weight:800;">${stepLabel[st.step-1]}</div>
       </div>
-      <button onclick="window.MODALS.quickTip()" style="background:var(--warn-soft);color:var(--warn);border:1.5px solid var(--warn);border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">⚡ 빠른입력</button>
+      <button onclick="window.MODALS.quickTip()" style="background:var(--warn-soft);color:var(--warn);border:1.5px solid var(--warn);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">⚡ 빠른입력</button>
     </div>
     <div style="padding:0 var(--pad);margin-bottom:16px;">
       <div style="height:4px;background:var(--hair);border-radius:2px;overflow:hidden;">
@@ -449,14 +449,14 @@ function inputStepType() {
     <div style="padding:0 var(--pad);">
       ${banner}
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어떤 거래인가요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">거래 종류를 먼저 선택하세요</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">거래 종류를 먼저 선택하세요</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${types.map(([k,ic,desc])=>`
           <button data-iact="type" data-val="${k}" style="display:flex;align-items:center;gap:13px;background:#fff;border:1.5px solid ${_iBorder(inputState.tab===k)};border-radius:14px;padding:16px 14px;cursor:pointer;font-family:inherit;text-align:left;">
             <span style="font-size:24px;">${ic}</span>
             <span style="flex:1;min-width:0;">
               <span style="display:block;font-size:15px;font-weight:700;">${k}</span>
-              <span style="display:block;font-size:11.5px;color:var(--muted);margin-top:2px;">${desc}</span>
+              <span style="display:block;font-size:13px;color:var(--muted);margin-top:2px;">${desc}</span>
             </span>
             <span style="color:#ccc;font-size:18px;">›</span>
           </button>`).join('')}
@@ -470,7 +470,7 @@ function inputSiteRows(q) {
   const ordered = [...recent, ...allSites.filter(s=>!recent.includes(s))];
   const query = (q||'').trim();
   const list = ordered.filter(s=>!query||s.indexOf(query)>-1);
-  if (!list.length) return `<div style="font-size:12.5px;color:var(--muted);padding:10px 2px;line-height:1.5;">목록에 없어요. 위 버튼으로 입력한 이름을 그대로 쓸 수 있어요.</div>`;
+  if (!list.length) return `<div style="font-size:13.5px;color:var(--muted);padding:10px 2px;line-height:1.5;">목록에 없어요. 위 버튼으로 입력한 이름을 그대로 쓸 수 있어요.</div>`;
   return list.map(s=>{
     const isRecent = recent.indexOf(s)>-1;
     return `<button data-iact="site" data-val="${String(s).replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:13px;cursor:pointer;font-family:inherit;text-align:left;font-size:13.5px;">
@@ -486,16 +486,16 @@ function inputStepSite() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어느 현장이에요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">최근 현장에서 고르거나 검색·직접 입력하세요</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">최근 현장에서 고르거나 검색·직접 입력하세요</div>
       <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--hair);border-radius:11px;padding:11px 13px;margin-bottom:8px;">
         <span style="color:var(--muted);display:flex;">${ICON.search}</span>
         <input id="iflow-site-search" placeholder="현장명 검색 또는 직접 입력" autocomplete="off" value="${cur}"
           style="border:0;background:transparent;font-family:inherit;font-size:13.5px;flex:1;outline:none;color:var(--ink);">
       </div>
-      <button data-iact="site-direct" style="width:100%;text-align:left;background:var(--warn-soft);border:1.5px dashed var(--warn);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--warn);font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;">
+      <button data-iact="site-direct" style="width:100%;text-align:left;background:var(--warn-soft);border:1.5px dashed var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--warn);font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;">
         ✏️ 입력한 이름으로 진행하기
       </button>
-      <div style="font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:8px;">현장 목록</div>
+      <div style="font-size:13px;color:var(--muted);font-weight:700;margin-bottom:8px;">현장 목록</div>
       <div id="iflow-site-list" style="display:flex;flex-direction:column;gap:8px;">${inputSiteRows('')}</div>
     </div>`;
 }
@@ -507,7 +507,7 @@ function inputStepMid() {
     return `
       <div style="padding:0 var(--pad);">
         <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어떤 결제 단계예요?</div>
-        <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">${st.site||''}</div>
+        <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">${st.site||''}</div>
         <div style="display:flex;flex-wrap:wrap;gap:9px;">
           ${(M.paymentStages||[]).map(s=>{
             const on = st.stage===s;
@@ -519,7 +519,7 @@ function inputStepMid() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어떤 공정이에요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">${st.site||''}</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">${st.site||''}</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;">
         ${(M.phases||[]).map(p=>{
           const on = st.phase===p;
@@ -537,12 +537,12 @@ function inputStepAmount() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">금액을 입력하세요</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">${st.tab}${midV?' · '+midV:''}</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:6px;">${st.tab}${midV?' · '+midV:''}</div>
       <div style="text-align:center;font-size:34px;font-weight:800;margin:16px 0 6px;">
         <span id="iflow-amount" style="color:${amt?'var(--ink)':'#cbc3b4'};">${amt.toLocaleString('ko-KR')}</span><span style="font-size:18px;margin-left:3px;">원</span>
       </div>
       <div style="display:flex;gap:7px;justify-content:center;margin-bottom:14px;">
-        ${[['+1만',10000],['+10만',100000],['+100만',1000000]].map(([l,v])=>`<button data-iact="quick" data-val="${v}" style="background:#fff;border:1.5px solid var(--hair);border-radius:18px;padding:7px 13px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--accent);font-weight:700;">${l}</button>`).join('')}
+        ${[['+1만',10000],['+10만',100000],['+100만',1000000]].map(([l,v])=>`<button data-iact="quick" data-val="${v}" style="background:#fff;border:1.5px solid var(--hair);border-radius:18px;padding:7px 13px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--accent);font-weight:700;">${l}</button>`).join('')}
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px;">
         ${keys.map(k=>`<button data-iact="key" data-val="${k}" style="background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:15px 0;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">${k==='del'?'⌫':k}</button>`).join('')}
@@ -564,7 +564,7 @@ function inputStepPay() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">결제 방법은요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">기본값은 계좌이체예요 · 탭하면 다음으로</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">기본값은 계좌이체예요 · 탭하면 다음으로</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${(M.paymentMethods||[]).map(p=>{
           const on = st.payMethod===p;
@@ -584,7 +584,7 @@ function inputStepWriter() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">누가 입력하나요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">탭하면 다음으로</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">탭하면 다음으로</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${(M.inputters||[]).map(n=>{
           const on = st.inputter===n;
@@ -604,7 +604,7 @@ function inputStepMemo() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">메모를 남길까요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 비워두고 넘어가도 돼요</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 비워두고 넘어가도 돼요</div>
       <textarea class="input" id="iflow-memo" rows="4" placeholder="예: 락카 1개, 자재 추가 구매" style="margin-bottom:16px;">${st.memo||''}</textarea>
       <button data-iact="next" id="iflow-memo-next" class="btn btn-primary btn-block">${has?'다음':'메모 없이 계속'}</button>
     </div>`;
@@ -615,7 +615,7 @@ function inputStepReceipt() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">영수증을 첨부할까요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 최대 5장</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 최대 5장</div>
       <div class="grid-2" style="margin-bottom:12px;">
         <button type="button" class="attach" onclick="entryOpenCamera()">📷 카메라 촬영</button>
         <button type="button" class="attach" onclick="entryOpenGallery()">🖼️ 갤러리 업로드</button>
@@ -639,7 +639,7 @@ function inputStepConfirm() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">이대로 저장할까요?</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">각 항목을 탭하면 그 단계로 돌아가 수정할 수 있어요</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">각 항목을 탭하면 그 단계로 돌아가 수정할 수 있어요</div>
       <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:2px 14px;margin-bottom:16px;">
         ${_confRow('종류', st.tab, 1)}
         ${_confRow('현장', st.site||'-', 2)}
@@ -898,9 +898,9 @@ function openPendingList() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${p.site||'현장 미지정'}</div>
-            <div style="font-size:12px;color:var(--muted);">${p.date||''} · ${p.writer||''}</div>
+            <div style="font-size:13px;color:var(--muted);">${p.date||''} · ${p.writer||''}</div>
           </div>
-          <span style="background:${statusBg};color:${statusColor};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0;margin-left:8px;">${statusLabel}</span>
+          <span style="background:${statusBg};color:${statusColor};border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;flex-shrink:0;margin-left:8px;">${statusLabel}</span>
         </div>
         ${p.memo?`<div style="font-size:13px;color:var(--ink-2);margin-bottom:8px;">${p.memo}</div>`:''}
         <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;">${amount}</div>
