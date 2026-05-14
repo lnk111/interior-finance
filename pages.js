@@ -383,6 +383,29 @@ function renderEntryList(siteName, grouped) {
       </button>`;
   }
 
+  function logRow([key, e]) {
+    const isRev = e.type==='revenue';
+    const isAS = e.type==='as';
+    const sign = isRev ? '' : '−';
+    const amtStyle = isRev ? 'color:#2563EB;' : 'color:var(--ink);';
+    const date = e.date ? e.date.slice(5).replace('-', '.') : '';
+    const tag = isRev
+      ? '<span style="font-size:10.5px;font-weight:700;color:#2563EB;background:rgba(37,99,235,0.1);padding:1px 5px;border-radius:5px;margin-right:5px;">매출</span>'
+      : isAS
+      ? '<span style="font-size:10.5px;font-weight:700;color:var(--pin);background:var(--pin-soft);padding:1px 5px;border-radius:5px;margin-right:5px;">AS</span>'
+      : '';
+    const work = e.memo || e.process || e.payStage || '내용 없음';
+    return `
+      <button onclick="modalTxEdit('${key}')" style="width:100%;display:flex;gap:9px;align-items:flex-start;padding:9px 2px;background:none;border:none;border-top:1px solid var(--hair-soft);text-align:left;font-family:inherit;cursor:pointer;">
+        <span style="font-size:12px;color:var(--faint);flex-shrink:0;width:36px;padding-top:1px;">${date}</span>
+        <span style="flex:1;min-width:0;">
+          <span style="font-size:13px;color:var(--ink);line-height:1.45;">${tag}${work}</span>
+          ${e.writer ? `<span style="display:block;font-size:11.5px;color:var(--faint);margin-top:2px;">${e.writer}</span>` : ''}
+        </span>
+        <span class="num" style="font-size:13.5px;font-weight:700;flex-shrink:0;padding-top:1px;${amtStyle}">${sign}${(e.amount||0).toLocaleString('ko-KR')}</span>
+      </button>`;
+  }
+
   if (!grouped) return `<div class="list">${entries.map(entryRow).join('')}</div>`;
 
   const groups = {};
@@ -396,13 +419,47 @@ function renderEntryList(siteName, grouped) {
   return Object.entries(groups).map(([groupName, g]) => {
     const totalColor = g.total >= 0 ? 'var(--accent)' : 'var(--warn)';
     const totalSign = g.total >= 0 ? '' : '−';
+    // 작업 기간
+    const dates = g.entries.map(([, e]) => e.date).filter(Boolean).sort();
+    let periodStr = '—', daysStr = '';
+    if (dates.length) {
+      const first = dates[0], last = dates[dates.length - 1];
+      const fShort = first.slice(5).replace('-', '.');
+      if (last !== first) {
+        periodStr = `${fShort} ~ ${last.slice(5).replace('-', '.')}`;
+        const days = Math.round((new Date(last) - new Date(first)) / 86400000) + 1;
+        daysStr = `${days}일간`;
+      } else {
+        periodStr = fShort;
+        daysStr = '하루';
+      }
+    }
+    // 담당자
+    const writers = [...new Set(g.entries.map(([, e]) => e.writer).filter(Boolean))];
+    const writerStr = writers.length === 0 ? '—'
+      : writers.length === 1 ? writers[0]
+      : `${writers[0]} 외 ${writers.length - 1}`;
+    const fact = (k, v, sub) => `
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">${k}</div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--ink);">${v}</div>
+        ${sub ? `<div style="font-size:11px;color:var(--faint);margin-top:1px;">${sub}</div>` : ''}
+      </div>`;
     return `
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--surface-2);border-radius:10px 10px 0 0;border:1px solid var(--hair);border-bottom:none;">
-          <div style="font-size:13px;font-weight:700;color:var(--ink);">📦 ${groupName}</div>
-          <div style="font-size:13px;font-weight:800;color:${totalColor};">${totalSign}${Math.abs(g.total).toLocaleString('ko-KR')}</div>
+      <div style="background:var(--surface);border:1.5px solid var(--hair);border-radius:14px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="display:flex;align-items:center;gap:7px;font-size:15px;font-weight:800;color:var(--ink);">
+            <span style="width:9px;height:9px;border-radius:3px;background:var(--accent);flex-shrink:0;"></span>${groupName}
+          </span>
+          <span style="font-size:15px;font-weight:800;color:${totalColor};">${totalSign}${Math.abs(g.total).toLocaleString('ko-KR')}</span>
         </div>
-        <div class="list" style="border-radius:0 0 10px 10px;">${g.entries.map(entryRow).join('')}</div>
+        <div style="display:flex;gap:8px;border-top:1px solid var(--hair-soft);border-bottom:1px solid var(--hair-soft);margin:11px 0;padding:10px 0;">
+          ${fact('작업 기간', periodStr, daysStr)}
+          ${fact('거래', g.entries.length + '건', '')}
+          ${fact('담당', writerStr, '')}
+        </div>
+        <div style="font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:1px;">작업 내역</div>
+        ${g.entries.map(logRow).join('')}
       </div>`;
   }).join('');
 }
