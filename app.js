@@ -274,6 +274,7 @@ function switchSiteTab(tab) {
 }
 
 function openSiteDetail(siteName) {
+  window._siteDetailName = siteName;
   const found = (window.MOCK?.sites||[]).find(s=>s.name===siteName);
   if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s=>s.name!==siteName))];
   const key = siteName.replace(/[.#$/ \[\]]/g,'_');
