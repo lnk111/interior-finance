@@ -405,6 +405,19 @@ function renderEntryList(siteName, grouped) {
   }).join('');
 }
 
+function toggleProcList() {
+  const list = document.getElementById('proc-full-list');
+  if (!list) return;
+  const open = list.style.display === 'none';
+  list.style.display = open ? 'block' : 'none';
+  const arrow = document.getElementById('proc-toggle-arrow');
+  const label = document.getElementById('proc-toggle-label');
+  const btn = document.getElementById('proc-toggle-btn');
+  const cnt = btn ? (btn.dataset.count || '') : '';
+  if (arrow) arrow.textContent = open ? '▴' : '▾';
+  if (label) label.textContent = open ? '전체 공정 접기' : `전체 공정 ${cnt}개 펼치기`;
+}
+
 function renderSiteDetail() {
   const s = PMS.sites[0];
   const procRaw = window._procCache || {};
@@ -441,6 +454,67 @@ function renderSiteDetail() {
   const done = phases.filter(p => calcStatus(p.startDate, p.doneDate) === 'done').length;
   const pct  = phases.length > 0 ? Math.round(done / phases.length * 100) : 0;
 
+  // 지하철 노선도식 — 이전 / 진행 중 / 다음 공정 3개만 상단 노출
+  let curIdx = phases.findIndex(ph => calcStatus(ph.startDate, ph.doneDate) === 'active');
+  if (curIdx === -1) curIdx = phases.findIndex(ph => calcStatus(ph.startDate, ph.doneDate) === 'wait');
+  if (curIdx === -1) curIdx = phases.length - 1;
+  const prevP = curIdx > 0 ? phases[curIdx - 1] : null;
+  const curP  = phases[curIdx] || null;
+  const nextP = curIdx < phases.length - 1 ? phases[curIdx + 1] : null;
+  const curIsActive = curP && calcStatus(curP.startDate, curP.doneDate) === 'active';
+
+  function mmdd(d) { return d ? d.slice(5).replace('-', '.') : ''; }
+  function procMeta(ph) {
+    const st = calcStatus(ph.startDate, ph.doneDate);
+    const a = mmdd(ph.startDate), b = mmdd(ph.doneDate);
+    if (st === 'done')   return b || a || '완료';
+    if (st === 'active') return a ? a + ' ~' : '진행 중';
+    return a ? a + ' 예정' : '예정';
+  }
+  function subwayStation(ph, role, lineL, lineR) {
+    const labelMap = { prev: '이전', cur: curIsActive ? '진행 중' : '다음 차례', next: '다음' };
+    const labelColor = role === 'cur' ? 'var(--accent)' : 'var(--muted)';
+    if (!ph) {
+      const txt = role === 'prev' ? '시작 전' : role === 'next' ? '마지막 공정' : '-';
+      return `<div style="flex:1;text-align:center;opacity:.45;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:4px;">${labelMap[role]}</div>
+        <div style="display:flex;align-items:center;height:20px;">
+          <div style="flex:1;height:2px;background:${lineL};"></div>
+          <span style="width:11px;height:11px;border-radius:50%;background:var(--faint);flex-shrink:0;"></span>
+          <div style="flex:1;height:2px;background:${lineR};"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-top:5px;">${txt}</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:1px;">&nbsp;</div>
+      </div>`;
+    }
+    const st = calcStatus(ph.startDate, ph.doneDate);
+    const isCur = role === 'cur';
+    let dot;
+    if (st === 'active') dot = 'width:15px;height:15px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px rgba(154,75,46,.18);flex-shrink:0;';
+    else if (st === 'done') dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--accent);flex-shrink:0;`;
+    else dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--faint);flex-shrink:0;`;
+    const nameColor = isCur ? 'var(--ink)' : 'var(--muted)';
+    const nameWeight = isCur ? '800' : '700';
+    return `<button onclick="openProcEditModal('${ph.id}','${(s.name || '').replace(/'/g, "\\'")}')" style="flex:1;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;text-align:center;">
+      <div style="font-size:10.5px;font-weight:700;color:${labelColor};margin-bottom:4px;">${labelMap[role]}</div>
+      <div style="display:flex;align-items:center;height:20px;">
+        <div style="flex:1;height:2px;background:${lineL};"></div>
+        <span style="${dot}"></span>
+        <div style="flex:1;height:2px;background:${lineR};"></div>
+      </div>
+      <div style="font-size:12.5px;font-weight:${nameWeight};color:${nameColor};margin-top:5px;line-height:1.3;">${ph.name}</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:1px;">${procMeta(ph)}</div>
+    </button>`;
+  }
+  const _segL = prevP ? 'var(--accent)' : 'var(--hair)';
+  const _segR = 'var(--hair)';
+  const subwayBar = `
+    <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:14px 8px 12px;margin-bottom:8px;display:flex;">
+      ${subwayStation(prevP, 'prev', 'transparent', _segL)}
+      ${subwayStation(curP, 'cur', _segL, _segR)}
+      ${subwayStation(nextP, 'next', _segR, 'transparent')}
+    </div>`;
+
   return `
     <div class="breadcrumb">
       <button class="back-btn" data-goto="sites">
@@ -465,8 +539,17 @@ function renderSiteDetail() {
         <div class="stat"><div class="stat-label">순이익</div><div class="stat-value num" style="color:var(--accent);">+${fmtSlim2(s.profit)}</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${s.margin}%</div></div>
       </div>
-      <div class="section-label">공정 진행 <span class="more">${pct}% · 탭하면 수정</span></div>
-      <div class="timeline">${tlHtml}</div>
+      <div class="section-label">공정 진행 <span class="more">${pct}% 완료</span></div>
+      ${phases.length > 0 ? `
+        ${subwayBar}
+        <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:11px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span id="proc-toggle-label">전체 공정 ${phases.length}개 펼치기</span>
+          <span id="proc-toggle-arrow" style="font-size:10px;">▾</span>
+        </button>
+        <div id="proc-full-list" style="display:none;margin-top:8px;">
+          <div class="timeline">${tlHtml}</div>
+        </div>
+      ` : `<div class="timeline">${tlHtml}</div>`}
       <div class="section-label" style="margin-top:8px;">거래 내역
         <span style="display:flex;gap:6px;align-items:center;">
           <button onclick="toggleEntryGrouping()" id="group-toggle-btn"
