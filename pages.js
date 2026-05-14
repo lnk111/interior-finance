@@ -552,7 +552,7 @@ function renderSiteDetail() {
           <div class="timeline">${tlHtml}</div>
         </div>
       ` : `<div class="timeline">${tlHtml}</div>`}
-      <div class="section-label" style="margin-top:8px;">거래 내역
+      <div class="section-label" style="margin-top:36px;">거래 내역
         <span style="display:flex;gap:6px;align-items:center;">
           <button onclick="toggleEntryGrouping()" id="group-toggle-btn"
             style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
