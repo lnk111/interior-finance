@@ -931,3 +931,12 @@ button svg * {
   }
   .tabbar { left: 50%; transform: translateX(-50%); width: 100%; }
 }
+
+/* 현장 상세 전환 — 카드 탭 피드백 + 페이드 인 */
+.site-card { transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.site-card.tapped { transform: scale(0.97); border-color: var(--accent); box-shadow: 0 1px 4px rgba(27,24,20,0.04), 0 0 0 1.5px var(--accent) inset; }
+.page-enter { animation: pageEnter .28s cubic-bezier(.22,.61,.36,1); }
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -273,6 +273,10 @@ function switchSiteTab(tab) {
   }
 }
 
+function tapSite(el, siteName) {
+  if (el) el.classList.add('tapped');
+  openSiteDetail(siteName);
+}
 function openSiteDetail(siteName) {
   window._siteDetailName = siteName;
   const found = (window.MOCK?.sites||[]).find(s=>s.name===siteName);
@@ -777,7 +781,7 @@ function renderSites() {
   });
   const filterHtml=filters.map(f=>`<button class="filter-chip ${sitesFilter===f?'is-active':''}" data-filter="${f}">${f}</button>`).join('');
   const cardsHtml=list.map(s=>`
-    <div class="site-card" onclick="openSiteDetail('${s.name.replace(/'/g,"\\'")}')">
+    <div class="site-card" onclick="tapSite(this,'${s.name.replace(/'/g,"\\'")}')">
       <div class="site-card-head">
         <div>
           <div class="site-card-name">${s.name}</div>
@@ -833,10 +837,11 @@ function navigate(page) {
   if (page==='input' && currentPage!=='input' && currentPage!=='quickInput') {
     resetInputFlow();
   }
+  const enteringDetail = page==='siteDetail' && currentPage!=='siteDetail';
   currentPage=page; window.currentPage=page;
   const activeTab=routes[page].tab;
   $$('.tabbar-item,.tabbar-fab').forEach(b=>b.classList.toggle('is-active',b.dataset.page===activeTab));
-  $('#app').innerHTML=`<div class="page is-active">${routes[page].render()}</div>`;
+  $('#app').innerHTML=`<div class="page is-active${enteringDetail?' page-enter':''}">${routes[page].render()}</div>`;
   // 로딩 화면 숨기기
   const ls=document.getElementById('loading-screen');
   if (ls) ls.style.display='none';
