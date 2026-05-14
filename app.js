@@ -517,15 +517,17 @@ function inputStepMid() {
         </div>
       </div>`;
   }
+  const customPhase = st.phase && !(M.phases||[]).includes(st.phase);
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어떤 공정이에요?</div>
       <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">${st.site||''}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
         ${(M.phases||[]).map(p=>{
           const on = st.phase===p;
-          return `<button data-iact="proc" data-val="${p}" style="background:${on?'#1B1814':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#1B1814':'var(--hair)'};border-radius:20px;padding:9px 14px;font-size:13px;font-family:inherit;cursor:pointer;">${p}</button>`;
+          return `<button data-iact="proc" data-val="${p}" style="display:flex;align-items:center;justify-content:center;height:44px;background:${on?'#1B1814':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#1B1814':'var(--hair)'};border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;">${p}</button>`;
         }).join('')}
+        <button data-iact="proc-direct" style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:6px;height:44px;background:${customPhase?'#2F6B47':'var(--accent-soft)'};color:${customPhase?'#fff':'var(--accent)'};border:1.5px dashed ${customPhase?'#2F6B47':'var(--accent)'};border-radius:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">✏️ ${customPhase?st.phase:'직접입력'}</button>
       </div>
     </div>`;
 }
@@ -682,6 +684,10 @@ function handleInputFlow(act, el) {
     st.site = v; addRecentSite(v); st.step=3; navigate('input');
   } else if (act==='proc') {
     st.phase = el.dataset.val; st.step=4; navigate('input');
+  } else if (act==='proc-direct') {
+    const v = (prompt('공정명을 직접 입력하세요') || '').trim();
+    if (!v) return;
+    st.phase = v; st.step=4; navigate('input');
   } else if (act==='stage') {
     st.stage = el.dataset.val; st.step=4; navigate('input');
   } else if (act==='key') {
