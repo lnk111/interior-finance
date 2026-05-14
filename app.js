@@ -117,7 +117,7 @@ function renderHome() {
       ${AUTH.can('finalProfit') ? `
       <div class="hero" style="margin-top:10px;">
         <div class="hero-eyebrow">🏢 이번 달 최종 영업이익</div>
-        <div class="hero-amount num">${fmtSlim(t.finalProfit)}<span class="unit">원</span></div>
+        <div class="hero-amount num" style="color:${t.finalProfit>0?'#DC2626':t.finalProfit<0?'#2563EB':'var(--ink)'};">${fmtSlim(t.finalProfit)}<span class="unit">원</span></div>
         <div class="hero-meta">순이익 − 고정비(임대료·급여 등) − 부가세</div>
         <div class="stack-bar">
           <span style="flex:${Math.max(t.finalProfit,1)};background:var(--accent);"></span>
@@ -135,7 +135,7 @@ function renderHome() {
         <div class="stat"><div class="stat-label">총 매입</div><div class="stat-value num">${fmtSlim(t.cost)}</div><div class="stat-delta flat">업체에 지급한 금액</div></div>
       </div>
       <div class="stat-row">
-        <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:var(--accent);">+${fmtSlim(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
+        <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:${t.siteProfit>0?'#DC2626':t.siteProfit<0?'#2563EB':'var(--ink)'};">${fmtSlim(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${t.margin}%</div><div class="stat-delta flat">목표 ${t.targetMargin}%</div></div>
       </div>
       <div class="section-label">최근 거래 <span class="pill pill-warn" style="cursor:pointer;" onclick="openPendingList()">미정리 ${M.unsorted}건</span></div>
@@ -187,7 +187,7 @@ function renderActiveSitesHtml() {
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:8px;">
           <span style="font-size:13px;color:var(--muted);">${done}/${total} 공정 완료</span>
-          <span style="font-size:13px;color:var(--accent);font-weight:700;">${s.profit>0?'+':''}${fmtSlim(s.profit)}</span>
+          <span style="font-size:13px;color:${s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'};font-weight:700;">${fmtSlim(s.profit)}</span>
         </div>
       </div>`;
   }).join('');
@@ -782,7 +782,7 @@ function renderSites() {
       <div class="site-card-stats">
         <div><div class="s-k">매출</div><div class="s-v num">${fmtSlim(s.revenue)}</div></div>
         <div><div class="s-k">매입</div><div class="s-v num">${fmtSlim(s.cost)}</div></div>
-        <div><div class="s-k">이익</div><div class="s-v num ${s.profit>0?'profit':''}">${s.profit>0?'+':''}${fmtSlim(s.profit)}</div></div>
+        <div><div class="s-k">이익</div><div class="s-v num" style="color:${s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'};">${fmtSlim(s.profit)}</div></div>
       </div>
       ${s.progress>0?`<div class="progress-row">
         <span class="p-label">${s.phase}</span>

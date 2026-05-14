@@ -538,7 +538,7 @@ function renderSiteDetail() {
         <div class="stat"><div class="stat-label">매입</div><div class="stat-value num">${fmtSlim2(s.cost)}</div></div>
       </div>
       <div class="stat-row">
-        <div class="stat"><div class="stat-label">순이익</div><div class="stat-value num" style="color:var(--accent);">+${fmtSlim2(s.profit)}</div></div>
+        <div class="stat"><div class="stat-label">순이익</div><div class="stat-value num" style="color:${s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'};">${fmtSlim2(s.profit)}</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${s.margin}%</div></div>
       </div>
       <div class="section-label">공정 진행 <span class="more">${pct}% 완료</span></div>
