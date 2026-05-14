@@ -377,7 +377,7 @@ function renderEntryList(siteName, grouped) {
           <div class="lr-meta">${e.writer||''} · ${date}</div>
           ${e.memo ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;white-space:normal;line-height:1.4;">💬 ${e.memo}</div>` : ''}
         </div>
-        <span class="lr-amount num" style="flex-shrink:0;">${sign}${fmtSlim2(e.amount||0)}</span>
+        <span class="lr-amount num" style="flex-shrink:0;">${sign}${fmtFull2(e.amount||0)}</span>
       </button>`;
   }
 
@@ -398,7 +398,7 @@ function renderEntryList(siteName, grouped) {
       <div style="margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--surface-2);border-radius:10px 10px 0 0;border:1px solid var(--hair);border-bottom:none;">
           <div style="font-size:12px;font-weight:700;color:var(--ink);">📦 ${groupName}</div>
-          <div style="font-size:13px;font-weight:800;color:${totalColor};">${totalSign}${fmtSlim2(Math.abs(g.total))}</div>
+          <div style="font-size:13px;font-weight:800;color:${totalColor};">${totalSign}${fmtFull2(Math.abs(g.total))}</div>
         </div>
         <div class="list" style="border-radius:0 0 10px 10px;">${g.entries.map(entryRow).join('')}</div>
       </div>`;
