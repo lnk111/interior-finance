@@ -37,25 +37,31 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   const M = window.MOCK;
   if (!M) return;
 
+  // 현장별 합계 1회 패스 (기존 O(현장수×거래수) → O(현장수+거래수))
+  const _agg = {};
+  const _A = n => (_agg[n] || (_agg[n] = { rev: 0, cost: 0, as: 0 }));
+  Object.values(FB.entries).forEach(e => {
+    if (!e || !e.site) return;
+    const a = _A(e.site);
+    if (e.type === 'revenue') a.rev += e.amount || 0;
+    else if (e.type === 'cost') a.cost += e.amount || 0;
+    else if (e.type === 'as') a.as += e.amount || 0;
+  });
+  Object.values(FB.pending).forEach(p => {
+    if (!p || p.status !== 'done') return;
+    (p.allocations || []).forEach(al => {
+      if (!al || !al.site) return;
+      const a = _A(al.site);
+      if (p.type === 'revenue') a.rev += al.amount || 0;
+      else if (p.type === 'cost') a.cost += al.amount || 0;
+      else if (p.type === 'as') a.as += al.amount || 0;
+    });
+  });
+
   // 현장 목록
   const siteArr = Object.entries(FB.sites).map(([key, s]) => {
-    let rev = 0, cost = 0, as = 0;
-    Object.values(FB.entries).forEach(e => {
-      if (e.site !== s.name) return;
-      if (e.type === 'revenue') rev += e.amount || 0;
-      else if (e.type === 'cost') cost += e.amount || 0;
-      else if (e.type === 'as') as += e.amount || 0;
-    });
-    // 완료된 미정리 내역도 포함
-    Object.values(FB.pending).forEach(p => {
-      if (p.status !== 'done') return;
-      (p.allocations || []).forEach(a => {
-        if (a.site !== s.name) return;
-        if (p.type === 'revenue') rev += a.amount || 0;
-        else if (p.type === 'cost') cost += a.amount || 0;
-        else if (p.type === 'as') as += a.amount || 0;
-      });
-    });
+    const _a = _agg[s.name] || { rev: 0, cost: 0, as: 0 };
+    const rev = _a.rev, cost = _a.cost, as = _a.as;
     const profit = rev - cost - as;
     const margin = rev > 0 ? Math.round(profit / rev * 100) : 0;
     const statusMap = {
@@ -275,43 +281,8 @@ function initFirebase() {
     updateConnStatus();
   });
 
-  // ★ 1순위: 핵심 데이터 동시에 한번에 로드 (Promise.all)
-  Promise.all([
-    db.ref('siteInfo').once('value'),
-    db.ref('entries').once('value'),
-    db.ref('asData').once('value'),
-    db.ref('pending').once('value'),
-    db.ref('staffData').once('value'),
-  ]).then(([siteSnap, entrySnap, asSnap, pendingSnap, staffSnap]) => {
-    FB.sites = siteSnap.val() || {};
-    FB.entries = entrySnap.val() || {};
-    FB.asData = asSnap.val() || {};
-    FB.pending = pendingSnap.val() || {};
-    FB.staffData = staffSnap.val() || {};
-    // 첫 렌더 (빠르게)
-    window.syncMockFromFirebase();
-    if (window.navigate) window.navigate(window.currentPage || 'home');
-
-    // ★ 2순위: 나머지 데이터 백그라운드 로드
-    Promise.all([
-      db.ref('procData').once('value'),
-      db.ref('scheduleData').once('value'),
-      db.ref('fixedCosts').once('value'),
-      db.ref('knowhow').once('value'),
-      db.ref('photoData').once('value'),
-    ]).then(([procSnap, schedSnap, fcSnap, khSnap, photoSnap]) => {
-      FB._procAll = procSnap.val() || {};
-      FB.scheduleData = schedSnap.val() || {};
-      FB.fixedCosts = fcSnap.val() || {};
-      FB.knowhow = khSnap.val() || {};
-      FB.photoData = photoSnap.val() || {};
-      // 2차 렌더 (완전한 데이터)
-      window.syncMockFromFirebase();
-      if (window.navigate) window.navigate(window.currentPage || 'home');
-    });
-  });
-
-  // ★ 실시간 리스너 (변경사항 감지)
+  // 핵심 데이터 — 실시간 리스너로 한 번만 로드 + 변경 감지
+  // (.once() 중복 다운로드 제거: 무거운 entries 노드를 두 번 받지 않음)
   db.ref('siteInfo').on('value', snap => { FB.sites = snap.val() || {}; onDataChange(); });
   db.ref('entries').on('value', snap => { FB.entries = snap.val() || {}; onDataChange(); });
   db.ref('pending').on('value', snap => { FB.pending = snap.val() || {}; onDataChange(); });
@@ -320,7 +291,29 @@ function initFirebase() {
   db.ref('fixedCosts').on('value', snap => { FB.fixedCosts = snap.val() || {}; onDataChange(); });
   db.ref('knowhow').on('value', snap => { FB.knowhow = snap.val() || {}; onDataChange(); });
   db.ref('scheduleData').on('value', snap => { FB.scheduleData = snap.val() || {}; onDataChange(); });
-  db.ref('photoData').on('value', snap => { FB.photoData = snap.val() || {}; onDataChange(); });
+
+  // procData 대량 캐시(_procAll) — 첫 화면을 막지 않게 지연/온디맨드 로드 (달력에서 사용)
+  FB._procAllLoaded = false;
+  window.ensureProcAll = function() {
+    if (FB._procAllLoaded) return;
+    FB._procAllLoaded = true;
+    db.ref('procData').once('value').then(snap => {
+      FB._procAll = snap.val() || {};
+      onDataChange();
+    });
+  };
+  setTimeout(window.ensureProcAll, 2000);
+
+  // photoData(사진 — 용량 큼) — 사진 페이지를 열 때만 로드
+  FB._photoLoaded = false;
+  window.ensurePhotoData = function() {
+    if (FB._photoLoaded) return;
+    FB._photoLoaded = true;
+    db.ref('photoData').once('value').then(snap => {
+      FB.photoData = snap.val() || {};
+      onDataChange();
+    });
+  };
 }
 
 let _debounce = null;

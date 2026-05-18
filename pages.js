@@ -25,6 +25,7 @@ let _calCache = null;
 let _calCacheKey = '';
 
 function renderCalendar() {
+  if (window.ensureProcAll) window.ensureProcAll();
   const cacheKey = `${_calYear}-${_calMonth}-${Object.keys(window.FB?.scheduleData||{}).length}-${Object.keys(window.FB?._procAll||{}).length}`;
   if (_calCache && _calCacheKey === cacheKey) return _calCache;
   const html = _buildCalendarHtml();
@@ -625,6 +626,7 @@ function renderSiteDetail() {
 
 // ===== Photos =====
 function renderPhotos() {
+  if (window.ensurePhotoData) window.ensurePhotoData();
   const sites = Object.values(window.FB?.sites||{}).map(s=>s.name).filter(Boolean);
   const photoData = window.FB?.photoData || {};
   const albums = [];
