@@ -262,6 +262,12 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     briefing.push({ kind: 'task', icon: '✅', label: '오늘은 처리할 일이 없어요', meta: '좋은 하루 되세요!', color: 'accent' });
   }
   M.briefing = briefing;
+  try {
+    localStorage.setItem('mf_snapshot', JSON.stringify({
+      sites: M.sites, totals: M.totals, tax: M.tax, briefing: M.briefing,
+      unsorted: M.unsorted, staff: M.staff, inputters: M.inputters, tips: M.tips
+    }));
+  } catch (e) {}
 }
 
 function formatWhen(dateStr) {
@@ -629,6 +635,15 @@ const _origBootAuth = window.bootAuth;
 window.bootAuth = function() {
   const result = _origBootAuth ? _origBootAuth() : false;
   if (result) {
+    try {
+      const snap = JSON.parse(localStorage.getItem('mf_snapshot') || 'null');
+      if (snap && window.MOCK) {
+        Object.assign(window.MOCK, snap);
+        if (window.navigate) window.navigate(window.currentPage || 'home');
+        const ls = document.getElementById('loading-screen');
+        if (ls) ls.style.display = 'none';
+      }
+    } catch (e) {}
     initFirebase();
   }
   return result;
