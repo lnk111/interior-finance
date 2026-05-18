@@ -273,6 +273,65 @@ function formatWhen(dateStr) {
   return dateStr.slice(5).replace('-', '/');
 }
 
+// ── 거래 사진 로드 (entryPhotos 우선, 옛 entries 내장은 폴백 + 자동 분리) ──
+window.loadEntryPhotos = async function(key, entry) {
+  entry = entry || {};
+  const embedded = [];
+  if (entry.imageBase64) embedded.push(entry.imageBase64);
+  if (Array.isArray(entry.extraPhotos)) entry.extraPhotos.forEach(p => { if (p) embedded.push(p); });
+  if (embedded.length) {
+    try {
+      await db.ref('entryPhotos/' + key).set({ photos: embedded });
+      await db.ref('entries/' + key).update({ imageBase64: null, extraPhotos: null, photoCount: embedded.length, hasPhoto: true });
+    } catch (e) {}
+    return embedded;
+  }
+  try {
+    const snap = await db.ref('entryPhotos/' + key).once('value');
+    const v = snap.val();
+    return (v && Array.isArray(v.photos)) ? v.photos : [];
+  } catch (e) { return []; }
+};
+
+// ── 1회 마이그레이션: 기존 entries 내장 사진을 entryPhotos로 분리 (안전·재실행 가능) ──
+window.migrateEntryPhotos = async function(onProgress) {
+  const all = FB.entries || {};
+  const keys = Object.keys(all).filter(k => {
+    const e = all[k] || {};
+    return e.imageBase64 || (Array.isArray(e.extraPhotos) && e.extraPhotos.length);
+  });
+  let done = 0;
+  for (const k of keys) {
+    const e = all[k] || {};
+    const photos = [];
+    if (e.imageBase64) photos.push(e.imageBase64);
+    if (Array.isArray(e.extraPhotos)) e.extraPhotos.forEach(p => { if (p) photos.push(p); });
+    try {
+      if (photos.length) await db.ref('entryPhotos/' + k).set({ photos });
+      await db.ref('entries/' + k).update({ imageBase64: null, extraPhotos: null, photoCount: photos.length, hasPhoto: photos.length > 0 });
+    } catch (err) {}
+    done++;
+    if (onProgress) onProgress(done, keys.length);
+  }
+  return { migrated: done, total: keys.length };
+};
+
+window.runPhotoMigration = async function(btn) {
+  if (!window.migrateEntryPhotos) return;
+  const all = FB.entries || {};
+  const pending = Object.keys(all).filter(k => { const e = all[k] || {}; return e.imageBase64 || (Array.isArray(e.extraPhotos) && e.extraPhotos.length); }).length;
+  if (pending === 0) { alert('이미 최적화되어 있어요. 옮길 사진이 없습니다.'); return; }
+  if (!confirm(pending + '건의 거래 사진을 분리합니다. 잠시 걸릴 수 있어요. 진행할까요?')) return;
+  if (btn) btn.disabled = true;
+  try {
+    const r = await window.migrateEntryPhotos((d, t) => { if (btn) btn.textContent = '이전 중… ' + d + '/' + t; });
+    alert('완료! ' + r.migrated + '건 정리했습니다. 화면이 한층 빨라집니다.');
+  } catch (e) {
+    alert('일부만 처리됐을 수 있어요. 버튼을 다시 눌러 이어서 진행하세요.');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '⚡ 사진 저장방식 최적화 (1회 실행)'; }
+};
+
 // ── Firebase 리스너 초기화 ──
 function initFirebase() {
   // 연결 상태
@@ -347,16 +406,29 @@ window.FB_API = {
 
   // 거래 저장
   async saveEntry(data, key = null) {
+    const hasPhotoField = ('imageBase64' in data) || ('extraPhotos' in data);
+    const { imageBase64, extraPhotos, ...rest } = data;
+    const photos = [];
+    if (imageBase64) photos.push(imageBase64);
+    if (Array.isArray(extraPhotos)) extraPhotos.forEach(p => { if (p) photos.push(p); });
+    if (hasPhotoField) { rest.photoCount = photos.length; rest.hasPhoto = photos.length > 0; }
     if (key) {
-      await db.ref('entries/' + key).update(data);
+      await db.ref('entries/' + key).update(rest);
+      if (hasPhotoField) {
+        if (photos.length) await db.ref('entryPhotos/' + key).set({ photos });
+        else await db.ref('entryPhotos/' + key).remove();
+      }
     } else {
-      await db.ref('entries').push({ ...data, createdAt: Date.now() });
+      const ref = db.ref('entries').push();
+      await ref.set({ ...rest, createdAt: Date.now() });
+      if (photos.length) await db.ref('entryPhotos/' + ref.key).set({ photos });
     }
   },
 
   // 거래 삭제
   async deleteEntry(key) {
     await db.ref('entries/' + key).remove();
+    db.ref('entryPhotos/' + key).remove();
   },
 
   // 빠른기록 저장
@@ -370,16 +442,23 @@ window.FB_API = {
     batch.push(db.ref('pending/' + key).update({
       ...updates, status: 'done', completedAt: Date.now()
     }));
+    const _pend = FB.pending[key] || {};
+    const _pendPhotos = [];
+    if (_pend.imageBase64) _pendPhotos.push(_pend.imageBase64);
+    if (Array.isArray(_pend.extraPhotos)) _pend.extraPhotos.forEach(p => { if (p) _pendPhotos.push(p); });
     allocations.forEach(a => {
-      batch.push(db.ref('entries').push({
+      const ref = db.ref('entries').push();
+      batch.push(ref.set({
         type: updates.type, site: a.site, amount: a.amount,
-        date: FB.pending[key]?.date || toToday(),
+        date: _pend.date || toToday(),
         process: updates.process || '',
-        writer: FB.pending[key]?.writer || '',
+        writer: _pend.writer || '',
         fromPending: key,
-        imageBase64: FB.pending[key]?.imageBase64 || null,
+        photoCount: _pendPhotos.length,
+        hasPhoto: _pendPhotos.length > 0,
         createdAt: Date.now(),
       }));
+      if (_pendPhotos.length) batch.push(db.ref('entryPhotos/' + ref.key).set({ photos: _pendPhotos }));
     });
     await Promise.all(batch);
   },
