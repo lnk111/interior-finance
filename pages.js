@@ -263,6 +263,7 @@ function renderSettings() {
         <div class="mc-body"><div class="mc-title">현장 사진 보관함</div><div class="mc-meta">현장별 시공 전·중·후 사진 모아보기</div></div>
         <span class="chev">›</span>
       </button>
+      ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runPhotoMigration(this)" style="margin-top:10px;">⚡ 사진 저장방식 최적화 (1회 실행)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">기존 거래에 들어있는 사진을 분리해 홈·목록 로딩을 빠르게 합니다. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
       ${canFC ? `
       <div class="settings-group-label">📌 월 고정비</div>
       ${ymSelect(new Date().getFullYear(), new Date().getMonth()+1)}
@@ -608,6 +609,9 @@ function renderSiteDetail() {
         </button>
         <div id="proc-full-list" style="display:none;margin-top:8px;">
           <div class="timeline">${tlHtml}</div>
+          <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:1.5px dashed var(--accent);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--accent);cursor:pointer;font-family:inherit;">
+            + 공정 직접 입력으로 추가
+          </button>
         </div>
       ` : `<div class="timeline">${tlHtml}</div>`}
       <div class="section-label" style="margin-top:36px;">거래 내역
@@ -790,7 +794,7 @@ function openProcEditModal(phaseId, siteName) {
             </div>
           </div>
           <div class="modal-foot">
-            <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+            <button class="btn btn-ghost danger" onclick="deleteProcEdit('${procKey}','${phaseId}')">🗑️ 삭제</button>
             <button class="btn btn-primary" onclick="saveProcEdit('${procKey}','${phaseId}')">저장</button>
           </div>
         </div>
@@ -815,12 +819,98 @@ async function saveProcEdit(procKey, phaseId) {
   if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
     await db.ref('procData/'+procKey+'/'+phaseId).update({ name, status, startDate:startDate||null, doneDate:doneDate||null });
+    await _refreshProcCache(procKey);
     closeModal();
     if (window.navigate) window.navigate('siteDetail');
   } catch(e) {
     alert('저장 실패');
     if (btn) { btn.disabled=false; btn.textContent='저장'; }
   }
+}
+
+async function deleteProcEdit(procKey, phaseId) {
+  if (!confirm('이 공정을 삭제할까요?')) return;
+  const btn = document.querySelector('.modal-foot .btn-ghost.danger');
+  if (btn) { btn.disabled=true; btn.textContent='삭제 중...'; }
+  try {
+    await db.ref('procData/'+procKey+'/'+phaseId).remove();
+    await _refreshProcCache(procKey);
+    closeModal();
+    if (window.navigate) window.navigate('siteDetail');
+  } catch(e) {
+    alert('삭제 실패');
+    if (btn) { btn.disabled=false; btn.textContent='🗑️ 삭제'; }
+  }
+}
+
+function openProcAddModal() {
+  const siteName = window._siteDetailName || '';
+  const procKey = siteName.replace(/[.#$/ \[\]]/g, '_');
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div><div class="modal-title">➕ 공정 추가</div><div class="modal-sub">${siteName}</div></div>
+          <button class="btn-icon" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+        </div>
+        <div class="modal-body">
+          <div class="field"><label class="field-label">공정명</label><input class="input" id="proc-add-name" placeholder="예: 상판시공"></div>
+          <div class="field"><label class="field-label">상태</label>
+            <div class="chip-group">
+              <button type="button" class="chip is-active" onclick="procAddChip(this,'wait')">⏳ 대기</button>
+              <button type="button" class="chip" onclick="procAddChip(this,'active')">🔨 진행중</button>
+              <button type="button" class="chip" onclick="procAddChip(this,'done')">✅ 완료</button>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="field-label">🟢 시작일</label><input class="input" type="date" id="proc-add-start"></div>
+            <div class="field"><label class="field-label">🔴 완료일</label><input class="input" type="date" id="proc-add-end"></div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+          <button class="btn btn-primary" onclick="saveProcAdd('${procKey}')">추가</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.style.overflow = 'hidden';
+  window._procAddStatus = 'wait';
+  setTimeout(()=>{ const el=document.getElementById('proc-add-name'); if (el) el.focus(); }, 50);
+}
+
+function procAddChip(el, status) {
+  el.closest('.chip-group').querySelectorAll('.chip').forEach(b=>b.classList.remove('is-active'));
+  el.classList.add('is-active');
+  window._procAddStatus = status;
+}
+
+async function saveProcAdd(procKey) {
+  const name = document.getElementById('proc-add-name')?.value?.trim();
+  if (!name) { alert('공정명을 입력하세요'); return; }
+  const startDate = document.getElementById('proc-add-start')?.value || null;
+  const doneDate  = document.getElementById('proc-add-end')?.value   || null;
+  const status    = window._procAddStatus || 'wait';
+  const procRaw = window._procCache || {};
+  const maxOrder = Object.values(procRaw).reduce((m, p) => Math.max(m, p.order || 0), 0);
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled=true; btn.textContent='추가 중...'; }
+  try {
+    await db.ref('procData/'+procKey).push({ name, status, startDate, doneDate, order: maxOrder + 1 });
+    await _refreshProcCache(procKey);
+    closeModal();
+    if (window.navigate) window.navigate('siteDetail');
+  } catch(e) {
+    alert('추가 실패');
+    if (btn) { btn.disabled=false; btn.textContent='추가'; }
+  }
+}
+
+async function _refreshProcCache(procKey) {
+  try {
+    const snap = await db.ref('procData/'+procKey).once('value');
+    window._procCache = snap.val() || {};
+  } catch(e) {}
 }
 
 window.PAGES_EXTRA = { renderCalendar, renderSettings, renderTax, renderSiteDetail, renderPhotos };
