@@ -609,11 +609,11 @@ function renderSiteDetail() {
         </button>
         <div id="proc-full-list" style="display:none;margin-top:8px;">
           <div class="timeline">${tlHtml}</div>
-          <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:1.5px dashed var(--accent);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--accent);cursor:pointer;font-family:inherit;">
-            + 공정 직접 입력으로 추가
-          </button>
         </div>
       ` : `<div class="timeline">${tlHtml}</div>`}
+      <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:1.5px dashed var(--accent);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--accent);cursor:pointer;font-family:inherit;">
+        + 공정 추가
+      </button>
       <div class="section-label" style="margin-top:36px;">거래 내역
         <span style="display:flex;gap:6px;align-items:center;">
           <button onclick="toggleEntryGrouping()" id="group-toggle-btn"
