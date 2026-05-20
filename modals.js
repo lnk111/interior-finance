@@ -34,31 +34,37 @@ function modalHeader(title, sub) {
 // 1. Site register modal
 function modalSiteRegister() {
   const stHtml = window.MOCK.siteStatuses.map((s, i) => `
-    <button type="button" class="status-pick ${i === 1 ? 'is-active' : ''}" data-status="${s.key}">
+    <button type="button" class="status-pick ${i === 0 ? 'is-active' : ''}" data-status="${s.key}" onclick="siteRegPickStatus(this)">
       <span class="pill status-${s.key}">${s.key}</span>
       <span class="status-desc">${s.desc}</span>
     </button>
   `).join('');
+
+  const _now = new Date();
+  const _yy = _now.getFullYear();
+  const _mm = _now.getMonth() + 1;
+  const yearOpts = [_yy, _yy - 1, _yy + 1].map(y => `<option value="${y}">${y}</option>`).join('');
+  const monthOpts = [...Array(12)].map((_, i) => `<option value="${i + 1}" ${i + 1 === _mm ? 'selected' : ''}>${i + 1}월</option>`).join('');
 
   return openModal(`
     ${modalHeader('현장 등록', '신규 현장 정보를 입력하세요')}
     <div class="modal-body">
       <div class="field">
         <label class="field-label">현장명 <span class="req">*</span></label>
-        <input class="input" placeholder="예) 서초 래미안 32평">
+        <input class="input" id="site-reg-name" placeholder="예) 서초 래미안 32평">
       </div>
       <div class="field">
         <label class="field-label">고객명</label>
-        <input class="input" placeholder="예) 김상훈">
+        <input class="input" id="site-reg-client" placeholder="예) 김상훈">
       </div>
       <div class="grid-2">
         <div class="field">
           <label class="field-label">연도</label>
-          <select class="input"><option>2026</option><option>2025</option><option>2027</option></select>
+          <select class="input" id="site-reg-year">${yearOpts}</select>
         </div>
         <div class="field">
           <label class="field-label">월</label>
-          <select class="input">${[...Array(12)].map((_, i) => `<option ${i === 4 ? 'selected' : ''}>${i + 1}월</option>`).join('')}</select>
+          <select class="input" id="site-reg-month">${monthOpts}</select>
         </div>
       </div>
       <div class="field">
@@ -67,14 +73,40 @@ function modalSiteRegister() {
       </div>
       <div class="field">
         <label class="field-label">메모</label>
-        <textarea class="input" rows="2" placeholder="선택사항"></textarea>
+        <textarea class="input" id="site-reg-memo" rows="2" placeholder="선택사항"></textarea>
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" data-modal-close>취소</button>
-      <button class="btn btn-primary" data-modal-close>저장</button>
+      <button class="btn btn-primary" onclick="saveSiteRegister()">저장</button>
     </div>
   `);
+}
+
+function siteRegPickStatus(el) {
+  el.closest('.status-pick-list').querySelectorAll('.status-pick').forEach(b => b.classList.remove('is-active'));
+  el.classList.add('is-active');
+}
+
+async function saveSiteRegister() {
+  const name = document.getElementById('site-reg-name')?.value?.trim();
+  if (!name) { alert('현장명을 입력해주세요'); return; }
+  const client = document.getElementById('site-reg-client')?.value?.trim() || '';
+  const year   = parseInt(document.getElementById('site-reg-year')?.value || '0') || new Date().getFullYear();
+  const month  = parseInt(document.getElementById('site-reg-month')?.value || '0') || (new Date().getMonth() + 1);
+  const memo   = document.getElementById('site-reg-memo')?.value?.trim() || '';
+  const statusEl = document.querySelector('.status-pick.is-active');
+  const status = statusEl ? statusEl.dataset.status : '계약완료';
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  try {
+    await window.FB_API.saveSite({ name, client, status, year, month, memo });
+    closeModal();
+    if (window.navigate) window.navigate(window.currentPage || 'sites');
+  } catch (e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
 }
 
 // 2. Schedule add modal
@@ -595,18 +627,14 @@ function modalTxEdit(entryKey) {
   window._txEditType = curType;
   window._txEditKey = entryKey;
 
-  // 이 거래에 첨부된 사진 모으기 (대표 사진 + 추가 사진)
-  const txePhotos = [];
-  if (entry.imageBase64) txePhotos.push(entry.imageBase64);
-  if (Array.isArray(entry.extraPhotos)) entry.extraPhotos.forEach(p => { if (p) txePhotos.push(p); });
-  window._txeViewPhotos = txePhotos;
-  const txePhotoSection = txePhotos.length ? `
-          <div class="field">
-            <label class="field-label">사진 <span class="muted">${txePhotos.length}장 · 탭하면 크게 보기</span></label>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-              ${txePhotos.map((p, i) => `<img src="${p}" onclick="txeViewPhoto(${i})" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);cursor:pointer;">`).join('')}
-            </div>
-          </div>` : '';
+  // 사진은 entryPhotos 노드에서 지연 로드 (목록·홈 속도 위해 entries에서 분리)
+  window._txeViewPhotos = [];
+  const _expectPhoto = entry.hasPhoto || entry.photoCount || entry.imageBase64 || (Array.isArray(entry.extraPhotos) && entry.extraPhotos.length);
+  const txePhotoSection = `
+          <div class="field" id="txe-photo-field" style="${_expectPhoto ? '' : 'display:none;'}">
+            <label class="field-label">사진 <span class="muted" id="txe-photo-cap">불러오는 중…</span></label>
+            <div id="txe-photo-strip" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>`;
 
   const root = document.getElementById('modal-root');
   root.innerHTML = `
@@ -690,6 +718,21 @@ function modalTxEdit(entryKey) {
   window._txStage = entry.payStage || '';
   window._txPay = entry.payMethod || '';
   window._txPhase = entry.process || '';
+  if (_expectPhoto) txeFillPhotos(entryKey, entry);
+}
+
+async function txeFillPhotos(key, entry) {
+  let photos = [];
+  try { photos = await window.loadEntryPhotos(key, entry); } catch (e) { photos = []; }
+  window._txeViewPhotos = photos;
+  const field = document.getElementById('txe-photo-field');
+  const strip = document.getElementById('txe-photo-strip');
+  const cap = document.getElementById('txe-photo-cap');
+  if (!field || !strip) return;
+  if (!photos.length) { field.style.display = 'none'; return; }
+  field.style.display = '';
+  if (cap) cap.textContent = photos.length + '장 · 탭하면 크게 보기';
+  strip.innerHTML = photos.map((p, i) => `<img src="${p}" onclick="txeViewPhoto(${i})" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);cursor:pointer;">`).join('');
 }
 
 // 거래 수정 화면에서 사진을 탭하면 전체화면으로 크게 보기
@@ -756,6 +799,7 @@ async function txEditDelete() {
   if (!confirm('이 거래를 삭제할까요?')) return;
   try {
     await db.ref('entries/' + window._txEditKey).remove();
+    db.ref('entryPhotos/' + window._txEditKey).remove();
     closeModal();
   } catch(e) { alert('삭제 실패'); }
 }
