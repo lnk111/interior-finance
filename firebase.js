@@ -87,6 +87,27 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   });
   M.sites = siteArr;
 
+  // 모든 공정 완료된 공사중 현장을 AS관리로 자동 전환
+  const _procAll = FB._procAll || {};
+  const _todayStr = new Date().toISOString().slice(0, 10);
+  function _phSt(s, e) {
+    if (!s && !e) return 'wait';
+    if (s && _todayStr < s) return 'wait';
+    if (e && _todayStr > e) return 'done';
+    return 'active';
+  }
+  siteArr.forEach(site => {
+    if (site.status !== '공사중') return;
+    const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const phases = Object.values(_procAll[procKey] || {});
+    if (!phases.length) return;
+    const allDone = phases.every(ph => _phSt(ph.startDate, ph.doneDate) === 'done');
+    if (allDone) {
+      site.status = 'AS관리';
+      db.ref('siteInfo/' + site._key).update({ status: 'AS관리' }).catch(() => {});
+    }
+  });
+
   // 총합 계산
   let totalRev = 0, totalCost = 0, totalAs = 0;
   Object.values(FB.entries).forEach(e => {
