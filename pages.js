@@ -611,6 +611,11 @@ function renderSiteDetail() {
           <div class="timeline">${tlHtml}</div>
         </div>
       ` : `<div class="timeline">${tlHtml}</div>`}
+      ${phases.length === 0 ? `
+        <button onclick="seedDefaultPhasesUI(this)" style="width:100%;margin-top:10px;background:var(--accent);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">
+          ⚡ 기본 공정 23개 일괄 추가
+        </button>
+      ` : ''}
       <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:1.5px dashed var(--accent);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--accent);cursor:pointer;font-family:inherit;">
         + 공정 추가
       </button>
@@ -911,6 +916,29 @@ async function _refreshProcCache(procKey) {
     const snap = await db.ref('procData/'+procKey).once('value');
     window._procCache = snap.val() || {};
   } catch(e) {}
+}
+
+async function seedDefaultPhasesUI(btn) {
+  if (!window.seedDefaultPhases) { alert('초기화 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+  const siteName = window._siteDetailName || '';
+  if (!siteName) return;
+  const procKey = siteName.replace(/[.#$/ \[\]]/g, '_');
+  try {
+    const snap = await db.ref('procData/' + procKey).once('value');
+    if (snap.val() && Object.keys(snap.val()).length > 0) {
+      alert('이미 공정이 등록되어 있어요. 개별 추가만 가능합니다.');
+      return;
+    }
+  } catch (e) {}
+  if (btn) { btn.disabled = true; btn.textContent = '추가 중...'; }
+  try {
+    await window.seedDefaultPhases(siteName);
+    await _refreshProcCache(procKey);
+    if (window.navigate) window.navigate('siteDetail');
+  } catch (e) {
+    alert('추가 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ 기본 공정 23개 일괄 추가'; }
+  }
 }
 
 window.PAGES_EXTRA = { renderCalendar, renderSettings, renderTax, renderSiteDetail, renderPhotos };

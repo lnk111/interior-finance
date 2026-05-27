@@ -101,6 +101,7 @@ async function saveSiteRegister() {
   if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
   try {
     await window.FB_API.saveSite({ name, client, status, year, month, memo });
+    if (window.seedDefaultPhases) { try { await window.seedDefaultPhases(name); } catch (e) {} }
     closeModal();
     if (window.navigate) window.navigate(window.currentPage || 'sites');
   } catch (e) {

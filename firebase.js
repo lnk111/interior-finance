@@ -359,6 +359,22 @@ window.runPhotoMigration = async function(btn) {
   if (btn) { btn.disabled = false; btn.textContent = '⚡ 사진 저장방식 최적화 (1회 실행)'; }
 };
 
+// ── 기본 공정 일괄 등록 (신규 현장 등록 시 / 빈 현장 채울 때) ──
+window.seedDefaultPhases = async function(siteName) {
+  const list = (window.MOCK && window.MOCK.defaultSitePhases) || [];
+  if (!list.length) return;
+  const procKey = (siteName || '').replace(/[.#$/ \[\]]/g, '_');
+  let maxOrder = 0;
+  try {
+    const snap = await db.ref('procData/' + procKey).once('value');
+    Object.values(snap.val() || {}).forEach(p => { if (p && (p.order || 0) > maxOrder) maxOrder = p.order; });
+  } catch (e) {}
+  const tasks = list.map((name, i) => db.ref('procData/' + procKey).push({
+    name, status: 'wait', startDate: null, doneDate: null, order: maxOrder + i + 1,
+  }));
+  await Promise.all(tasks);
+};
+
 // ── Firebase 리스너 초기화 ──
 function initFirebase() {
   // 연결 상태
