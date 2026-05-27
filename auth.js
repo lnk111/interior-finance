@@ -10,7 +10,7 @@ const ROLE_PERMS = {
   staff:   { fixedCost: false, staffSalary: false, tax: false, top3: false, finalProfit: false, allSites: true,  staffMgmt: false, csvExport: false },
 };
 
-const ROLE_LABEL = { boss: '대표', manager: '팀장', staff: '직원' };
+const ROLE_LABEL = { boss: '대표', manager: '팀장', staff: '대리' };
 
 window.AUTH = {
   current() {
@@ -23,7 +23,7 @@ window.AUTH = {
     return true;
   },
   loginDemo(role = 'boss') {
-    const names = { boss: '이재현', manager: '이남경', staff: '김덕수' };
+    const names = { boss: '김영애', manager: '이남경', staff: '김덕수' };
     return this.login(names[role], '0000', role);
   },
   logout() {
@@ -39,7 +39,7 @@ window.AUTH = {
     return this.current()?.role || 'staff';
   },
   roleLabel() {
-    return ROLE_LABEL[this.role()] || '직원';
+    return ROLE_LABEL[this.role()] || '대리';
   },
 };
 
