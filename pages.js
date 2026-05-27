@@ -482,7 +482,7 @@ function toggleProcList() {
 function renderSiteDetail() {
   const s = PMS.sites.find(x => x && x.name === window._siteDetailName) || PMS.sites[0];
   const procRaw = window._procCache || {};
-  const phases = Object.values(procRaw).sort((a, b) => (a.order||0) - (b.order||0));
+  const phases = Object.entries(procRaw).map(([id, p]) => ({ ...p, id })).sort((a, b) => (a.order||0) - (b.order||0));
   const todayStr = new Date().toISOString().slice(0, 10);
 
   function calcStatus(startDate, endDate) {
