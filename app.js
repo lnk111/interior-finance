@@ -71,12 +71,12 @@ function renderHome() {
   } else {
     visibleTips = M.tips.filter(t => t.cat === tipsFilter);
   }
-  const tipCard = tp => {
+  const tipCard = (tp, idx) => {
     const cls = tp.cat==='실수'?'pill-warn':tp.cat==='팁'?'pill-accent':tp.cat==='자재'?'pill-pin':'pill-info';
     const ic  = tp.cat==='실수'?'😓':tp.cat==='팁'?'💡':tp.cat==='자재'?'🔩':'🤝';
-    return `<div class="tip-card ${tp.pinned?'pinned':''}">
+    return `<button class="tip-card ${tp.pinned?'pinned':''}" data-tip-key="${tp._key || ''}" style="display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--hair);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;margin-bottom:8px;">
       <div class="tip-head"><span class="pill ${cls}">${ic} ${tp.cat}</span><span class="tip-meta">${tp.by} · ${tp.site}</span></div>
-      <div class="tip-title">${tp.title}</div></div>`;
+      <div class="tip-title">${tp.title}</div></button>`;
   };
   const tipFilters = [
     { key: 'pin',  label: '📌 핀 고정' },
@@ -927,6 +927,8 @@ document.addEventListener('click',e=>{
   if (filter&&currentPage==='sites') { sitesFilter=filter.dataset.filter; navigate('sites'); return; }
   const tipFilter=e.target.closest('[data-tip-filter]');
   if (tipFilter&&currentPage==='home') { window._tipsFilter=tipFilter.dataset.tipFilter; navigate('home'); return; }
+  const tipCardEl=e.target.closest('[data-tip-key]');
+  if (tipCardEl) { e.preventDefault(); openTipDetail(tipCardEl.dataset.tipKey); return; }
   const iact=e.target.closest('[data-iact]');
   if (iact) { e.preventDefault(); handleInputFlow(iact.dataset.iact, iact); return; }
   if (e.target.closest('#logout-btn')) { if(confirm('로그아웃 하시겠어요?')) { AUTH.logout(); location.reload(); } return; }

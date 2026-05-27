@@ -1495,6 +1495,114 @@ async function saveProcEdit(phaseId, siteName) {
   }
 }
 
+// ===== 노하우 상세 보기 =====
+window.openTipDetail = function(tipKey) {
+  const tips = window.MOCK?.tips || [];
+  const tip = tips.find(t => t._key === tipKey);
+  if (!tip) { console.warn('노하우를 찾을 수 없어요:', tipKey); return; }
+
+  const pillCls = tip.cat==='실수'?'pill-warn':tip.cat==='팁'?'pill-accent':tip.cat==='자재'?'pill-pin':'pill-info';
+  const ic  = tip.cat==='실수'?'😓':tip.cat==='팁'?'💡':tip.cat==='자재'?'🔩':'🤝';
+  const dateStr = tip.createdAt ? new Date(tip.createdAt).toISOString().slice(0,10).replace(/-/g,'.') : '';
+  const pPhotos = tip.problemPhotos || [];
+  const sPhotos = tip.solutionPhotos || [];
+
+  function photoStrip(label, photos) {
+    if (!photos.length) return '';
+    const enc = encodeURIComponent(JSON.stringify(photos));
+    return `
+      <div class="field">
+        <label class="field-label">${label}</label>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+          ${photos.map((p,i) => `
+            <img src="${p}" data-tip-photos="${enc}" data-tip-photo-idx="${i}"
+              style="width:88px;height:88px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);cursor:pointer;flex-shrink:0;">
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">${ic} 노하우</div>
+            <div class="modal-sub">
+              <span class="pill ${pillCls}" style="margin-right:6px;">${tip.cat}</span>
+              ${tip.pinned ? '<span class="pill pill-warn" style="margin-right:6px;">📌 핀고정</span>' : ''}
+              ${dateStr}
+            </div>
+          </div>
+          <button class="btn-icon" onclick="closeModal()">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label class="field-label">제목</label>
+            <div style="font-size:15px;font-weight:700;line-height:1.5;">${tip.title || '(제목 없음)'}</div>
+          </div>
+          ${tip.problem ? `
+            <div class="field">
+              <label class="field-label">문제 상황</label>
+              <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--ink);">${tip.problem}</div>
+            </div>` : ''}
+          ${photoStrip('문제 사진', pPhotos)}
+          ${tip.solution ? `
+            <div class="field">
+              <label class="field-label">해결 방법</label>
+              <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--ink);">${tip.solution}</div>
+            </div>` : ''}
+          ${photoStrip('해결 사진', sPhotos)}
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label">현장</label>
+              <div style="font-size:14px;color:var(--ink);">${tip.site || '—'}</div>
+            </div>
+            <div class="field">
+              <label class="field-label">작성자</label>
+              <div style="font-size:14px;color:var(--ink);">${tip.by || '—'}</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost danger" onclick="deleteTip('${tip._key}')">🗑️ 삭제</button>
+          <button class="btn btn-primary" onclick="closeModal()">닫기</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.style.overflow = 'hidden';
+
+  // 사진 클릭 → 기존 사진 뷰어로
+  root.querySelectorAll('[data-tip-photos]').forEach(img => {
+    img.addEventListener('click', e => {
+      e.stopPropagation();
+      const enc = img.getAttribute('data-tip-photos');
+      const startIdx = parseInt(img.getAttribute('data-tip-photo-idx') || '0', 10);
+      // openPhotoAlbum이 pages.js에 있음
+      if (window.openPhotoAlbum) {
+        window.openPhotoAlbum(enc);
+        // 인덱스로 이동은 openPhotoAlbum 내부에서 처리되지 않으므로,
+        // 약간의 지연 후 해당 인덱스 점을 클릭한 효과를 내고 싶다면 여기에 작성 가능
+        // 일단 첫 장부터 시작 (편의상)
+      }
+    });
+  });
+};
+
+// 노하우 삭제
+window.deleteTip = async function(tipKey) {
+  if (!confirm('이 노하우를 삭제할까요?')) return;
+  try {
+    await db.ref('knowhow/' + tipKey).remove();
+    closeModal();
+  } catch(e) {
+    alert('삭제 실패: ' + e.message);
+  }
+};
+
 // Modal dispatcher
 window.MODALS = {
   site: modalSiteRegister,

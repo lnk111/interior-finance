@@ -272,11 +272,18 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   const khArr = Object.entries(FB.knowhow)
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
     .map(([key, kh]) => ({
+      _key: key,
       cat: kh.cat === 'mistake' ? '실수' : kh.cat === 'tip' ? '팁' : kh.cat === 'material' ? '자재' : '고객',
+      _catRaw: kh.cat || '',
       title: kh.title || '',
       site: kh.site || '—',
       by: kh.writer || '',
       pinned: kh.pinned || false,
+      problem: kh.problem || '',
+      solution: kh.solution || '',
+      problemPhotos: Array.isArray(kh.problemPhotos) ? kh.problemPhotos : [],
+      solutionPhotos: Array.isArray(kh.solutionPhotos) ? kh.solutionPhotos : [],
+      createdAt: kh.createdAt || 0,
     }));
   M.tips = khArr;
 
