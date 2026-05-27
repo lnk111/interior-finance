@@ -800,7 +800,7 @@ function openProcEditModal(phaseId, siteName) {
               </div>
             </div>
             <div class="grid-2">
-              <div class="field"><label class="field-label">🟢 시작일</label><input class="input" type="date" id="proc-start" value="${ph.startDate||''}"></div>
+              <div class="field"><label class="field-label">🟢 시작일</label><input class="input" type="date" id="proc-start" value="${ph.startDate||''}" onchange="autofillProcEndDate()"></div>
               <div class="field"><label class="field-label">🔴 완료일</label><input class="input" type="date" id="proc-end" value="${ph.doneDate||''}"></div>
             </div>
           </div>
@@ -819,6 +819,17 @@ function procEditChip(el, status) {
   el.closest('.chip-group').querySelectorAll('.chip').forEach(b=>b.classList.remove('is-active'));
   el.classList.add('is-active');
   window._procEditStatus = status;
+}
+
+// 시작일 입력 시 종료일이 비어있으면 같은 날짜로 자동 채움 (대부분 당일시공)
+// 종료일에 이미 값이 있으면 덮어쓰지 않음 — 사용자가 직접 수정 가능
+function autofillProcEndDate() {
+  const startEl = document.getElementById('proc-start');
+  const endEl   = document.getElementById('proc-end');
+  if (!startEl || !endEl) return;
+  if (startEl.value && !endEl.value) {
+    endEl.value = startEl.value;
+  }
 }
 
 async function saveProcEdit(procKey, phaseId) {
