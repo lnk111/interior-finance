@@ -485,7 +485,17 @@ function toggleProcList() {
 function renderSiteDetail() {
   const s = PMS.sites.find(x => x && x.name === window._siteDetailName) || PMS.sites[0];
   const procRaw = window._procCache || {};
-  const phases = Object.entries(procRaw).map(([id, p]) => ({ ...p, id })).sort((a, b) => (a.order||0) - (b.order||0));
+  // 시작일 시간순 정렬 — 시작일 없는 공정은 기존 order 순으로 뒤에 배치, 같은 날짜는 order로 2차 정렬
+  const phases = Object.entries(procRaw).map(([id, p]) => ({ ...p, id })).sort((a, b) => {
+    const aHas = !!a.startDate, bHas = !!b.startDate;
+    if (aHas && bHas) {
+      if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
+      return (a.order||0) - (b.order||0);
+    }
+    if (aHas) return -1;
+    if (bHas) return 1;
+    return (a.order||0) - (b.order||0);
+  });
   const todayStr = new Date().toISOString().slice(0, 10);
 
   function calcStatus(startDate, endDate) {

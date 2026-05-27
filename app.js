@@ -167,7 +167,16 @@ function renderActiveSitesHtml() {
   return activeSites.map(s => {
     const key = (s.name||'').replace(/[.#$/ \[\]]/g,'_');
     const pd = window.FB?._procAll?.[key] || {};
-    const phases = Object.values(pd).sort((a,b)=>(a.order||0)-(b.order||0));
+    const phases = Object.values(pd).sort((a, b) => {
+      const aHas = !!a.startDate, bHas = !!b.startDate;
+      if (aHas && bHas) {
+        if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
+        return (a.order||0) - (b.order||0);
+      }
+      if (aHas) return -1;
+      if (bHas) return 1;
+      return (a.order||0) - (b.order||0);
+    });
     const done  = phases.filter(p=>calcSt(p.startDate,p.doneDate)==='done').length;
     const total = phases.length;
     const pct   = total>0 ? Math.round(done/total*100) : 0;
