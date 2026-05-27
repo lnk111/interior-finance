@@ -61,8 +61,16 @@ function renderHome() {
       </button>`;
   }).join('');
 
-  const pinnedTips = M.tips.filter(t => t.pinned);
-  const otherTips  = M.tips.filter(t => !t.pinned).slice(0, 2);
+  // 노하우 필터링 — 핀 고정 / 전체 / 카테고리별
+  const tipsFilter = window._tipsFilter || 'pin';
+  let visibleTips;
+  if (tipsFilter === 'pin') {
+    visibleTips = M.tips.filter(t => t.pinned);
+  } else if (tipsFilter === 'all') {
+    visibleTips = [...M.tips];
+  } else {
+    visibleTips = M.tips.filter(t => t.cat === tipsFilter);
+  }
   const tipCard = tp => {
     const cls = tp.cat==='실수'?'pill-warn':tp.cat==='팁'?'pill-accent':tp.cat==='자재'?'pill-pin':'pill-info';
     const ic  = tp.cat==='실수'?'😓':tp.cat==='팁'?'💡':tp.cat==='자재'?'🔩':'🤝';
@@ -70,6 +78,20 @@ function renderHome() {
       <div class="tip-head"><span class="pill ${cls}">${ic} ${tp.cat}</span><span class="tip-meta">${tp.by} · ${tp.site}</span></div>
       <div class="tip-title">${tp.title}</div></div>`;
   };
+  const tipFilters = [
+    { key: 'pin',  label: '📌 핀 고정' },
+    { key: 'all',  label: '전체' },
+    { key: '실수', label: '😓 실수' },
+    { key: '팁',   label: '💡 팁' },
+    { key: '자재', label: '🔩 자재' },
+    { key: '고객', label: '🤝 고객' },
+  ];
+  const tipFilterHtml = tipFilters.map(f =>
+    `<button class="filter-chip ${tipsFilter===f.key?'is-active':''}" data-tip-filter="${f.key}">${f.label}</button>`
+  ).join('');
+  const tipsListHtml = visibleTips.length > 0
+    ? visibleTips.map(tipCard).join('')
+    : '<div class="empty" style="padding:20px;font-size:13px;">기록이 없어요</div>';
 
   return `
     <div class="page-header">
@@ -100,16 +122,8 @@ function renderHome() {
         <div id="site-tab-content" style="padding:0;">${renderActiveSitesHtml()}</div>
       </div>
       <div class="section-label">💡 현장 노하우 <span class="more"><span data-modal="tip">+ 기록</span></span></div>
-      <div class="tip-filter-row">
-        <button class="filter-chip is-active">📌 핀 고정</button>
-        <button class="filter-chip">전체</button>
-        <button class="filter-chip">😓 실수</button>
-        <button class="filter-chip">💡 팁</button>
-        <button class="filter-chip">🔩 자재</button>
-        <button class="filter-chip">🤝 고객</button>
-      </div>
-      ${pinnedTips.map(tipCard).join('')}
-      ${otherTips.map(tipCard).join('')}
+      <div class="tip-filter-row">${tipFilterHtml}</div>
+      ${tipsListHtml}
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
@@ -904,6 +918,8 @@ document.addEventListener('click',e=>{
   if (goto) { e.preventDefault(); navigate(goto.dataset.goto); return; }
   const filter=e.target.closest('[data-filter]');
   if (filter&&currentPage==='sites') { sitesFilter=filter.dataset.filter; navigate('sites'); return; }
+  const tipFilter=e.target.closest('[data-tip-filter]');
+  if (tipFilter&&currentPage==='home') { window._tipsFilter=tipFilter.dataset.tipFilter; navigate('home'); return; }
   const iact=e.target.closest('[data-iact]');
   if (iact) { e.preventDefault(); handleInputFlow(iact.dataset.iact, iact); return; }
   if (e.target.closest('#logout-btn')) { if(confirm('로그아웃 하시겠어요?')) { AUTH.logout(); location.reload(); } return; }
