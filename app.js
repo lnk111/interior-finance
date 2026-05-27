@@ -489,6 +489,13 @@ function inputStepType() {
             <span style="color:#ccc;font-size:18px;">›</span>
           </button>`).join('')}
       </div>
+      <div style="margin-top:18px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:18px;line-height:1.2;">🧾</span>
+        <span style="flex:1;font-size:13px;color:var(--ink);line-height:1.55;">
+          <strong style="font-weight:700;">매입·매출 내용을 증빙할 수 있는 영수증 사진을 준비해주세요</strong>
+          <span style="display:block;color:var(--muted);font-size:12.5px;margin-top:2px;">마지막 단계에서 첨부할 수 있어요</span>
+        </span>
+      </div>
     </div>`;
 }
 
