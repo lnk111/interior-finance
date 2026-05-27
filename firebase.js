@@ -108,6 +108,34 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     }
   });
 
+  // 다가오는 공사 — 첫 공정 시작일이 오늘 이후인 현장 (D-day 카운트다운용)
+  // 공사중·계약완료 현장만 대상 (마감/AS관리/잔금대기 제외)
+  const upcoming = [];
+  siteArr.forEach(site => {
+    if (site.status !== '공사중' && site.status !== '계약완료') return;
+    const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const phases = Object.values(_procAll[procKey] || {});
+    if (!phases.length) return;
+    // 시작일이 있는 공정 중 가장 빠른 것
+    const startDates = phases.map(p => p.startDate).filter(Boolean).sort();
+    if (!startDates.length) return;
+    const firstStart = startDates[0];
+    if (firstStart <= _todayStr) return; // 이미 시작했거나 오늘 시작
+    // D-day 계산 (UTC 기준 일수 차)
+    const t1 = Date.parse(firstStart);
+    const t0 = Date.parse(_todayStr);
+    const dDays = Math.round((t1 - t0) / 86400000);
+    upcoming.push({
+      name: site.name,
+      client: site.client,
+      firstStart,
+      dDays,
+      _key: site._key,
+    });
+  });
+  upcoming.sort((a, b) => a.dDays - b.dDays);
+  M.upcomingSites = upcoming;
+
   // 총합 계산
   let totalRev = 0, totalCost = 0, totalAs = 0;
   Object.values(FB.entries).forEach(e => {
@@ -269,6 +297,34 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   if (pendingAs > 0) {
     briefing.push({ kind: 'as', icon: '🔧', label: `AS 미처리 ${pendingAs}건`, meta: 'AS 탭에서 확인', color: 'pin' });
   }
+  // 다가오는 공사 — D-day 카운트다운 (직원들이 미리 챙기도록)
+  const upcomingArr = M.upcomingSites || [];
+  if (upcomingArr.length > 0) {
+    // 7일 이내 임박한 현장은 개별 항목으로 (눈에 띄게)
+    const imminent = upcomingArr.filter(u => u.dDays <= 7);
+    const later    = upcomingArr.filter(u => u.dDays > 7);
+    imminent.forEach(u => {
+      const dLabel = u.dDays === 0 ? 'D-day' : `D-${u.dDays}`;
+      briefing.push({
+        kind: 'task',
+        icon: '🚧',
+        label: `${dLabel} · ${u.name} 공사 시작`,
+        meta: `${u.firstStart.slice(5).replace('-', '.')} 첫 공정 시작${u.client ? ' · ' + u.client : ''}`,
+        color: u.dDays <= 2 ? 'warn' : 'accent',
+      });
+    });
+    // 8일 이후 현장은 한 줄로 묶어서 표시
+    if (later.length > 0) {
+      const first = later[0];
+      briefing.push({
+        kind: 'task',
+        icon: '📅',
+        label: `다가오는 공사 ${later.length}건`,
+        meta: `가장 빠른 건: ${first.name} (D-${first.dDays})`,
+        color: 'accent',
+      });
+    }
+  }
   // 공사중 현장
   const activeSites = siteArr.filter(s => s.status === '공사중');
   if (activeSites.length > 0) {
@@ -286,7 +342,8 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   try {
     localStorage.setItem('mf_snapshot', JSON.stringify({
       sites: M.sites, totals: M.totals, tax: M.tax, briefing: M.briefing,
-      unsorted: M.unsorted, staff: M.staff, inputters: M.inputters, tips: M.tips
+      unsorted: M.unsorted, staff: M.staff, inputters: M.inputters, tips: M.tips,
+      upcomingSites: M.upcomingSites
     }));
   } catch (e) {}
 }

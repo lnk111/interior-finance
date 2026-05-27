@@ -789,7 +789,36 @@ function renderSites() {
     return (b._createdAt||0)-(a._createdAt||0);
   });
   const filterHtml=filters.map(f=>`<button class="filter-chip ${sitesFilter===f?'is-active':''}" data-filter="${f}">${f}</button>`).join('');
-  const cardsHtml=list.map(s=>`
+
+  // 다가오는 공사 섹션 — 공사중·전체·계약완료 필터일 때 표시
+  let upcomingHtml = '';
+  const upcomingArr = (M.upcomingSites || []);
+  if (upcomingArr.length > 0 && (sitesFilter === '공사중' || sitesFilter === '전체' || sitesFilter === '계약완료')) {
+    const cards = upcomingArr.map(u => {
+      const dLabel = u.dDays === 0 ? 'D-day' : `D-${u.dDays}`;
+      const isUrgent = u.dDays <= 2;
+      const isImminent = u.dDays <= 7;
+      const badgeBg = isUrgent ? '#DC2626' : isImminent ? 'var(--warn, #D97706)' : 'var(--accent)';
+      const startStr = u.firstStart.slice(5).replace('-', '.');
+      const escName = u.name.replace(/'/g, "\\'");
+      return `
+        <div class="site-card" onclick="tapSite(this,'${escName}')" style="border-left:3px solid ${badgeBg};">
+          <div class="site-card-head">
+            <div>
+              <div class="site-card-name">${u.name}</div>
+              <div class="site-card-meta">${u.client || ''} · ${startStr} 공사 시작 예정</div>
+            </div>
+            <span class="pill" style="background:${badgeBg};color:#fff;border:none;font-weight:800;">${dLabel}</span>
+          </div>
+        </div>`;
+    }).join('');
+    upcomingHtml = `
+      <div class="section-label" style="margin-top:4px;margin-bottom:8px;">🚧 곧 시작하는 공사 <span class="more">${upcomingArr.length}건</span></div>
+      ${cards}
+      <div style="height:14px;"></div>`;
+  }
+
+  const cardsRaw = list.map(s=>`
     <div class="site-card" onclick="tapSite(this,'${s.name.replace(/'/g,"\\'")}')">
       <div class="site-card-head">
         <div>
@@ -808,7 +837,9 @@ function renderSites() {
         <div class="p-track"><div class="p-fill" style="width:${s.progress}%"></div></div>
         <span class="p-pct num">${s.progress}%</span>
       </div>`:''}
-    </div>`).join('')||'<div class="empty">결과가 없습니다</div>';
+    </div>`).join('');
+  // 다가오는 공사가 있으면 빈 메시지 숨김
+  const cardsHtml = cardsRaw || (upcomingArr.length > 0 ? '' : '<div class="empty">결과가 없습니다</div>');
   return `
     <div class="page-header">
       <div>
@@ -823,6 +854,7 @@ function renderSites() {
         <button class="btn btn-ghost btn-sm" data-goto="calendar">📅 현장 달력</button>
         <button class="btn btn-ghost btn-sm">📤 구글 캘린더</button>
       </div>
+      ${upcomingHtml}
       ${cardsHtml}
     </div>`;
 }
