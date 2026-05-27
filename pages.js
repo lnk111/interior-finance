@@ -735,15 +735,17 @@ function openPhotoAlbum(photosEncoded) {
         <button onclick="closeModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:50%;width:44px;height:44px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
       <div style="flex:1;overflow:hidden;position:relative;min-height:0;" id="slide-container">
-        <div id="slide-track" style="display:flex;transition:transform .25s ease;height:100%;will-change:transform;">
+        <div id="slide-track" style="display:flex;transition:transform .25s ease;height:100%;will-change:transform;cursor:grab;user-select:none;">
           ${photos.map(p => `
             <div style="min-width:100vw;width:100vw;height:100%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#000;">
-              <img src="${p}" style="max-width:100vw;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none;">
+              <img src="${p}" style="max-width:100vw;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none;pointer-events:none;">
             </div>`).join('')}
         </div>
+        <button id="photo-prev-btn" aria-label="이전 사진" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:50%;width:48px;height:48px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">‹</button>
+        <button id="photo-next-btn" aria-label="다음 사진" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:50%;width:48px;height:48px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">›</button>
       </div>
-      <div style="display:flex;justify-content:center;gap:6px;padding:14px 0;padding-bottom:calc(14px + env(safe-area-inset-bottom));flex-shrink:0;">
-        ${photos.map((_, i) => `<div id="dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'#fff':'rgba(255,255,255,0.4)'};transition:all .2s;"></div>`).join('')}
+      <div style="display:flex;justify-content:center;gap:6px;padding:14px 0;padding-bottom:calc(14px + env(safe-area-inset-bottom));flex-shrink:0;flex-wrap:wrap;max-width:100vw;">
+        ${photos.map((_, i) => `<button data-photo-dot="${i}" aria-label="${i+1}번 사진" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'#fff':'rgba(255,255,255,0.4)'};transition:all .2s;border:none;padding:0;cursor:pointer;" id="dot-${i}"></button>`).join('')}
       </div>
     </div>`;
   document.body.style.overflow = 'hidden';
@@ -761,30 +763,75 @@ function openPhotoAlbum(photosEncoded) {
     });
     const counter = document.getElementById('photo-counter');
     if (counter) counter.textContent = `${idx+1} / ${photos.length}`;
+    // 화살표 버튼 활성/비활성 표시
+    const prevBtn = document.getElementById('photo-prev-btn');
+    const nextBtn = document.getElementById('photo-next-btn');
+    if (prevBtn) prevBtn.style.opacity = idx === 0 ? '0.3' : '1';
+    if (nextBtn) nextBtn.style.opacity = idx === photos.length-1 ? '0.3' : '1';
   }
+  goTo(0); // 초기 화살표 상태 반영
 
-  let touchStartX=0, touchStartY=0, isDragging=false;
-  const container = document.getElementById('slide-container');
-  container.addEventListener('touchstart', e=>{ touchStartX=e.touches[0].clientX; touchStartY=e.touches[0].clientY; isDragging=true; },{passive:true});
-  container.addEventListener('touchmove', e=>{
-    if (!isDragging) return;
-    const dx=e.touches[0].clientX-touchStartX, dy=e.touches[0].clientY-touchStartY;
-    if (Math.abs(dx)>Math.abs(dy)) {
-      e.preventDefault();
-      const track=document.getElementById('slide-track');
-      if (track) { track.style.transition='none'; track.style.transform=`translateX(calc(-${currentIdx*100}vw + ${dx}px))`; }
+  // 좌우 화살표 버튼 — PC/태블릿 표준 UI
+  document.getElementById('photo-prev-btn')?.addEventListener('click', e => { e.stopPropagation(); goTo(currentIdx-1); });
+  document.getElementById('photo-next-btn')?.addEventListener('click', e => { e.stopPropagation(); goTo(currentIdx+1); });
+
+  // 점 클릭 → 해당 사진으로 이동
+  document.querySelectorAll('[data-photo-dot]').forEach(dot => {
+    dot.addEventListener('click', e => {
+      e.stopPropagation();
+      goTo(parseInt(dot.getAttribute('data-photo-dot'), 10));
+    });
+  });
+
+  // 키보드 화살표 — PC에서 가장 자연스러운 방식
+  function keyHandler(e) {
+    if (!document.getElementById('photo-viewer')) {
+      document.removeEventListener('keydown', keyHandler);
+      return;
     }
-  },{passive:false});
-  container.addEventListener('touchend', e=>{
-    if (!isDragging) return;
-    isDragging=false;
-    const dx=e.changedTouches[0].clientX-touchStartX;
-    const track=document.getElementById('slide-track');
-    if (track) track.style.transition='transform .25s ease';
-    if (dx<-50 && currentIdx<photos.length-1) goTo(currentIdx+1);
-    else if (dx>50 && currentIdx>0) goTo(currentIdx-1);
+    if (e.key === 'ArrowRight') { e.preventDefault(); goTo(currentIdx+1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(currentIdx-1); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeModal(); }
+  }
+  document.addEventListener('keydown', keyHandler);
+
+  // 통합 포인터 드래그 — 터치 + 마우스 모두 지원 (PointerEvents)
+  let dragStartX = 0, dragStartY = 0, isDragging = false, pointerId = null;
+  const container = document.getElementById('slide-container');
+  const track = document.getElementById('slide-track');
+
+  function onPointerDown(e) {
+    // 화살표 버튼이나 점 클릭은 드래그로 처리하지 않음
+    if (e.target.closest('#photo-prev-btn,#photo-next-btn,[data-photo-dot]')) return;
+    isDragging = true;
+    pointerId = e.pointerId;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    if (track) { track.style.transition = 'none'; track.style.cursor = 'grabbing'; }
+    try { container.setPointerCapture(e.pointerId); } catch(err) {}
+  }
+  function onPointerMove(e) {
+    if (!isDragging || e.pointerId !== pointerId) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      e.preventDefault();
+      if (track) track.style.transform = `translateX(calc(-${currentIdx*100}vw + ${dx}px))`;
+    }
+  }
+  function onPointerUp(e) {
+    if (!isDragging || (pointerId !== null && e.pointerId !== pointerId)) return;
+    isDragging = false; pointerId = null;
+    const dx = e.clientX - dragStartX;
+    if (track) { track.style.transition = 'transform .25s ease'; track.style.cursor = 'grab'; }
+    try { container.releasePointerCapture(e.pointerId); } catch(err) {}
+    if (dx < -50 && currentIdx < photos.length-1) goTo(currentIdx+1);
+    else if (dx > 50 && currentIdx > 0) goTo(currentIdx-1);
     else goTo(currentIdx);
-  },{passive:true});
+  }
+  container.addEventListener('pointerdown', onPointerDown);
+  container.addEventListener('pointermove', onPointerMove);
+  container.addEventListener('pointerup', onPointerUp);
+  container.addEventListener('pointercancel', onPointerUp);
 }
 
 // 공정 수정 모달
