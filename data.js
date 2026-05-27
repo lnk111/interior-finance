@@ -2,7 +2,7 @@
 window.MOCK = {
   user: '이재현',
   role: '실장',
-  company: '하늘인테리어',
+  company: '디자인포',
 
   totals: {
     revenue: 146_500_000,
