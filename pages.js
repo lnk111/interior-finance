@@ -477,6 +477,9 @@ function toggleProcList() {
   const cnt = btn ? (btn.dataset.count || '') : '';
   if (arrow) arrow.textContent = open ? '▴' : '▾';
   if (label) label.textContent = open ? '전체 공정 접기' : `전체 공정 ${cnt}개 펼치기`;
+  // 공정 편집 후에도 펼침 상태 유지되도록 기억 (현장명 기준)
+  window._procListOpen = open;
+  window._procListOpenSite = window._siteDetailName || '';
 }
 
 function renderSiteDetail() {
@@ -495,6 +498,9 @@ function renderSiteDetail() {
   const stLabel = { done:'완료', active:'진행중', wait:'대기' };
   const stClass = { done:'pill-accent', active:'pill-warn', wait:'pill-muted' };
   const dotClass = { done:'done', active:'now', wait:'todo' };
+
+  // 같은 현장에서 공정 편집 직후 돌아왔을 때만 펼침 상태 복원
+  const keepOpen = !!(window._procListOpen && window._procListOpenSite === (s && s.name));
 
   const tlHtml = phases.length > 0 ? phases.map(p => {
     const st = calcStatus(p.startDate, p.doneDate);
@@ -604,10 +610,10 @@ function renderSiteDetail() {
       ${phases.length > 0 ? `
         ${subwayBar}
         <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-          <span id="proc-toggle-label">전체 공정 ${phases.length}개 펼치기</span>
-          <span id="proc-toggle-arrow" style="font-size:12px;">▾</span>
+          <span id="proc-toggle-label">${keepOpen ? '전체 공정 접기' : `전체 공정 ${phases.length}개 펼치기`}</span>
+          <span id="proc-toggle-arrow" style="font-size:12px;">${keepOpen ? '▴' : '▾'}</span>
         </button>
-        <div id="proc-full-list" style="display:none;margin-top:8px;">
+        <div id="proc-full-list" style="display:${keepOpen ? 'block' : 'none'};margin-top:8px;">
           <div class="timeline">${tlHtml}</div>
         </div>
       ` : `<div class="timeline">${tlHtml}</div>`}
