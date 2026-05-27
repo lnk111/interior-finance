@@ -1066,6 +1066,12 @@ const PHOTO_PHASES = ['시공 전', '철거', '창호', '전기', '욕실방수'
 window._photoUploadState = { site: '', phase: '', photos: [] };
 
 function openPhotoUploadModal() {
+  // 이전 세션에서 남은 ObjectURL 정리
+  try {
+    (window._photoUploadState?.photos || []).forEach(u => {
+      if (u && u.startsWith && u.startsWith('blob:')) URL.revokeObjectURL(u);
+    });
+  } catch(e) {}
   window._photoUploadState = { site: '', phase: '', photos: [] };
   const sites = (window.MOCK?.sites || []).map(s => s.name);
   const root = document.getElementById('modal-root');
@@ -1184,15 +1190,11 @@ function photoHandleFile(e) {
   if (!window._photoUploadState.photos) window._photoUploadState.photos = [];
 
   newFiles.forEach(file => {
-    // 미리보기용 base64 + 업로드용 File 객체 둘 다 저장
+    // 미리보기는 ObjectURL (즉시 생성, base64 변환 없음 — 16장도 한순간에)
     window._photoUploadState.files.push(file);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      window._photoUploadState.photos.push(ev.target.result);
-      photoRenderPreview();
-    };
-    reader.readAsDataURL(file);
+    window._photoUploadState.photos.push(URL.createObjectURL(file));
   });
+  photoRenderPreview();
   e.target.value = '';
 }
 
@@ -1210,6 +1212,11 @@ function photoRenderPreview() {
 }
 
 function photoRemove(idx) {
+  // ObjectURL 메모리 해제 (createObjectURL 대응)
+  const u = window._photoUploadState.photos[idx];
+  if (u && u.startsWith && u.startsWith('blob:')) {
+    try { URL.revokeObjectURL(u); } catch(e) {}
+  }
   window._photoUploadState.photos.splice(idx, 1);
   if (window._photoUploadState.files) window._photoUploadState.files.splice(idx, 1);
   photoRenderPreview();
@@ -1223,32 +1230,68 @@ const CLOUDINARY = {
 };
 
 // 이미지 압축 (업로드 전 - 속도/용량 절약)
-async function compressImage(file, maxWidth = 1920, quality = 0.82) {
+// createImageBitmap 기반: 모바일에서 new Image()보다 2~3배 빠른 디코딩, 메인 쓰레드 부담 적음
+async function compressImage(file, maxWidth = 1280, quality = 0.75) {
+  // HEIC 등 createImageBitmap 미지원 포맷 대비 fallback
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch (err) {
+    // fallback: 기존 방식
+    return new Promise(resolve => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, maxWidth / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file);
+      img.src = url;
+    });
+  }
+
+  const scale = Math.min(1, maxWidth / bitmap.width);
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+
+  // OffscreenCanvas 가능하면 사용 (메인 쓰레드 부담 최소)
+  let canvas, ctx;
+  if (typeof OffscreenCanvas !== 'undefined') {
+    canvas = new OffscreenCanvas(w, h);
+    ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close && bitmap.close();
+    try {
+      return await canvas.convertToBlob({ type: 'image/jpeg', quality });
+    } catch (e) {
+      // convertToBlob 미지원 브라우저 fallback
+    }
+  }
+  canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close && bitmap.close();
   return new Promise(resolve => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const scale = Math.min(1, maxWidth / img.width);
-      const w = Math.round(img.width * scale);
-      const h = Math.round(img.height * scale);
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
-    };
-    img.onerror = () => resolve(file);
-    img.src = url;
+    canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
   });
 }
 
-// Cloudinary 단일 파일 업로드
+// Cloudinary 단일 파일 업로드 (압축 → 업로드 파이프라인)
 async function uploadToCloudinary(file, folder, tags = []) {
   const compressed = await compressImage(file);
   const fd = new FormData();
   fd.append('file', compressed);
   fd.append('upload_preset', CLOUDINARY.uploadPreset);
   fd.append('folder', folder);
+  // 서버측 추가 최적화 — 자동 품질 조정으로 추가 ~20-30% 용량 절감
+  fd.append('quality', 'auto:good');
   if (tags.length) fd.append('tags', tags.join(','));
   const res = await fetch(CLOUDINARY.uploadUrl, { method: 'POST', body: fd });
   if (!res.ok) throw new Error('업로드 실패');
@@ -1269,14 +1312,28 @@ async function photoSave() {
     const folder = `designfor/${encKey(site)}/${encKey(phase)}`;
     const tags = [encKey(site), encKey(phase), new Date().toISOString().slice(0, 10)];
 
-    // 병렬 업로드
+    // 동시 업로드 개수 제한 (모바일 안정성) — 6개씩 슬롯 굴림
+    const CONCURRENCY = 6;
+    const total = files.length;
     let done = 0;
-    const urls = await Promise.all(files.map(async file => {
-      const url = await uploadToCloudinary(file, folder, tags);
-      done++;
-      if (btn) btn.textContent = `⏫ ${done}/${files.length} 업로드 중...`;
-      return url;
-    }));
+    const urls = new Array(total);
+
+    const updateProgress = () => {
+      if (btn) btn.textContent = `⏫ ${done}/${total} 업로드 중...`;
+    };
+
+    // 파이프라인 워커: 다음 인덱스 가져와서 압축+업로드, 반복
+    let nextIdx = 0;
+    async function worker() {
+      while (true) {
+        const i = nextIdx++;
+        if (i >= total) return;
+        urls[i] = await uploadToCloudinary(files[i], folder, tags);
+        done++;
+        updateProgress();
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
 
     // Firebase에는 URL만 저장 (용량 거의 없음!)
     const key = encKey(site) + '_' + encKey(phase) + '_' + Date.now();
@@ -1287,6 +1344,12 @@ async function photoSave() {
       writer: window.AUTH?.current()?.name || '',
     });
 
+    // ObjectURL 메모리 해제
+    try {
+      (window._photoUploadState.photos || []).forEach(u => {
+        if (u && u.startsWith && u.startsWith('blob:')) URL.revokeObjectURL(u);
+      });
+    } catch(e) {}
     window._photoUploadState = { site: '', phase: '', files: [], photos: [] };
     closeModal();
     alert(`✅ ${phase} 사진 ${urls.length}장 저장 완료!`);
