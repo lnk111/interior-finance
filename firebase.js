@@ -125,6 +125,7 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     const t1 = Date.parse(firstStart);
     const t0 = Date.parse(_todayStr);
     const dDays = Math.round((t1 - t0) / 86400000);
+    if (dDays > 21) return; // 3주 전부터만 표시 (그 이전엔 챙길 필요 없음)
     upcoming.push({
       name: site.name,
       client: site.client,
@@ -297,34 +298,20 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   if (pendingAs > 0) {
     briefing.push({ kind: 'as', icon: '🔧', label: `AS 미처리 ${pendingAs}건`, meta: 'AS 탭에서 확인', color: 'pin' });
   }
-  // 다가오는 공사 — D-day 카운트다운 (직원들이 미리 챙기도록)
+  // 다가오는 공사 — D-day 카운트다운 (3주 전부터 표시, 직원들이 미리 챙기도록)
   const upcomingArr = M.upcomingSites || [];
-  if (upcomingArr.length > 0) {
-    // 7일 이내 임박한 현장은 개별 항목으로 (눈에 띄게)
-    const imminent = upcomingArr.filter(u => u.dDays <= 7);
-    const later    = upcomingArr.filter(u => u.dDays > 7);
-    imminent.forEach(u => {
-      const dLabel = u.dDays === 0 ? 'D-day' : `D-${u.dDays}`;
-      briefing.push({
-        kind: 'task',
-        icon: '🚧',
-        label: `${dLabel} · ${u.name} 공사 시작`,
-        meta: `${u.firstStart.slice(5).replace('-', '.')} 첫 공정 시작${u.client ? ' · ' + u.client : ''}`,
-        color: u.dDays <= 2 ? 'warn' : 'accent',
-      });
+  upcomingArr.forEach(u => {
+    const dLabel = u.dDays === 0 ? 'D-day' : `D-${u.dDays}`;
+    // 시급도 색상: 2일 이내 빨강(warn), 7일 이내 강조(pin), 그 이상 일반(accent)
+    const color = u.dDays <= 2 ? 'warn' : (u.dDays <= 7 ? 'pin' : 'accent');
+    briefing.push({
+      kind: 'task',
+      icon: '🚧',
+      label: `${dLabel} · ${u.name} 공사 시작`,
+      meta: `${u.firstStart.slice(5).replace('-', '.')} 첫 공정 시작${u.client ? ' · ' + u.client : ''}`,
+      color,
     });
-    // 8일 이후 현장은 한 줄로 묶어서 표시
-    if (later.length > 0) {
-      const first = later[0];
-      briefing.push({
-        kind: 'task',
-        icon: '📅',
-        label: `다가오는 공사 ${later.length}건`,
-        meta: `가장 빠른 건: ${first.name} (D-${first.dDays})`,
-        color: 'accent',
-      });
-    }
-  }
+  });
   // 공사중 현장
   const activeSites = siteArr.filter(s => s.status === '공사중');
   if (activeSites.length > 0) {
