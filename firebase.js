@@ -363,13 +363,30 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     briefing.push({ kind: 'task', icon: '✅', label: '오늘은 처리할 일이 없어요', meta: '좋은 하루 되세요!', color: 'accent' });
   }
   M.briefing = briefing;
+  // 즉시-페인트 캐시 저장 (두 번째 접속부터 0.1초 안에 화면 표시)
+  // ⚠️ base64 사진 데이터를 빼고 저장 — localStorage 5MB 한도 안 넘기게
   try {
-    localStorage.setItem('mf_snapshot', JSON.stringify({
+    // tips에서 무거운 사진 필드 제거 (메타데이터만 캐시)
+    const lightTips = (M.tips || []).map(t => {
+      const { problemPhotos, solutionPhotos, ...rest } = t;
+      return rest;
+    });
+    const snapshot = {
       sites: M.sites, totals: M.totals, tax: M.tax, briefing: M.briefing,
-      unsorted: M.unsorted, staff: M.staff, inputters: M.inputters, tips: M.tips,
-      upcomingSites: M.upcomingSites
-    }));
-  } catch (e) {}
+      unsorted: M.unsorted, staff: M.staff, inputters: M.inputters,
+      tips: lightTips,
+      upcomingSites: M.upcomingSites,
+      _cachedAt: Date.now(),
+    };
+    const serialized = JSON.stringify(snapshot);
+    localStorage.setItem('mf_snapshot', serialized);
+    // 디버깅용 (콘솔에서 캐시 크기 확인 가능)
+    if (window._cacheDebug) console.log(`[캐시 저장] ${(serialized.length / 1024).toFixed(1)}KB`);
+  } catch (e) {
+    // localStorage 용량 초과 등 — 다음 접속에 캐시 효과 없음
+    console.warn('[캐시 저장 실패]', e.message, '— 다음 접속에 즉시 페인트가 작동 안 할 수 있어요');
+    try { localStorage.removeItem('mf_snapshot'); } catch(e2) {}
+  }
 }
 
 function formatWhen(dateStr) {
@@ -755,13 +772,25 @@ window.bootAuth = function() {
   if (result) {
     try {
       const snap = JSON.parse(localStorage.getItem('mf_snapshot') || 'null');
-      if (snap && window.MOCK) {
+      // 24시간 지난 캐시는 무시 (혼란 방지)
+      const MAX_CACHE_AGE = 24 * 60 * 60 * 1000;
+      const isFresh = snap && snap._cachedAt && (Date.now() - snap._cachedAt < MAX_CACHE_AGE);
+      if (isFresh && window.MOCK) {
         Object.assign(window.MOCK, snap);
         if (window.navigate) window.navigate(window.currentPage || 'home');
         const ls = document.getElementById('loading-screen');
         if (ls) ls.style.display = 'none';
+        if (window._cacheDebug) {
+          const ageMin = Math.round((Date.now() - snap._cachedAt) / 60000);
+          console.log(`[캐시 복원] ${ageMin}분 전 데이터로 즉시 표시`);
+        }
+      } else if (snap && !isFresh) {
+        // 오래된 캐시는 삭제
+        try { localStorage.removeItem('mf_snapshot'); } catch(e2) {}
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[캐시 복원 실패]', e.message);
+    }
     initFirebase();
   }
   return result;
