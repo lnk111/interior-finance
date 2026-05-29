@@ -1013,9 +1013,37 @@ async function deletePending(key) {
   try { await db.ref('pending/'+key).remove(); openPendingList(); }
   catch(e) { alert('삭제 실패'); }
 }
+// 미정리 수정에서 쓰는 공정 목록 (사진 보관함과 동일하게 유지)
+const PEND_PHASES = ['시공 전', '철거', '창호', '전기', '욕실방수', '목공', '타일', '필름', '욕실설비', '바닥', '도배', '가구', '조명마감', '중문', '실리콘', '잔마감', '시공 후', 'AS'];
+
 function editPending(key) {
   const p=window.FB?.pending?.[key]||{};
   const sitesOpts=(M.sites||[]).map(s=>`<option value="${s.name}" ${p.site===s.name?'selected':''}>${s.name}</option>`).join('');
+
+  // 저장된 사진 모으기 — 대표 사진(imageBase64) + 추가 사진(extraPhotos)
+  const allPhotos = [];
+  if (p.imageBase64) allPhotos.push(p.imageBase64);
+  if (Array.isArray(p.extraPhotos)) allPhotos.push(...p.extraPhotos);
+  const photosEnc = encodeURIComponent(JSON.stringify(allPhotos));
+  const photosBlock = allPhotos.length > 0 ? `
+    <div class="field">
+      <label class="field-label">첨부 사진 <span class="muted">(${allPhotos.length}장 · 탭하면 크게 보기)</span></label>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;">
+        ${allPhotos.map((src, i) => `
+          <img src="${src}" data-pend-photos="${photosEnc}" data-pend-photo-idx="${i}"
+            style="width:96px;height:96px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);cursor:pointer;flex-shrink:0;">
+        `).join('')}
+      </div>
+    </div>` : '';
+
+  // 공정 칩 — data-* 패턴
+  const currentPhase = p.phase || '';
+  const phaseChipsHtml = `
+    <button type="button" class="chip ${!currentPhase?'is-active':''}" data-pend-phase="">선택 안함</button>
+    ${PEND_PHASES.map(ph =>
+      `<button type="button" class="chip ${currentPhase===ph?'is-active':''}" data-pend-phase="${ph}">${ph}</button>`
+    ).join('')}`;
+
   const root=document.getElementById('modal-root');
   root.innerHTML=`
     <div class="modal-backdrop" onclick="closeModal()">
@@ -1025,14 +1053,19 @@ function editPending(key) {
           <button class="btn-icon" onclick="closeModal()">✕</button>
         </div>
         <div class="modal-body">
+          ${photosBlock}
           <div class="field"><label class="field-label">현장</label>
             <select class="input" id="pend-site"><option value="">선택</option>${sitesOpts}</select></div>
+          <div class="field"><label class="field-label">공정 <span class="muted">(어떤 공정인가요?)</span></label>
+            <div class="chip-group" id="pend-phase-group" style="flex-wrap:wrap;gap:6px;">${phaseChipsHtml}</div>
+            <input type="hidden" id="pend-phase" value="${currentPhase}">
+          </div>
           <div class="field"><label class="field-label">금액 (원)</label>
             <input class="input" type="number" id="pend-amount" value="${p.totalAmount||''}" placeholder="총 금액"></div>
           <div class="field"><label class="field-label">날짜</label>
             <input class="input" type="date" id="pend-date" value="${p.date||''}"></div>
-          <div class="field"><label class="field-label">메모</label>
-            <textarea class="input" id="pend-memo" rows="2">${p.memo||''}</textarea></div>
+          <div class="field"><label class="field-label">메모 <span class="muted">(상세 내용 · 자유롭게)</span></label>
+            <textarea class="input" id="pend-memo" rows="5" placeholder="예: 삼미사 거울도어 / 색상 무광 블랙 / 김사장님과 통화 완료" style="min-height:110px;line-height:1.6;">${p.memo||''}</textarea></div>
           <div class="field"><label class="field-label">상태</label>
             <div class="chip-group">
               <button type="button" class="chip ${p.status==='temp'||!p.status?'is-active':''}" onclick="pendChip(this,'temp')">임시저장</button>
@@ -1049,6 +1082,28 @@ function editPending(key) {
       </div>
     </div>`;
   document.body.style.overflow='hidden';
+
+  // 사진 클릭 → 큰 뷰어로
+  root.querySelectorAll('[data-pend-photos]').forEach(img => {
+    img.addEventListener('click', e => {
+      e.stopPropagation();
+      const enc = img.getAttribute('data-pend-photos');
+      if (window.openPhotoAlbum) window.openPhotoAlbum(enc);
+    });
+  });
+
+  // 공정 칩 클릭 — 이벤트 위임, 따옴표 충돌 없는 안전 패턴
+  const phaseGroup = root.querySelector('#pend-phase-group');
+  if (phaseGroup) {
+    phaseGroup.addEventListener('click', e => {
+      const chip = e.target.closest('[data-pend-phase]');
+      if (!chip) return;
+      phaseGroup.querySelectorAll('.chip').forEach(c => c.classList.remove('is-active'));
+      chip.classList.add('is-active');
+      const inp = document.getElementById('pend-phase');
+      if (inp) inp.value = chip.dataset.pendPhase || '';
+    });
+  }
 }
 function pendChip(el,val) {
   el.closest('.chip-group').querySelectorAll('.chip').forEach(b=>b.classList.remove('is-active'));
@@ -1057,6 +1112,7 @@ function pendChip(el,val) {
 }
 async function savePending(key) {
   const site=document.getElementById('pend-site')?.value||'';
+  const phase=document.getElementById('pend-phase')?.value||'';
   const amount=parseInt(document.getElementById('pend-amount')?.value)||null;
   const date=document.getElementById('pend-date')?.value||'';
   const memo=document.getElementById('pend-memo')?.value?.trim()||'';
@@ -1064,7 +1120,7 @@ async function savePending(key) {
   const btn=document.querySelector('.modal-foot .btn-primary');
   if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
-    await db.ref('pending/'+key).update({site,totalAmount:amount,date,memo,status});
+    await db.ref('pending/'+key).update({site,phase,totalAmount:amount,date,memo,status});
     openPendingList();
   } catch(e) {
     alert('저장 실패');
