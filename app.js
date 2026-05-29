@@ -1049,7 +1049,7 @@ function editPending(key) {
     <div class="modal-backdrop" onclick="closeModal()">
       <div class="modal-sheet" onclick="event.stopPropagation()">
         <div class="modal-head">
-          <div><div class="modal-title">✏️ 미정리 수정</div></div>
+          <div><div class="modal-title">✏️ 미정리 수정 <span style="font-size:10px;color:var(--muted);font-weight:400;">v2</span></div></div>
           <button class="btn-icon" onclick="closeModal()">✕</button>
         </div>
         <div class="modal-body">
