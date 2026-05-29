@@ -1567,9 +1567,12 @@ window.openTipDetail = function(tipKey) {
             </div>
           </div>
         </div>
-        <div class="modal-foot">
+        <div class="modal-foot" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" data-tip-pin-toggle="${tip._key}" data-tip-pinned="${tip.pinned ? '1' : '0'}" style="${tip.pinned ? 'background:var(--warn-soft);color:var(--warn);border-color:var(--warn);' : ''}">
+            ${tip.pinned ? '📌 핀고정 해제' : '📌 핀 고정하기'}
+          </button>
           <button class="btn btn-ghost danger" onclick="deleteTip('${tip._key}')">🗑️ 삭제</button>
-          <button class="btn btn-primary" onclick="closeModal()">닫기</button>
+          <button class="btn btn-primary" style="margin-left:auto;" onclick="closeModal()">닫기</button>
         </div>
       </div>
     </div>`;
@@ -1580,16 +1583,37 @@ window.openTipDetail = function(tipKey) {
     img.addEventListener('click', e => {
       e.stopPropagation();
       const enc = img.getAttribute('data-tip-photos');
-      const startIdx = parseInt(img.getAttribute('data-tip-photo-idx') || '0', 10);
-      // openPhotoAlbum이 pages.js에 있음
       if (window.openPhotoAlbum) {
         window.openPhotoAlbum(enc);
-        // 인덱스로 이동은 openPhotoAlbum 내부에서 처리되지 않으므로,
-        // 약간의 지연 후 해당 인덱스 점을 클릭한 효과를 내고 싶다면 여기에 작성 가능
-        // 일단 첫 장부터 시작 (편의상)
       }
     });
   });
+
+  // 핀 고정 토글 — 대표/팀장/대리 모두 가능
+  const pinBtn = root.querySelector('[data-tip-pin-toggle]');
+  if (pinBtn) {
+    pinBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const key = pinBtn.getAttribute('data-tip-pin-toggle');
+      const wasPinned = pinBtn.getAttribute('data-tip-pinned') === '1';
+      const newVal = !wasPinned;
+      // 낙관적 UI: 즉시 버튼 비활성화로 중복 클릭 방지
+      pinBtn.disabled = true;
+      pinBtn.textContent = '저장 중...';
+      try {
+        await db.ref('knowhow/' + key + '/pinned').set(newVal);
+        // Firebase의 .on('value') 리스너가 자동으로 M.tips를 갱신함
+        // 모달을 닫고 다시 열어서 최신 상태 반영
+        closeModal();
+        // 약간의 지연 후 다시 열기 (firebase 리스너가 M.tips를 업데이트할 시간을 줌)
+        setTimeout(() => { window.openTipDetail(key); }, 150);
+      } catch(err) {
+        alert('핀 고정 변경에 실패했어요. 다시 시도해주세요.');
+        pinBtn.disabled = false;
+        pinBtn.textContent = wasPinned ? '📌 핀고정 해제' : '📌 핀 고정하기';
+      }
+    });
+  }
 };
 
 // 노하우 삭제

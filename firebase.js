@@ -271,20 +271,28 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   // 노하우
   const khArr = Object.entries(FB.knowhow)
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
-    .map(([key, kh]) => ({
-      _key: key,
-      cat: kh.cat === 'mistake' ? '실수' : kh.cat === 'tip' ? '팁' : kh.cat === 'material' ? '자재' : '고객',
-      _catRaw: kh.cat || '',
-      title: kh.title || '',
-      site: kh.site || '—',
-      by: kh.writer || '',
-      pinned: kh.pinned || false,
-      problem: kh.problem || '',
-      solution: kh.solution || '',
-      problemPhotos: Array.isArray(kh.problemPhotos) ? kh.problemPhotos : [],
-      solutionPhotos: Array.isArray(kh.solutionPhotos) ? kh.solutionPhotos : [],
-      createdAt: kh.createdAt || 0,
-    }));
+    .map(([key, kh]) => {
+      // 사진은 두 가지 저장 형식 모두 지원 (구버전/신버전 호환)
+      const photosObj = kh.photos || {};
+      const pPhotos = Array.isArray(kh.problemPhotos) ? kh.problemPhotos
+                    : (Array.isArray(photosObj.problem) ? photosObj.problem : []);
+      const sPhotos = Array.isArray(kh.solutionPhotos) ? kh.solutionPhotos
+                    : (Array.isArray(photosObj.solution) ? photosObj.solution : []);
+      return {
+        _key: key,
+        cat: kh.cat === 'mistake' ? '실수' : kh.cat === 'tip' ? '팁' : kh.cat === 'material' ? '자재' : '고객',
+        _catRaw: kh.cat || '',
+        title: kh.title || '',
+        site: kh.site || '—',
+        by: kh.writer || '',
+        pinned: kh.pinned || false,
+        problem: kh.problem || '',
+        solution: kh.solution || '',
+        problemPhotos: pPhotos,
+        solutionPhotos: sPhotos,
+        createdAt: kh.createdAt || 0,
+      };
+    });
   M.tips = khArr;
 
   // 회사명 & 사용자명
