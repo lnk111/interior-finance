@@ -1037,7 +1037,8 @@ function editPending(key) {
     </div>` : '';
 
   // 공정 칩 — data-* 패턴
-  const currentPhase = p.phase || '';
+  // Firebase 필드명은 'process' (기존 데이터와 호환), 혹시 'phase'로 저장된 경우도 fallback
+  const currentPhase = p.process || p.phase || '';
   const phaseChipsHtml = `
     <button type="button" class="chip ${!currentPhase?'is-active':''}" data-pend-phase="">선택 안함</button>
     ${PEND_PHASES.map(ph =>
@@ -1049,7 +1050,7 @@ function editPending(key) {
     <div class="modal-backdrop" onclick="closeModal()">
       <div class="modal-sheet" onclick="event.stopPropagation()">
         <div class="modal-head">
-          <div><div class="modal-title">✏️ 미정리 수정 <span style="font-size:10px;color:var(--muted);font-weight:400;">v2</span></div></div>
+          <div><div class="modal-title">✏️ 미정리 수정 <span style="font-size:10px;color:var(--muted);font-weight:400;">v3</span></div></div>
           <button class="btn-icon" onclick="closeModal()">✕</button>
         </div>
         <div class="modal-body">
@@ -1112,7 +1113,7 @@ function pendChip(el,val) {
 }
 async function savePending(key) {
   const site=document.getElementById('pend-site')?.value||'';
-  const phase=document.getElementById('pend-phase')?.value||'';
+  const process=document.getElementById('pend-phase')?.value||'';
   const amount=parseInt(document.getElementById('pend-amount')?.value)||null;
   const date=document.getElementById('pend-date')?.value||'';
   const memo=document.getElementById('pend-memo')?.value?.trim()||'';
@@ -1120,7 +1121,7 @@ async function savePending(key) {
   const btn=document.querySelector('.modal-foot .btn-primary');
   if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
-    await db.ref('pending/'+key).update({site,phase,totalAmount:amount,date,memo,status});
+    await db.ref('pending/'+key).update({site,process,totalAmount:amount,date,memo,status});
     openPendingList();
   } catch(e) {
     alert('저장 실패');
