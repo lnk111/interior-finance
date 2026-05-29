@@ -617,13 +617,28 @@ function inputStepPay() {
 
 function inputStepWriter() {
   const st = inputState;
-  if (!st.inputter) st.inputter = (window.AUTH && AUTH.current && AUTH.current()?.name) || (M.inputters||[])[0] || '';
+  const list = M.inputters || [];
+  if (!st.inputter) st.inputter = (window.AUTH && AUTH.current && AUTH.current()?.name) || list[0] || '';
+  if (list.length === 0) {
+    return `
+      <div style="padding:0 var(--pad);">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px;">누가 입력하나요?</div>
+        <div style="font-size:13.5px;color:var(--muted);margin-bottom:20px;">아직 등록된 입력자가 없어요</div>
+        <div style="background:var(--warn-soft);border:1px solid var(--warn);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:14px;line-height:1.6;color:var(--ink);">
+            <strong>입력자 명단이 비어있어요.</strong><br>
+            <span style="color:var(--muted);font-size:13px;">설정 → 직원 추가에서 입력자를 먼저 등록해주세요.</span>
+          </div>
+          <button data-goto="settings" style="background:var(--warn);color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">⚙️ 설정으로 이동</button>
+        </div>
+      </div>`;
+  }
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">누가 입력하나요?</div>
       <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">탭하면 다음으로</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
-        ${(M.inputters||[]).map(n=>{
+        ${list.map(n=>{
           const on = st.inputter===n;
           return `<button data-iact="inputter" data-val="${n}" style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid ${on?'var(--accent)':'var(--hair)'};border-radius:13px;padding:13px 14px;cursor:pointer;font-family:inherit;text-align:left;">
             <span style="width:34px;height:34px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${String(n).slice(0,1)}</span>

@@ -220,7 +220,21 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
       status: '재직중',
     }));
   M.staff = staffArr;
-  M.inputters = staffArr.map(s => s.name + (s.role ? ' ' + s.role : ''));
+  // 입력자 후보 — 직원 목록 + 현재 로그인한 사용자(사장은 staffData에 없을 수 있어서 안전망)
+  const inputterSet = new Set();
+  staffArr.forEach(s => {
+    const label = s.name + (s.role ? ' ' + s.role : '');
+    if (s.name) inputterSet.add(label);
+  });
+  // 로그인된 사용자도 포함 (사장이거나, staffData 등록 전이거나, 데모 로그인이거나)
+  try {
+    const cur = window.AUTH?.current?.();
+    if (cur?.name) {
+      const roleLabel = window.AUTH?.roleLabel?.() || '';
+      inputterSet.add(cur.name + (roleLabel ? ' ' + roleLabel : ''));
+    }
+  } catch(e) {}
+  M.inputters = Array.from(inputterSet);
 
   // 미정리 수
   M.unsorted = Object.values(FB.pending).filter(p => p.status !== 'done').length;
