@@ -202,7 +202,7 @@ input, textarea, select { font-family: inherit; }
 
 /* Briefing */
 .briefing {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F4ECDB 100%);
+  background: #FFFFFF;
   border: 1px solid var(--hair);
   border-radius: 18px;
   padding: 20px;
@@ -563,7 +563,7 @@ input, textarea, select { font-family: inherit; }
 .cal-list { margin-top: 18px; padding: 0 var(--pad); }
 
 /* Tax */
-.tax-hero { background: linear-gradient(135deg, #FFFFFF 0%, #F4ECDB 100%); border: 1px solid var(--hair); border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+.tax-hero { background: #FFFFFF; border: 1px solid var(--hair); border-radius: 16px; padding: 20px; margin-bottom: 14px; }
 .tax-hero .th-eyebrow { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .tax-hero .th-amount { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; margin-top: 8px; line-height: 1; }
 .tax-hero .th-meta { margin-top: 12px; display: flex; gap: 12px; align-items: center; font-size: 13px; color: var(--ink-2); }
@@ -654,7 +654,7 @@ input, textarea, select { font-family: inherit; }
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(250, 247, 241, 0.94);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--hair);
@@ -671,7 +671,7 @@ input, textarea, select { font-family: inherit; }
   align-items: center;
   gap: 3px;
   padding: 6px 0;
-  color: #C8C0B8;
+  color: #B0B8C1;
   font-size: 12px;
   font-weight: 500;
   transition: color .12s;
