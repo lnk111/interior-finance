@@ -20,6 +20,12 @@ function fmtSigned(n) {
   if (a >= 10_000) return sign + '₩' + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
   return sign + '₩' + a.toLocaleString('ko-KR');
 }
+// 전체 자릿수 + 부호 표시 (예: +78,070,000원)
+function fmtSignedFull(n) {
+  if (!n) return '0원';
+  const sign = n > 0 ? '+' : '-';
+  return sign + Math.abs(n).toLocaleString('ko-KR') + '원';
+}
 function fmtFull(n) { return '₩' + n.toLocaleString('ko-KR'); }
 
 const ICON = {
@@ -140,7 +146,7 @@ function renderHome() {
       ${AUTH.can('finalProfit') ? `
       <div class="hero" style="margin-top:10px;">
         <div class="hero-eyebrow">🏢 이번 달 최종 영업이익</div>
-        <div class="hero-amount num" style="color:var(--ink);">${fmtSigned(t.finalProfit)}<span class="unit">원</span></div>
+        <div class="hero-amount num" style="color:var(--ink);">${fmtSignedFull(t.finalProfit)}</div>
         <div class="hero-meta">순이익 − 고정비(임대료·급여 등) − 부가세</div>
         <div class="stack-bar">
           <span style="flex:${Math.max(t.finalProfit,1)};background:var(--accent);"></span>
