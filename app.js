@@ -11,6 +11,15 @@ function fmtSlim(n) {
   if (a >= 10_000) return sign + '₩' + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
   return sign + '₩' + a.toLocaleString('ko-KR');
 }
+// 이익/손실을 +/- 부호로 직관적으로 표시 (양수도 +를 명시, 0은 부호 없음)
+function fmtSigned(n) {
+  if (!n) return '₩0';
+  const sign = n > 0 ? '+' : '-';
+  const a = Math.abs(n);
+  if (a >= 100_000_000) return sign + '₩' + (a / 100_000_000).toFixed(1).replace(/\.0$/, '') + '억';
+  if (a >= 10_000) return sign + '₩' + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
+  return sign + '₩' + a.toLocaleString('ko-KR');
+}
 function fmtFull(n) { return '₩' + n.toLocaleString('ko-KR'); }
 
 const ICON = {
@@ -131,7 +140,7 @@ function renderHome() {
       ${AUTH.can('finalProfit') ? `
       <div class="hero" style="margin-top:10px;">
         <div class="hero-eyebrow">🏢 이번 달 최종 영업이익</div>
-        <div class="hero-amount num" style="color:${t.finalProfit>0?'#DC2626':t.finalProfit<0?'#2563EB':'var(--ink)'};">${fmtSlim(t.finalProfit)}<span class="unit">원</span></div>
+        <div class="hero-amount num" style="color:var(--ink);">${fmtSigned(t.finalProfit)}<span class="unit">원</span></div>
         <div class="hero-meta">순이익 − 고정비(임대료·급여 등) − 부가세</div>
         <div class="stack-bar">
           <span style="flex:${Math.max(t.finalProfit,1)};background:var(--accent);"></span>
@@ -139,7 +148,7 @@ function renderHome() {
           <span style="flex:${Math.max(t.vat,1)};background:var(--warn);opacity:.85;"></span>
         </div>
         <div class="stack-legend">
-          <div><div class="lk"><span class="ldot" style="background:var(--accent);"></span>이익</div><span class="lv num">${fmtSlim(t.finalProfit)}</span></div>
+          <div><div class="lk"><span class="ldot" style="background:var(--accent);"></span>이익</div><span class="lv num">${fmtSigned(t.finalProfit)}</span></div>
           <div><div class="lk"><span class="ldot" style="background:var(--faint);"></span>고정비</div><span class="lv num">${fmtSlim(t.fixed)}</span></div>
           <div><div class="lk"><span class="ldot" style="background:var(--warn);"></span>부가세</div><span class="lv num">${fmtSlim(t.vat)}</span></div>
         </div>
@@ -149,7 +158,7 @@ function renderHome() {
         <div class="stat"><div class="stat-label">총 매입</div><div class="stat-value num">${fmtSlim(t.cost)}</div><div class="stat-delta flat">업체에 지급한 금액</div></div>
       </div>
       <div class="stat-row">
-        <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:${t.siteProfit>0?'#DC2626':t.siteProfit<0?'#2563EB':'var(--ink)'};">${fmtSlim(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
+        <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:var(--ink);">${fmtSigned(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${t.margin}%</div><div class="stat-delta flat">목표 ${t.targetMargin}%</div></div>
       </div>
       <div class="section-label">최근 거래 <span class="pill pill-warn" style="cursor:pointer;" onclick="openPendingList()">미정리 ${M.unsorted}건</span></div>
