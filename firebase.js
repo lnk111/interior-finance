@@ -108,6 +108,22 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     }
   });
 
+  // 계약완료 현장 중 첫 공정이 시작됐으면 자동으로 공사중으로 전환
+  // (공사일정만 잡고 상태 변경 깜빡한 경우 자동으로 따라잡아 줌)
+  siteArr.forEach(site => {
+    if (site.status !== '계약완료') return;
+    const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const phases = Object.values(_procAll[procKey] || {});
+    if (!phases.length) return;
+    // 시작일이 입력된 공정 중 가장 빠른 시작일
+    const startDates = phases.map(p => p.startDate).filter(Boolean).sort();
+    if (!startDates.length) return;
+    if (startDates[0] <= _todayStr) {
+      site.status = '공사중';
+      db.ref('siteInfo/' + site._key).update({ status: '공사중' }).catch(() => {});
+    }
+  });
+
   // 다가오는 공사 — 첫 공정 시작일이 오늘 이후인 현장 (D-day 카운트다운용)
   // 공사중·계약완료 현장만 대상 (마감/AS관리/잔금대기 제외)
   const upcoming = [];
