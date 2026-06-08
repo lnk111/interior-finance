@@ -555,7 +555,7 @@ function inputStepMid() {
         <div style="display:flex;flex-wrap:wrap;gap:9px;">
           ${(M.paymentStages||[]).map(s=>{
             const on = st.stage===s;
-            return `<button data-iact="stage" data-val="${s}" style="display:flex;align-items:center;gap:6px;background:${on?'#1B1814':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#1B1814':'var(--hair)'};border-radius:22px;padding:11px 16px;font-size:13.5px;font-family:inherit;cursor:pointer;">${stageIcons[s]||''} ${s}</button>`;
+            return `<button data-iact="stage" data-val="${s}" style="display:flex;align-items:center;gap:6px;background:${on?'#191F28':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#191F28':'var(--hair)'};border-radius:22px;padding:11px 16px;font-size:13.5px;font-family:inherit;cursor:pointer;">${stageIcons[s]||''} ${s}</button>`;
           }).join('')}
         </div>
       </div>`;
@@ -568,7 +568,7 @@ function inputStepMid() {
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
         ${(M.phases||[]).map(p=>{
           const on = st.phase===p;
-          return `<button data-iact="proc" data-val="${p}" style="display:flex;align-items:center;justify-content:center;height:44px;background:${on?'#1B1814':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#1B1814':'var(--hair)'};border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;">${p}</button>`;
+          return `<button data-iact="proc" data-val="${p}" style="display:flex;align-items:center;justify-content:center;height:44px;background:${on?'#191F28':'#fff'};color:${on?'#fff':'var(--ink)'};border:1.5px solid ${on?'#191F28':'var(--hair)'};border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;">${p}</button>`;
         }).join('')}
         <button data-iact="proc-direct" style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:6px;height:44px;background:${customPhase?'#2F6B47':'var(--accent-soft)'};color:${customPhase?'#fff':'var(--accent)'};border:1.5px dashed ${customPhase?'#2F6B47':'var(--accent)'};border-radius:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">✏️ ${customPhase?st.phase:'직접입력'}</button>
       </div>
@@ -811,7 +811,7 @@ function entryRenderPhotos() {
     <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
       <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
       <button onclick="entryRemovePhoto(${i})"
-        style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
+        style="position:absolute;top:-6px;right:-6px;background:#191F28;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
     </div>`).join('');
   }
   const rb=document.getElementById('iflow-receipt-next');

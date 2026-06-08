@@ -1011,7 +1011,7 @@ function qtRenderPhotos() {
       <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
         <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
         <button onclick="qtRemovePhoto(${i})"
-          style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
+          style="position:absolute;top:-6px;right:-6px;background:#191F28;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
       </div>
     `).join('');
   }
@@ -1206,7 +1206,7 @@ function photoRenderPreview() {
     <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
       <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
       <button onclick="photoRemove(${i})"
-        style="position:absolute;top:-6px;right:-6px;background:#1B1814;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
+        style="position:absolute;top:-6px;right:-6px;background:#191F28;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
     </div>
   `).join('');
 }

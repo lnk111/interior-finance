@@ -1,15 +1,20 @@
 /* 머니플로우 — Mobile-first design system */
 
 :root {
-  --bg: #FAF7F1;
-  --bg-2: #F0EBE0;
-  --surface: #FFFFFF;
-  --ink: #1B1814;
-  --ink-2: #3D3833;
-  --muted: #5F584E;
-  --faint: #776F61;
-  --hair: #DDD4C3;
-  --hair-soft: #F0EBE0;
+  /* 배경 — 화이트 + 라이트 그레이 (토스 스타일, 눈 피로 적음) */
+  --bg: #F2F4F6;          /* 메인 배경 (라이트 그레이) */
+  --bg-2: #E8EBED;        /* 약간 더 진한 그레이 (구분 영역) */
+  --surface: #FFFFFF;      /* 카드 배경 (화이트) */
+  --surface-2: #F2F4F6;    /* 보조 표면 (라이트 그레이 칩, 인풋 등) */
+  /* 텍스트 */
+  --ink: #191F28;          /* 본문 (거의 검정) */
+  --ink-2: #333D4B;        /* 부제 */
+  --muted: #6B7684;        /* 보조 텍스트 (중간 그레이) */
+  --faint: #8B95A1;        /* 흐린 텍스트 */
+  /* 보더/구분선 */
+  --hair: #E5E8EB;         /* 카드 보더, 구분선 */
+  --hair-soft: #F2F4F6;    /* 매우 옅은 구분선 */
+  /* 액센트 — 기존 톤 유지 (브랜드 컬러는 그대로) */
   --accent: #2F6B47;
   --accent-soft: #E1ECE5;
   --warn: #9A4B2E;
@@ -50,7 +55,7 @@ input, textarea, select { font-family: inherit; }
 .login-screen {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #FAF7F1 0%, #F0E5D2 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #F2F4F6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,7 +69,7 @@ input, textarea, select { font-family: inherit; }
   border: 1px solid var(--hair);
   border-radius: 18px;
   padding: 32px 24px;
-  box-shadow: 0 12px 40px rgba(60, 40, 20, 0.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
 }
 .login-brand { text-align: center; margin-bottom: 28px; }
 .login-logo {
@@ -202,7 +207,7 @@ input, textarea, select { font-family: inherit; }
   border-radius: 18px;
   padding: 20px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(27,24,20,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 .briefing-eyebrow { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .briefing-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 14px; line-height: 1.4; }
@@ -230,7 +235,7 @@ input, textarea, select { font-family: inherit; }
   border-radius: 18px;
   padding: 22px;
   margin-bottom: 14px;
-  box-shadow: 0 2px 8px rgba(27,24,20,0.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .hero-eyebrow { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
 .hero-amount { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--ink); }
@@ -247,7 +252,7 @@ input, textarea, select { font-family: inherit; }
 
 /* Stat row */
 .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.stat { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 18px; box-shadow: 0 1px 4px rgba(27,24,20,0.04); }
+.stat { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: 0.02em; }
 .stat-value { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
 .stat-delta { font-size: 12px; margin-top: 2px; font-weight: 600; }
@@ -289,7 +294,7 @@ input, textarea, select { font-family: inherit; }
 .as-meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
 /* Lists */
-.list { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(27,24,20,0.04); }
+.list { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .list-row {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -373,7 +378,7 @@ input, textarea, select { font-family: inherit; }
 }
 
 /* Site cards */
-.site-card { background: var(--surface); border: 1px solid var(--hair); border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(27,24,20,0.04); }
+.site-card { background: var(--surface); border: 1px solid var(--hair); border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .site-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
 .site-card-name { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
 .site-card-meta { font-size: 13px; color: var(--muted); margin-top: 3px; }
@@ -580,7 +585,7 @@ input, textarea, select { font-family: inherit; }
 .tax-card .chev { color: var(--faint); font-size: 18px; }
 
 /* Tip cards */
-.tip-card { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 16px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(27,24,20,0.04); }
+.tip-card { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 16px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .tip-card.pinned { border-left: 3px solid var(--pin); }
 .tip-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
 .tip-title { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.5; }
@@ -616,7 +621,7 @@ input, textarea, select { font-family: inherit; }
 .breadcrumb .back-btn { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); font-weight: 500; }
 
 /* Timeline (site detail) */
-.timeline { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 4px 14px; box-shadow: 0 1px 4px rgba(27,24,20,0.04); }
+.timeline { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 4px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .tl-row {
   display: grid;
   grid-template-columns: 12px 1fr auto;
@@ -682,7 +687,7 @@ input, textarea, select { font-family: inherit; }
   display: grid;
   place-items: center;
   margin: -22px 6px 0;
-  box-shadow: 0 6px 20px rgba(27, 24, 20, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
 }
 .tabbar-fab svg { width: 24px; height: 24px; }
@@ -692,7 +697,7 @@ input, textarea, select { font-family: inherit; }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(27, 24, 20, 0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 300;
   display: flex;
   align-items: flex-end;
@@ -899,7 +904,7 @@ button svg * {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(27, 24, 20, 0.65);
+  background: rgba(0, 0, 0, 0.65);
   color: white;
   font-size: 12px;
   padding: 3px 7px;
@@ -927,14 +932,14 @@ button svg * {
   #app {
     background: var(--bg);
     min-height: 100vh;
-    box-shadow: 0 0 80px rgba(60, 40, 20, 0.06);
+    box-shadow: 0 0 80px rgba(0, 0, 0, 0.06);
   }
   .tabbar { left: 50%; transform: translateX(-50%); width: 100%; }
 }
 
 /* 현장 상세 전환 — 카드 탭 피드백 + 페이드 인 */
 .site-card { transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
-.site-card.tapped { transform: scale(0.97); border-color: var(--accent); box-shadow: 0 1px 4px rgba(27,24,20,0.04), 0 0 0 1.5px var(--accent) inset; }
+.site-card.tapped { transform: scale(0.97); border-color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 0 0 1.5px var(--accent) inset; }
 .page-enter { animation: pageEnter .28s cubic-bezier(.22,.61,.36,1); }
 @keyframes pageEnter {
   from { opacity: 0; transform: translateY(16px); }
