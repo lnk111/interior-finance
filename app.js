@@ -320,6 +320,29 @@ function openSiteDetail(siteName) {
   const found = (window.MOCK?.sites||[]).find(s=>s.name===siteName);
   if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s=>s.name!==siteName))];
   const key = siteName.replace(/[.#$/ \[\]]/g,'_');
+
+  // 캐시 우선 — _procAll에 이미 있으면 즉시 렌더 (네트워크 대기 X)
+  const cached = window.FB?._procAll?.[key];
+  if (cached) {
+    window._procCache = cached;
+    navigate('siteDetail');
+    // 백그라운드에서 최신 데이터 받아 갱신 (다음 렌더에 반영)
+    db.ref('procData/'+key).once('value').then(snap=>{
+      const fresh = snap.val()||{};
+      if (!window.FB) window.FB={};
+      if (!window.FB._procAll) window.FB._procAll={};
+      window.FB._procAll[key] = fresh;
+      // 캐시와 다르면 다시 그려서 최신 반영
+      if (JSON.stringify(fresh) !== JSON.stringify(cached)) {
+        window._procCache = fresh;
+        if (window._siteDetailName === siteName && window.currentPage === 'siteDetail') {
+          navigate('siteDetail');
+        }
+      }
+    }).catch(()=>{});
+    return;
+  }
+  // 캐시 없으면 — 네트워크 받고 렌더 (기존 흐름)
   db.ref('procData/'+key).once('value').then(snap=>{
     if (!window.FB) window.FB={};
     if (!window.FB._procAll) window.FB._procAll={};

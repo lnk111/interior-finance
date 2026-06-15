@@ -508,7 +508,8 @@ function initFirebase() {
   db.ref('knowhow').on('value', snap => { FB.knowhow = snap.val() || {}; onDataChange(); });
   db.ref('scheduleData').on('value', snap => { FB.scheduleData = snap.val() || {}; onDataChange(); });
 
-  // procData 대량 캐시(_procAll) — 첫 화면을 막지 않게 지연/온디맨드 로드 (달력에서 사용)
+  // procData 대량 캐시(_procAll) — 다른 데이터와 병렬로 즉시 로드
+  // 공사진행률, 달력 등에서 사용되므로 첫 화면에 바로 필요함
   FB._procAllLoaded = false;
   window.ensureProcAll = function() {
     if (FB._procAllLoaded) return;
@@ -518,7 +519,8 @@ function initFirebase() {
       onDataChange();
     });
   };
-  setTimeout(window.ensureProcAll, 2000);
+  // 다른 노드들과 동시에 즉시 시작 (setTimeout 제거 — 진행률/달력 즉시 표시)
+  window.ensureProcAll();
 
   // photoData(사진 — 용량 큼) — 사진 페이지를 열 때만 로드
   FB._photoLoaded = false;
