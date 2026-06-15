@@ -238,8 +238,8 @@ input, textarea, select { font-family: inherit; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .hero-eyebrow { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
-.hero-amount { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--ink); }
-.hero-amount .unit { font-size: 16px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.hero-amount { font-size: 28px; font-weight: 800; letter-spacing: -0.045em; line-height: 1.1; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero-amount .unit { font-size: 14px; color: var(--muted); font-weight: 500; margin-left: 4px; }
 .hero-meta { font-size: 13px; color: var(--muted); margin-top: 6px; }
 .hero-trend { margin-top: 12px; display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
 
