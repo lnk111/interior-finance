@@ -1058,10 +1058,14 @@ function editPending(key) {
   const p=window.FB?.pending?.[key]||{};
   const sitesOpts=(M.sites||[]).map(s=>`<option value="${s.name}" ${p.site===s.name?'selected':''}>${s.name}</option>`).join('');
 
-  // 저장된 사진 모으기 — 대표 사진(imageBase64) + 추가 사진(extraPhotos)
+  // 저장된 사진 모으기 — 새 형식(photos URL 배열) 우선, 옛 형식(imageBase64 + extraPhotos)도 호환
   const allPhotos = [];
-  if (p.imageBase64) allPhotos.push(p.imageBase64);
-  if (Array.isArray(p.extraPhotos)) allPhotos.push(...p.extraPhotos);
+  if (Array.isArray(p.photos) && p.photos.length) {
+    p.photos.forEach(u => { if (u) allPhotos.push(u); });
+  } else {
+    if (p.imageBase64) allPhotos.push(p.imageBase64);
+    if (Array.isArray(p.extraPhotos)) p.extraPhotos.forEach(u => { if (u) allPhotos.push(u); });
+  }
   const photosEnc = encodeURIComponent(JSON.stringify(allPhotos));
   const photosBlock = allPhotos.length > 0 ? `
     <div class="field">

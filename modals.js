@@ -807,7 +807,14 @@ async function txEditDelete() {
 
 // 8. Quick tip / quick record modal — 토스식 단계 입력
 function modalQuickTip() {
+  // 이전 세션의 ObjectURL 메모리 해제
+  (window._qtPhotos || []).forEach(u => {
+    if (u && typeof u === 'string' && u.startsWith('blob:')) {
+      try { URL.revokeObjectURL(u); } catch(e) {}
+    }
+  });
   window._qtPhotos = [];
+  window._qtPhotoFiles = [];
   window._qtState = {
     step: 1,
     site: '',
@@ -992,15 +999,15 @@ function qtOpenGallery() {
 function qtHandleFile(e) {
   const files = Array.from(e.target.files || []);
   if (!files.length) return;
+  // _qtPhotos는 미리보기 URL 배열, _qtPhotoFiles는 업로드용 File 객체 배열
+  if (!window._qtPhotoFiles) window._qtPhotoFiles = [];
   files.forEach(file => {
     if (window._qtPhotos.length >= 5) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      window._qtPhotos.push(ev.target.result);
-      qtRenderPhotos();
-    };
-    reader.readAsDataURL(file);
+    window._qtPhotoFiles.push(file);
+    // 미리보기는 ObjectURL — base64 변환 안 함 (빠르고 메모리 효율적)
+    window._qtPhotos.push(URL.createObjectURL(file));
   });
+  qtRenderPhotos();
   e.target.value = '';
 }
 
@@ -1026,7 +1033,13 @@ function qtRenderPhotos() {
 }
 
 function qtRemovePhoto(idx) {
+  // ObjectURL 메모리 해제 (createObjectURL 대응)
+  const u = window._qtPhotos[idx];
+  if (u && typeof u === 'string' && u.startsWith('blob:')) {
+    try { URL.revokeObjectURL(u); } catch(e) {}
+  }
   window._qtPhotos.splice(idx, 1);
+  if (window._qtPhotoFiles) window._qtPhotoFiles.splice(idx, 1);
   qtRenderPhotos();
 }
 
@@ -1041,20 +1054,57 @@ async function qtSave() {
 
   if (!site) { alert('현장을 선택해주세요'); return; }
 
+  const files = window._qtPhotoFiles || [];
   const btn = document.querySelector('.modal-foot .btn-primary');
-  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  if (btn) { btn.disabled = true; btn.textContent = files.length ? `⏫ 0/${files.length} 업로드 중...` : '저장 중...'; }
 
   try {
+    // 사진을 Cloudinary로 업로드 (URL만 Firebase에 저장 → 앱 시작 속도 ↑)
+    let photoUrls = [];
+    if (files.length > 0) {
+      const encKey = s => s.replace(/[.#$/ \[\]]/g, '_');
+      const folder = `designfor/${encKey(site)}/_pending`;
+      const tags = [encKey(site), '_pending', date];
+      // 동시 업로드 4개 (모바일 안정성)
+      const CONCURRENCY = 4;
+      const total = files.length;
+      photoUrls = new Array(total);
+      let done = 0;
+      let nextIdx = 0;
+      async function worker() {
+        while (true) {
+          const i = nextIdx++;
+          if (i >= total) return;
+          photoUrls[i] = await uploadToCloudinary(files[i], folder, tags);
+          done++;
+          if (btn) btn.textContent = `⏫ ${done}/${total} 업로드 중...`;
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
+    }
+
+    // Firebase 저장 — URL 배열 (가벼움)
+    // 옛 필드(imageBase64, extraPhotos)는 호환성을 위해 URL을 그대로 넣어둠 — 기존 읽기 코드가 그대로 작동
     await window.FB_API.savePending({
       site, date, writer, memo,
-      imageBase64: window._qtPhotos[0] || null,
-      extraPhotos: window._qtPhotos.slice(1),
+      photos: photoUrls,                          // 새 필드 — URL 배열
+      imageBase64: photoUrls[0] || null,          // 호환성 — 첫 사진 URL
+      extraPhotos: photoUrls.slice(1),            // 호환성 — 나머지 URL들
       status: 'temp',
     });
+
+    // ObjectURL 메모리 해제
+    (window._qtPhotos || []).forEach(u => {
+      if (u && typeof u === 'string' && u.startsWith('blob:')) {
+        try { URL.revokeObjectURL(u); } catch(e) {}
+      }
+    });
     window._qtPhotos = [];
+    window._qtPhotoFiles = [];
     closeModal();
     alert('✅ 임시 저장 완료! 미정리 탭에서 금액을 입력하세요 😊');
   } catch(e) {
+    console.error(e);
     alert('저장 실패. 다시 시도해주세요.');
     if (btn) { btn.disabled = false; btn.textContent = '⚡ 임시 저장'; }
   }
