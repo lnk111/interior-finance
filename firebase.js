@@ -434,7 +434,212 @@ window.loadEntryPhotos = async function(key, entry) {
   } catch (e) { return []; }
 };
 
-// ── 1회 마이그레이션: 기존 entries 내장 사진을 entryPhotos로 분리 (안전·재실행 가능) ──
+// ── 2026.06: pending/entries의 base64 사진을 Cloudinary로 이전 (1회, 안전·재실행 가능) ──
+// base64는 Firebase 데이터를 27MB까지 부풀게 만들고 첫 접속을 느리게 만듦
+// 이걸 Cloudinary URL로 옮기면 Firebase가 4MB로 줄어듦
+const CLOUDINARY_MIGRATE = {
+  cloudName: 'dirocerek',
+  uploadPreset: 'designfor_site_photos',
+  uploadUrl: 'https://api.cloudinary.com/v1_1/dirocerek/image/upload',
+};
+
+// base64 → Cloudinary URL 단일 업로드
+async function _uploadBase64ToCloudinary(base64, folder, tags) {
+  const fd = new FormData();
+  fd.append('file', base64); // Cloudinary는 data:image/... 문자열을 직접 받음
+  fd.append('upload_preset', CLOUDINARY_MIGRATE.uploadPreset);
+  fd.append('folder', folder);
+  fd.append('quality', 'auto:good');
+  if (tags && tags.length) fd.append('tags', tags.join(','));
+  const res = await fetch(CLOUDINARY_MIGRATE.uploadUrl, { method: 'POST', body: fd });
+  if (!res.ok) throw new Error('Cloudinary 업로드 실패: ' + res.status);
+  const data = await res.json();
+  return data.secure_url;
+}
+
+// 단일 항목의 사진들을 Cloudinary로 이전 (한 건의 base64 사진 → URL 배열)
+async function _migrateItemPhotos(photos, folder, tags) {
+  const urls = [];
+  for (const ph of photos) {
+    if (!ph) continue;
+    // 이미 URL이면 그대로 사용 (재실행 안전성)
+    if (typeof ph === 'string' && ph.startsWith('http')) {
+      urls.push(ph);
+      continue;
+    }
+    // base64만 Cloudinary 업로드
+    if (typeof ph === 'string' && ph.startsWith('data:image')) {
+      const url = await _uploadBase64ToCloudinary(ph, folder, tags);
+      urls.push(url);
+    }
+  }
+  return urls;
+}
+
+// pending 노드의 base64 사진을 Cloudinary URL로 이전
+window.migratePendingPhotosToCloudinary = async function(onProgress) {
+  const all = FB.pending || {};
+  // base64를 포함한 항목만 선별 (URL만 있는 항목은 이미 처리됨)
+  const isBase64 = s => typeof s === 'string' && s.startsWith('data:image');
+  const targets = Object.entries(all).filter(([, p]) => {
+    if (isBase64(p.imageBase64)) return true;
+    if (Array.isArray(p.extraPhotos) && p.extraPhotos.some(isBase64)) return true;
+    if (Array.isArray(p.photos) && p.photos.some(isBase64)) return true;
+    return false;
+  });
+  let done = 0;
+  let success = 0;
+  let failed = 0;
+  for (const [key, p] of targets) {
+    try {
+      // 모든 사진 모으기 (구버전·신버전 호환)
+      const allPhotos = [];
+      if (p.imageBase64) allPhotos.push(p.imageBase64);
+      if (Array.isArray(p.extraPhotos)) p.extraPhotos.forEach(x => { if (x) allPhotos.push(x); });
+      if (Array.isArray(p.photos)) p.photos.forEach(x => { if (x) allPhotos.push(x); });
+      // 중복 제거
+      const uniq = [...new Set(allPhotos)];
+      const encKey = s => (s || '').replace(/[.#$/ \[\]]/g, '_');
+      const folder = `designfor/${encKey(p.site || 'unknown')}/_pending`;
+      const tags = [encKey(p.site || ''), '_pending', 'migrated'];
+      const urls = await _migrateItemPhotos(uniq, folder, tags);
+      // Firebase 업데이트: URL만 남기고 base64 제거
+      await db.ref('pending/' + key).update({
+        photos: urls,
+        imageBase64: urls[0] || null,        // 호환성: 첫 URL
+        extraPhotos: urls.slice(1),          // 호환성: 나머지 URL들
+        _migratedAt: Date.now(),
+      });
+      success++;
+    } catch (err) {
+      console.error('[pending 이전 실패]', key, err);
+      failed++;
+    }
+    done++;
+    if (onProgress) onProgress(done, targets.length, 'pending');
+  }
+  return { migrated: success, failed, total: targets.length };
+};
+
+// entries 노드의 base64 사진을 Cloudinary URL로 이전 (4장 정도)
+window.migrateEntriesPhotosToCloudinary = async function(onProgress) {
+  const all = FB.entries || {};
+  const isBase64 = s => typeof s === 'string' && s.startsWith('data:image');
+  const targets = Object.entries(all).filter(([, e]) => {
+    if (isBase64(e.imageBase64)) return true;
+    if (Array.isArray(e.extraPhotos) && e.extraPhotos.some(isBase64)) return true;
+    return false;
+  });
+  let done = 0;
+  let success = 0;
+  let failed = 0;
+  for (const [key, e] of targets) {
+    try {
+      const allPhotos = [];
+      if (e.imageBase64) allPhotos.push(e.imageBase64);
+      if (Array.isArray(e.extraPhotos)) e.extraPhotos.forEach(x => { if (x) allPhotos.push(x); });
+      const uniq = [...new Set(allPhotos)];
+      const encKey = s => (s || '').replace(/[.#$/ \[\]]/g, '_');
+      const folder = `designfor/${encKey(e.site || 'unknown')}/_entries`;
+      const tags = [encKey(e.site || ''), '_entries', 'migrated'];
+      const urls = await _migrateItemPhotos(uniq, folder, tags);
+      // entryPhotos 노드에도 보존 (앱이 거기서 사진 읽음 — 기존 마이그레이션 호환)
+      if (urls.length > 0) {
+        await db.ref('entryPhotos/' + key).set({ photos: urls });
+      }
+      // entries에서 base64 제거, URL은 메타데이터로 저장
+      await db.ref('entries/' + key).update({
+        imageBase64: null,
+        extraPhotos: null,
+        photoCount: urls.length,
+        hasPhoto: urls.length > 0,
+        _migratedAt: Date.now(),
+      });
+      success++;
+    } catch (err) {
+      console.error('[entries 이전 실패]', key, err);
+      failed++;
+    }
+    done++;
+    if (onProgress) onProgress(done, targets.length, 'entries');
+  }
+  return { migrated: success, failed, total: targets.length };
+};
+
+// 통합 실행 함수 (보스용 버튼에서 호출) — 안전·재실행·진행률 표시
+window.runFullPhotoMigration = async function(btn) {
+  // 권한 확인 — 보스만 실행 가능
+  const role = window.AUTH?.role?.();
+  if (role !== 'boss') {
+    alert('이 작업은 대표만 실행할 수 있어요.');
+    return;
+  }
+  // 대상 건수 사전 점검
+  const isBase64 = s => typeof s === 'string' && s.startsWith('data:image');
+  const pendingTargets = Object.values(FB.pending || {}).filter(p => {
+    return isBase64(p.imageBase64) ||
+           (Array.isArray(p.extraPhotos) && p.extraPhotos.some(isBase64)) ||
+           (Array.isArray(p.photos) && p.photos.some(isBase64));
+  }).length;
+  const entriesTargets = Object.values(FB.entries || {}).filter(e => {
+    return isBase64(e.imageBase64) ||
+           (Array.isArray(e.extraPhotos) && e.extraPhotos.some(isBase64));
+  }).length;
+  const totalTargets = pendingTargets + entriesTargets;
+
+  if (totalTargets === 0) {
+    alert('정리할 사진이 없어요. 이미 최적화되어 있습니다.');
+    return;
+  }
+
+  const ok = confirm(
+    `사진 ${totalTargets}건을 Cloudinary로 이전합니다.\n` +
+    `(미정리 ${pendingTargets}건, 거래 ${entriesTargets}건)\n\n` +
+    `약 1~2분 걸릴 수 있어요. 중간에 멈춰도 안전하고,\n` +
+    `버튼을 다시 눌러 이어서 진행할 수 있습니다.\n\n` +
+    `진행할까요?`
+  );
+  if (!ok) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = '준비 중...'; }
+  let totalDone = 0;
+  let totalSuccess = 0;
+  let totalFailed = 0;
+
+  try {
+    // 1) pending 먼저 (가장 큰 효과)
+    if (pendingTargets > 0) {
+      const r1 = await window.migratePendingPhotosToCloudinary((d, t, type) => {
+        totalDone = d;
+        if (btn) btn.textContent = `미정리 이전 중… ${d}/${t}`;
+      });
+      totalSuccess += r1.migrated;
+      totalFailed += r1.failed;
+    }
+    // 2) entries (작은 작업)
+    if (entriesTargets > 0) {
+      const r2 = await window.migrateEntriesPhotosToCloudinary((d, t, type) => {
+        if (btn) btn.textContent = `거래 사진 이전 중… ${d}/${t}`;
+      });
+      totalSuccess += r2.migrated;
+      totalFailed += r2.failed;
+    }
+    if (totalFailed === 0) {
+      alert(`✅ 완료!\n\n사진 ${totalSuccess}건을 Cloudinary로 이전했어요.\n앱을 새로고침하면 첫 접속이 훨씬 빨라집니다.`);
+    } else {
+      alert(`일부 완료\n\n성공: ${totalSuccess}건\n실패: ${totalFailed}건\n\n실패한 항목은 버튼을 다시 눌러 재시도해주세요.`);
+    }
+  } catch (err) {
+    console.error('[마이그레이션 오류]', err);
+    alert('오류가 발생했어요. 일부만 처리됐을 수 있습니다.\n버튼을 다시 눌러 이어서 진행하세요.');
+  }
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '📦 사진 정리 (Cloudinary 이전)';
+  }
+};
+
+
 window.migrateEntryPhotos = async function(onProgress) {
   const all = FB.entries || {};
   const keys = Object.keys(all).filter(k => {

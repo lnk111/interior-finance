@@ -264,6 +264,7 @@ function renderSettings() {
         <span class="chev">›</span>
       </button>
       ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runPhotoMigration(this)" style="margin-top:10px;">⚡ 사진 저장방식 최적화 (1회 실행)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">기존 거래에 들어있는 사진을 분리해 홈·목록 로딩을 빠르게 합니다. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
+      ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runFullPhotoMigration(this)" style="margin-top:10px;">📦 사진 정리 (Cloudinary 이전)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">미정리·거래에 base64로 저장된 사진을 Cloudinary로 이전합니다. 첫 접속 속도가 크게 빨라져요. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
       ${canFC ? `
       <div class="settings-group-label">📌 월 고정비</div>
       ${ymSelect(new Date().getFullYear(), new Date().getMonth()+1)}
