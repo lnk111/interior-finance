@@ -44,6 +44,29 @@ function _buildCalendarHtml() {
   const schedules = window.FB?.scheduleData || {};
   const evMap = {};
 
+  // 색 팔레트 — 현장별 자동 배정 (서로 구분 잘 되는 12색 순환)
+  const SITE_PALETTE = [
+    '#5B7CB5', '#4A9EBD', '#2F6B47', '#6BA85F',
+    '#8B5A9B', '#6E5BAB', '#C97844', '#B8895A',
+    '#C25B5B', '#A05880', '#6B7684', '#846B5E',
+  ];
+  // 개별 일정용 — 약간 다른 톤 (현장과 안 헷갈리게)
+  const SCHEDULE_PALETTE = [
+    '#E1A86B', '#7BA8C5', '#9BAB7E', '#C58A8A',
+    '#9B85B5', '#B0856E', '#6FA8A8', '#B59B6E',
+  ];
+  // 문자열 → 안정적 색 인덱스 (같은 이름은 항상 같은 색)
+  function _strHash(s) {
+    let h = 0;
+    for (let i = 0; i < (s || '').length; i++) {
+      h = ((h << 5) - h) + s.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h);
+  }
+  function _siteColor(name) { return SITE_PALETTE[_strHash(name) % SITE_PALETTE.length]; }
+  function _scheduleColor(key) { return SCHEDULE_PALETTE[_strHash(key) % SCHEDULE_PALETTE.length]; }
+
   Object.entries(schedules).forEach(([key, sc]) => {
     if (!sc.date) return;
     const d = parseInt(sc.date.slice(8, 10));
@@ -51,7 +74,9 @@ function _buildCalendarHtml() {
     const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
     if (ym !== curYm) return;
     if (!evMap[d]) evMap[d] = [];
-    evMap[d].push({ t: (sc.time ? sc.time + ' ' : '') + sc.title, c: 'accent' });
+    // 개별 일정은 각자 다른 색 (제목+키 기반)
+    const color = _scheduleColor(key + (sc.title || ''));
+    evMap[d].push({ t: (sc.time ? sc.time + ' ' : '') + sc.title, color });
   });
 
   const sites = window.FB?.sites || {};
@@ -60,6 +85,8 @@ function _buildCalendarHtml() {
     if (site.status === 'as' || site.status === 'AS관리') return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const procData = window.FB?._procAll?.[procKey] || {};
+    // 같은 현장의 모든 공정은 같은 색
+    const siteColor = _siteColor(site.name || procKey);
     Object.values(procData).forEach(ph => {
       if (!ph.startDate && !ph.doneDate) return;
       const start = ph.startDate || ph.doneDate;
@@ -74,8 +101,7 @@ function _buildCalendarHtml() {
           const label = site.name.length > 6 ? site.name.slice(0, 6) + '..' : site.name;
           const already = evMap[d].some(e => e.t.includes(ph.name));
           if (!already) {
-            const stColor = ph.status === 'done' ? 'accent' : ph.status === 'active' ? 'warn' : 'muted';
-            evMap[d].push({ t: label + ' ' + ph.name, c: stColor });
+            evMap[d].push({ t: label + ' ' + ph.name, color: siteColor });
           }
         }
         cur.setDate(cur.getDate() + 1);
@@ -90,7 +116,11 @@ function _buildCalendarHtml() {
     const dateStr = _calYear + '-' + String(_calMonth).padStart(2, '0') + '-' + String(d).padStart(2, '0');
     const isToday = dateStr === todayStr;
     const ev = evMap[d] || [];
-    const evHtml = ev.slice(0, 2).map(e => `<span class="cal-event" style="color:var(--${e.c});background:rgba(0,0,0,0.04);">${e.t}</span>`).join('');
+    // 각 이벤트마다 자기 색의 배경 (15% 투명도)으로 박스 표시
+    const evHtml = ev.slice(0, 2).map(e => {
+      const c = e.color || '#5B7684';
+      return `<span class="cal-event" style="color:${c};background:${c}22;border-left:2px solid ${c};">${e.t}</span>`;
+    }).join('');
     const hasMore = ev.length > 2;
     cells.push(`<div class="cal-day ${isToday?'today':''} ${col===0?'sun':col===6?'sat':''}" onclick="openCalDayPopup('${dateStr}')" style="cursor:pointer;">
       <span class="num">${d}</span>${evHtml}
