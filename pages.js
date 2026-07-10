@@ -1039,7 +1039,19 @@ async function saveProcAdd(procKey) {
 async function _refreshProcCache(procKey) {
   try {
     const snap = await db.ref('procData/'+procKey).once('value');
-    window._procCache = snap.val() || {};
+    const fresh = snap.val();
+    window._procCache = fresh || {};
+    // _procAll 동기화 — 달력·진행률 등이 최신 데이터를 보도록
+    if (window.FB) {
+      if (!window.FB._procAll) window.FB._procAll = {};
+      if (fresh && Object.keys(fresh).length) {
+        window.FB._procAll[procKey] = fresh;
+      } else {
+        delete window.FB._procAll[procKey];
+      }
+    }
+    // 달력 HTML 캐시 무효화 — 다음 렌더 시 새로 그려짐
+    _calCache = null;
   } catch(e) {}
 }
 
