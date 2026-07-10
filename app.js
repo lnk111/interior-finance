@@ -4,21 +4,21 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 function fmtSlim(n) {
-  if (!n) return '₩0';
+  if (!n) return '0';
   const sign = n < 0 ? '-' : '';
   const a = Math.abs(n);
-  if (a >= 100_000_000) return sign + '₩' + (a / 100_000_000).toFixed(1).replace(/\.0$/, '') + '억';
-  if (a >= 10_000) return sign + '₩' + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
-  return sign + '₩' + a.toLocaleString('ko-KR');
+  if (a >= 100_000_000) return sign + (a / 100_000_000).toFixed(1).replace(/\.0$/, '') + '억';
+  if (a >= 10_000) return sign + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
+  return sign + a.toLocaleString('ko-KR');
 }
 // 이익/손실을 +/- 부호로 직관적으로 표시 (양수도 +를 명시, 0은 부호 없음)
 function fmtSigned(n) {
-  if (!n) return '₩0';
+  if (!n) return '0';
   const sign = n > 0 ? '+' : '-';
   const a = Math.abs(n);
-  if (a >= 100_000_000) return sign + '₩' + (a / 100_000_000).toFixed(1).replace(/\.0$/, '') + '억';
-  if (a >= 10_000) return sign + '₩' + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
-  return sign + '₩' + a.toLocaleString('ko-KR');
+  if (a >= 100_000_000) return sign + (a / 100_000_000).toFixed(1).replace(/\.0$/, '') + '억';
+  if (a >= 10_000) return sign + Math.round(a / 10_000).toLocaleString('ko-KR') + '만';
+  return sign + a.toLocaleString('ko-KR');
 }
 // 전체 자릿수 + 부호 표시 (예: +78,070,000원)
 function fmtSignedFull(n) {
