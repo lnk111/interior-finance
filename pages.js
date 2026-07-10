@@ -46,16 +46,16 @@ function _buildCalendarHtml() {
 
   // 색 팔레트 — 현장별 자동 배정 (쨍한 12색 순환)
   const SITE_PALETTE = [
-    '#2563EB', '#0EA5E9', '#16A34A', '#65A30D',
-    '#9333EA', '#7C3AED', '#EA580C', '#D97706',
-    '#DC2626', '#DB2777', '#0891B2', '#CA8A04',
+    '#2563EB', '#DC2626', '#16A34A', '#EA580C',
+    '#9333EA', '#CA8A04', '#0891B2', '#DB2777',
+    '#65A30D', '#7C3AED', '#D97706', '#059669',
   ];
   // 개별 일정용 — 현장과 헷갈리지 않는 별도 톤
   const SCHEDULE_PALETTE = [
     '#F59E0B', '#84CC16', '#06B6D4', '#EC4899',
     '#A855F7', '#F97316', '#14B8A6', '#8B5CF6',
   ];
-  // 문자열 → 안정적 색 인덱스 (같은 이름은 항상 같은 색)
+  // 문자열 → 안정적 색 인덱스 (개별 일정용)
   function _strHash(s) {
     let h = 0;
     for (let i = 0; i < (s || '').length; i++) {
@@ -64,7 +64,6 @@ function _buildCalendarHtml() {
     }
     return Math.abs(h);
   }
-  function _siteColor(name) { return SITE_PALETTE[_strHash(name) % SITE_PALETTE.length]; }
   function _scheduleColor(key) { return SCHEDULE_PALETTE[_strHash(key) % SCHEDULE_PALETTE.length]; }
 
   Object.entries(schedules).forEach(([key, sc]) => {
@@ -82,12 +81,26 @@ function _buildCalendarHtml() {
   const sites = window.FB?.sites || {};
   const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
   const legendSites = new Map(); // 이번 달에 공정이 있는 현장 → 색
+
+  // ── 등록순(createdAt 오름차순) 전역 색 배정: 어느 달을 봐도 같은 현장은 같은 색 ──
+  const siteColorMap = new Map();
+  Object.values(sites)
+    .slice()
+    .sort((a, b) => (a.createdAt || a._createdAt || 0) - (b.createdAt || b._createdAt || 0))
+    .forEach(site => {
+      if (!siteColorMap.has(site.name)) {
+        siteColorMap.set(site.name, SITE_PALETTE[siteColorMap.size % SITE_PALETTE.length]);
+      }
+    });
   Object.values(sites).forEach(site => {
     if (site.status === 'as' || site.status === 'AS관리') return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const procData = window.FB?._procAll?.[procKey] || {};
     // 같은 현장의 모든 공정은 같은 색
-    const siteColor = _siteColor(site.name || procKey);
+    if (!siteColorMap.has(site.name)) {
+      siteColorMap.set(site.name, SITE_PALETTE[siteColorMap.size % SITE_PALETTE.length]);
+    }
+    const siteColor = siteColorMap.get(site.name);
     Object.values(procData).forEach(ph => {
       if (!ph.startDate && !ph.doneDate) return;
       const start = ph.startDate || ph.doneDate;
