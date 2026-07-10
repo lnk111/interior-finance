@@ -372,14 +372,8 @@ function resetInputFlow() {
   window._entryPhotos = [];
 }
 
-function getRecentSites() {
-  try { return JSON.parse(localStorage.getItem('recent_sites')||'[]'); } catch { return []; }
-}
-function addRecentSite(name) {
-  let arr = getRecentSites().filter(s=>s!==name);
-  arr.unshift(name);
-  localStorage.setItem('recent_sites', JSON.stringify(arr.slice(0,5)));
-}
+const SITE_STATUS_ORDER = ['공사중','계약완료','AS관리','마감'];
+const SITE_STATUS_ICON = {'공사중':'🔨','계약완료':'📋','AS관리':'🔧','마감':'📁'};
 
 async function submitEntry() {
   const st = inputState;
@@ -407,7 +401,6 @@ async function submitEntry() {
   if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
     await window.FB_API.saveEntry(entry);
-    if (site) addRecentSite(site);
     resetInputFlow();
     navigate('input');
     setTimeout(()=>alert('✅ 저장 완료!'),100);
@@ -430,30 +423,25 @@ function closeSiteDropdown() {
 function filterSiteDropdown(query) {
   const dd = document.getElementById('site-dropdown-list');
   if (!dd) return;
-  const allSites = (M.sites||[]).map(s=>s.name);
-  const recent = getRecentSites().filter(s=>allSites.includes(s));
+  const sites = (M.sites||[]);
   const q = query.trim().toLowerCase();
+  const filtered = sites.filter(s=>!q||s.name.toLowerCase().includes(q));
   let html='';
-  const rF = recent.filter(s=>!q||s.toLowerCase().includes(q));
-  if (rF.length) {
-    html+=`<div style="padding:6px 12px;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface-2);">🕐 최근 선택</div>`;
-    html+=rF.map(s=>`<div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
+  SITE_STATUS_ORDER.forEach(st=>{
+    const arr = filtered.filter(s=>s.status===st||(st==='마감'&&!SITE_STATUS_ORDER.includes(s.status)));
+    if (!arr.length) return;
+    const icon = SITE_STATUS_ICON[st]||'📁';
+    html+=`<div style="padding:6px 12px;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface-2);">${icon} ${st}</div>`;
+    html+=arr.map(s=>`<div onclick="selectSite('${s.name.replace(/'/g,"\\'")}');event.stopPropagation();"
       style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
-      onmousedown="event.preventDefault()">${s}</div>`).join('');
-  }
-  const others = allSites.filter(s=>!recent.includes(s)&&(!q||s.toLowerCase().includes(q)));
-  if (others.length) {
-    html+=`<div style="padding:6px 12px;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface-2);">전체 현장</div>`;
-    html+=others.map(s=>`<div onclick="selectSite('${s.replace(/'/g,"\\'")}');event.stopPropagation();"
-      style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--hair-soft);"
-      onmousedown="event.preventDefault()">${s}</div>`).join('');
-  }
+      onmousedown="event.preventDefault()">${s.name}</div>`).join('');
+  });
   if (!html) html=`<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">검색 결과 없음</div>`;
   dd.innerHTML=html;
   document.getElementById('site-dropdown').style.display='block';
 }
 function selectSite(name) {
-  inputState.site=name; addRecentSite(name);
+  inputState.site=name;
   const inp=document.getElementById('site-input');
   if (inp) inp.value=name;
   closeSiteDropdown();
@@ -538,20 +526,30 @@ function inputStepType() {
 }
 
 function inputSiteRows(q) {
-  const allSites = (M.sites||[]).map(s=>s.name);
-  const recent = getRecentSites().filter(s=>allSites.includes(s));
-  const ordered = [...recent, ...allSites.filter(s=>!recent.includes(s))];
+  const sites = (M.sites||[]);
   const query = (q||'').trim();
-  const list = ordered.filter(s=>!query||s.indexOf(query)>-1);
-  if (!list.length) return `<div style="font-size:13.5px;color:var(--muted);padding:10px 2px;line-height:1.5;">목록에 없어요. 위 버튼으로 입력한 이름을 그대로 쓸 수 있어요.</div>`;
-  return list.map(s=>{
-    const isRecent = recent.indexOf(s)>-1;
-    return `<button data-iact="site" data-val="${String(s).replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:13px;cursor:pointer;font-family:inherit;text-align:left;font-size:13.5px;">
-      <span style="font-size:16px;">${isRecent?'🕐':'📁'}</span>
-      <span style="flex:1;min-width:0;">${s}</span>
-      <span style="color:#ccc;font-size:16px;">›</span>
-    </button>`;
-  }).join('');
+  const filtered = sites.filter(s=>!query||s.name.indexOf(query)>-1);
+  if (!filtered.length) return `<div style="font-size:13.5px;color:var(--muted);padding:10px 2px;line-height:1.5;">목록에 없어요. 위 버튼으로 입력한 이름을 그대로 쓸 수 있어요.</div>`;
+  const grouped = {};
+  SITE_STATUS_ORDER.forEach(st=>{ grouped[st]=[]; });
+  filtered.forEach(s=>{
+    const key = SITE_STATUS_ORDER.includes(s.status) ? s.status : '마감';
+    grouped[key].push(s);
+  });
+  let html = '';
+  SITE_STATUS_ORDER.forEach(st=>{
+    const arr = grouped[st];
+    if (!arr.length) return;
+    const icon = SITE_STATUS_ICON[st]||'📁';
+    html += `<div style="font-size:12px;color:var(--muted);font-weight:700;padding:6px 2px 4px;margin-top:4px;">${icon} ${st} <span style="font-weight:400;">(${arr.length})</span></div>`;
+    arr.forEach(s=>{
+      html += `<button data-iact="site" data-val="${String(s.name).replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:13px;cursor:pointer;font-family:inherit;text-align:left;font-size:13.5px;">
+        <span style="flex:1;min-width:0;">${s.name}</span>
+        <span style="color:#ccc;font-size:16px;">›</span>
+      </button>`;
+    });
+  });
+  return html;
 }
 
 function inputStepSite() {
@@ -559,7 +557,7 @@ function inputStepSite() {
   return `
     <div style="padding:0 var(--pad);">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">어느 현장이에요?</div>
-      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">최근 현장에서 고르거나 검색·직접 입력하세요</div>
+      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">현장을 선택하거나 검색·직접 입력하세요</div>
       <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--hair);border-radius:11px;padding:11px 13px;margin-bottom:8px;">
         <span style="color:var(--muted);display:flex;">${ICON.search}</span>
         <input id="iflow-site-search" placeholder="현장명 검색 또는 직접 입력" autocomplete="off" value="${cur}"
@@ -763,12 +761,12 @@ function handleInputFlow(act, el) {
   if (act==='type') {
     st.tab = el.dataset.val; st.phase=''; st.stage=''; st.step=2; navigate('input');
   } else if (act==='site') {
-    st.site = el.dataset.val; addRecentSite(st.site); st.step=3; navigate('input');
+    st.site = el.dataset.val; st.step=3; navigate('input');
   } else if (act==='site-direct') {
     const inp = document.getElementById('iflow-site-search');
     const v = (inp && inp.value.trim()) || '';
     if (!v) { alert('현장명을 입력하거나 목록에서 선택해주세요'); return; }
-    st.site = v; addRecentSite(v); st.step=3; navigate('input');
+    st.site = v; st.step=3; navigate('input');
   } else if (act==='proc') {
     st.phase = el.dataset.val; st.step=4; navigate('input');
   } else if (act==='proc-direct') {
