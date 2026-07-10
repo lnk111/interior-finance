@@ -112,7 +112,7 @@ async function saveSiteRegister() {
 
 // 2. Schedule add modal
 function modalSchedule(editKey = null, prefillDate = null) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toToday();
   const existing = editKey ? (window.FB?.scheduleData?.[editKey] || {}) : {};
   const isEdit = !!editKey;
 
@@ -412,7 +412,7 @@ function modalStaff() {
 
 // 5. AS register modal
 function modalAS(editKey = null) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toToday();
   const existing = editKey ? (window.FB?.asData?.[editKey] || {}) : {};
   const isEdit = !!editKey;
 
@@ -818,7 +818,7 @@ function modalQuickTip() {
   window._qtState = {
     step: 1,
     site: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: toToday(),
     writer: (window.MOCK?.inputters || [])[0] || '',
     memo: '',
   };
@@ -1048,7 +1048,7 @@ async function qtSave() {
   const dateInp = document.getElementById('qt-date');
   const memoInp = document.getElementById('qt-memo');
   const site = s.site || '';
-  const date = (dateInp && dateInp.value) || s.date || new Date().toISOString().slice(0, 10);
+  const date = (dateInp && dateInp.value) || s.date || toToday();
   const writer = s.writer || '';
   const memo = (memoInp && memoInp.value.trim()) || s.memo || '';
 
@@ -1360,7 +1360,7 @@ async function photoSave() {
   try {
     const encKey = s => s.replace(/[.#$/ \[\]]/g, '_');
     const folder = `designfor/${encKey(site)}/${encKey(phase)}`;
-    const tags = [encKey(site), encKey(phase), new Date().toISOString().slice(0, 10)];
+    const tags = [encKey(site), encKey(phase), toToday()];
 
     // 동시 업로드 개수 제한 (모바일 안정성) — 6개씩 슬롯 굴림
     const CONCURRENCY = 6;
@@ -1425,7 +1425,7 @@ function openProcEditModal(phaseId, siteName) {
   ];
 
   // 현재 상태 자동 계산
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = toToday();
   let autoStatus = ph.status || 'wait';
   if (ph.startDate && todayStr >= ph.startDate) autoStatus = 'active';
   if (ph.doneDate && todayStr > ph.doneDate) autoStatus = 'done';
@@ -1513,7 +1513,7 @@ async function saveProcEdit(phaseId, siteName) {
   const doneDate = document.getElementById('proc-edit-end')?.value || null;
 
   // 날짜 기준 자동 상태 계산
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = toToday();
   let status = document.getElementById('proc-edit-status')?.value || 'wait';
   if (startDate && doneDate) {
     if (todayStr < startDate) status = 'wait';
@@ -1553,7 +1553,7 @@ window.openTipDetail = function(tipKey) {
 
   const pillCls = tip.cat==='실수'?'pill-warn':tip.cat==='팁'?'pill-accent':tip.cat==='자재'?'pill-pin':'pill-info';
   const ic  = tip.cat==='실수'?'😓':tip.cat==='팁'?'💡':tip.cat==='자재'?'🔩':'🤝';
-  const dateStr = tip.createdAt ? new Date(tip.createdAt).toISOString().slice(0,10).replace(/-/g,'.') : '';
+  const dateStr = tip.createdAt ? toDateStr(new Date(tip.createdAt)).replace(/-/g,'.') : '';
   const pPhotos = tip.problemPhotos || [];
   const sPhotos = tip.solutionPhotos || [];
 

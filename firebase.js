@@ -30,7 +30,14 @@ window.FB = {
 
 // ── 유틸 ──
 function encKey(s) { return s.replace(/[.#$/ \[\]]/g, '_'); }
-function toToday() { return new Date().toISOString().slice(0, 10); }
+function toDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+window.toDateStr = toDateStr;
+function toToday() { return toDateStr(new Date()); }
 
 // ── MOCK 데이터를 Firebase 실제 데이터로 동기화 ──
 window.syncMockFromFirebase = function syncMockFromFirebase() {
@@ -89,7 +96,7 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
 
   // 모든 공정 완료된 공사중 현장을 AS관리로 자동 전환
   const _procAll = FB._procAll || {};
-  const _todayStr = new Date().toISOString().slice(0, 10);
+  const _todayStr = toToday();
   function _phSt(s, e) {
     if (!s && !e) return 'wait';
     if (s && _todayStr < s) return 'wait';
@@ -408,7 +415,7 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
 function formatWhen(dateStr) {
   if (!dateStr) return '';
   const today = toToday();
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const yesterday = toDateStr(new Date(Date.now() - 86400000));
   if (dateStr === today) return '오늘';
   if (dateStr === yesterday) return '어제';
   return dateStr.slice(5).replace('-', '/');

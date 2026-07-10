@@ -38,7 +38,7 @@ function _buildCalendarHtml() {
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const firstDay = new Date(_calYear, _calMonth - 1, 1).getDay();
   const totalDays = new Date(_calYear, _calMonth, 0).getDate();
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = toToday();
   const weekHead = days.map((d, i) => `<div class="${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('');
 
   const schedules = window.FB?.scheduleData || {};
@@ -108,7 +108,8 @@ function _buildCalendarHtml() {
       let cur = new Date(start + 'T00:00:00');
       const endDate = new Date(end + 'T00:00:00');
       while (cur <= endDate) {
-        const ds = cur.toISOString().slice(0, 10);
+        const y = cur.getFullYear(), mo = String(cur.getMonth() + 1).padStart(2, '0'), da = String(cur.getDate()).padStart(2, '0');
+        const ds = `${y}-${mo}-${da}`;
         if (ds.startsWith(curYm)) {
           const d = cur.getDate();
           if (!evMap[d]) evMap[d] = [];
@@ -221,7 +222,7 @@ function openCalDayPopup(dateStr) {
       const end = ph.doneDate || ph.startDate;
       if (!start) return;
       if (dateStr >= start && dateStr <= end) {
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = toToday();
         let status = 'wait';
         if (todayStr >= start && todayStr <= end) status = 'active';
         if (todayStr > end) status = 'done';
@@ -547,7 +548,7 @@ function renderSiteDetail() {
     if (bHas) return 1;
     return (a.order||0) - (b.order||0);
   });
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = toToday();
 
   function calcStatus(startDate, endDate) {
     if (!startDate && !endDate) return 'wait';

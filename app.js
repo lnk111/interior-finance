@@ -186,7 +186,7 @@ let _siteTab = 'active';
 function renderActiveSitesHtml() {
   const activeSites = (M.sites||[]).filter(s => s.status==='공사중');
   if (!activeSites.length) return '<div class="empty" style="padding:24px;">진행중인 공사 현장이 없어요</div>';
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = toToday();
   function calcSt(s,e) {
     if (!s&&!e) return 'wait';
     if (s&&todayStr<s) return 'wait';
@@ -380,7 +380,7 @@ async function submitEntry() {
   const site = (st.site || '').trim();
   const amount = parseInt(String(st.amount || '').replace(/[^0-9]/g,'')) || 0;
   const dateInp = document.getElementById('iflow-date');
-  const date = (dateInp && dateInp.value) || st.date || new Date().toISOString().slice(0,10);
+  const date = (dateInp && dateInp.value) || st.date || toToday();
   const memoInp = document.getElementById('iflow-memo');
   const memo = (memoInp && memoInp.value.trim()) || st.memo || '';
   const writer = st.inputter || AUTH.current()?.name || '';
@@ -717,7 +717,7 @@ function inputStepReceipt() {
 
 function inputStepConfirm() {
   const st = inputState;
-  if (!st.date) st.date = new Date().toISOString().slice(0,10);
+  if (!st.date) st.date = toToday();
   if (!st.inputter) st.inputter = (window.AUTH && AUTH.current && AUTH.current()?.name) || (M.inputters||[])[0] || '';
   const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
   const midK = st.tab==='매출' ? '결제 단계' : '공정';
