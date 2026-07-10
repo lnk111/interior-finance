@@ -558,7 +558,7 @@ input, textarea, select { font-family: inherit; }
 .cal-day.today .num { font-weight: 700; }
 .cal-day.sun .num { color: var(--warn); }
 .cal-day.sat .num { color: var(--info); }
-.cal-event { font-size: 11px; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; max-width: 100%; display: block; }
+.cal-event { font-size: 12px; padding: 2px 5px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; max-width: 100%; display: block; line-height: 1.4; }
 .cal-day { overflow: hidden; }
 .cal-list { margin-top: 18px; padding: 0 var(--pad); }
 

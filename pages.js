@@ -44,16 +44,16 @@ function _buildCalendarHtml() {
   const schedules = window.FB?.scheduleData || {};
   const evMap = {};
 
-  // 색 팔레트 — 현장별 자동 배정 (서로 구분 잘 되는 12색 순환)
+  // 색 팔레트 — 현장별 자동 배정 (쨍한 12색 순환)
   const SITE_PALETTE = [
-    '#5B7CB5', '#4A9EBD', '#2F6B47', '#6BA85F',
-    '#8B5A9B', '#6E5BAB', '#C97844', '#B8895A',
-    '#C25B5B', '#A05880', '#6B7684', '#846B5E',
+    '#2563EB', '#0EA5E9', '#16A34A', '#65A30D',
+    '#9333EA', '#7C3AED', '#EA580C', '#D97706',
+    '#DC2626', '#DB2777', '#0891B2', '#CA8A04',
   ];
-  // 개별 일정용 — 약간 다른 톤 (현장과 안 헷갈리게)
+  // 개별 일정용 — 현장과 헷갈리지 않는 별도 톤
   const SCHEDULE_PALETTE = [
-    '#E1A86B', '#7BA8C5', '#9BAB7E', '#C58A8A',
-    '#9B85B5', '#B0856E', '#6FA8A8', '#B59B6E',
+    '#F59E0B', '#84CC16', '#06B6D4', '#EC4899',
+    '#A855F7', '#F97316', '#14B8A6', '#8B5CF6',
   ];
   // 문자열 → 안정적 색 인덱스 (같은 이름은 항상 같은 색)
   function _strHash(s) {
@@ -81,6 +81,7 @@ function _buildCalendarHtml() {
 
   const sites = window.FB?.sites || {};
   const curYm = _calYear + '-' + String(_calMonth).padStart(2, '0');
+  const legendSites = new Map(); // 이번 달에 공정이 있는 현장 → 색
   Object.values(sites).forEach(site => {
     if (site.status === 'as' || site.status === 'AS관리') return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
@@ -98,10 +99,10 @@ function _buildCalendarHtml() {
         if (ds.startsWith(curYm)) {
           const d = cur.getDate();
           if (!evMap[d]) evMap[d] = [];
-          const label = site.name.length > 6 ? site.name.slice(0, 6) + '..' : site.name;
-          const already = evMap[d].some(e => e.t.includes(ph.name));
+          const already = evMap[d].some(e => e.t === ph.name && e.color === siteColor);
           if (!already) {
-            evMap[d].push({ t: label + ' ' + ph.name, color: siteColor });
+            evMap[d].push({ t: ph.name, color: siteColor });
+            if (!legendSites.has(site.name)) legendSites.set(site.name, siteColor);
           }
         }
         cur.setDate(cur.getDate() + 1);
@@ -119,7 +120,7 @@ function _buildCalendarHtml() {
     // 각 이벤트마다 자기 색의 배경 (15% 투명도)으로 박스 표시
     const evHtml = ev.slice(0, 2).map(e => {
       const c = e.color || '#5B7684';
-      return `<span class="cal-event" style="color:${c};background:${c}22;border-left:2px solid ${c};">${e.t}</span>`;
+      return `<span class="cal-event" style="color:${c};background:${c}33;border-left:3px solid ${c};">${e.t}</span>`;
     }).join('');
     const hasMore = ev.length > 2;
     cells.push(`<div class="cal-day ${isToday?'today':''} ${col===0?'sun':col===6?'sat':''}" onclick="openCalDayPopup('${dateStr}')" style="cursor:pointer;">
@@ -148,6 +149,12 @@ function _buildCalendarHtml() {
         <button class="btn-icon" id="cal-next"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M6 4l4 4-4 4"/></svg></button>
       </div>
     </div>
+    ${legendSites.size ? `<div style="display:flex;flex-wrap:wrap;gap:8px 16px;padding:12px 16px;margin:0 var(--pad) 12px;background:var(--card);border-radius:10px;border:1px solid var(--hair-soft);">
+      ${[...legendSites.entries()].map(([name, c]) => {
+        const display = name.length > 20 ? name.slice(0, 19) + '…' : name;
+        return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--ink);white-space:nowrap;"><span style="width:16px;height:16px;border-radius:50%;background:${c};flex-shrink:0;"></span>${display}</span>`;
+      }).join('')}
+    </div>` : ''}
     <div class="cal-grid">
       <div class="cal-week-head">${weekHead}</div>
       <div class="cal-grid-days">${cells.join('')}</div>
