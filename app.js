@@ -917,8 +917,8 @@ function renderSites() {
   const ymNum = y * 100 + mo;
   const schedules = window.FB?.scheduleData || {};
   const PIN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.686-6-10a6 6 0 0112 0c0 4.314-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>';
-  const SORT = '<svg width="20" height="20" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5V12M3.5 12L1.5 10M3.5 12L5.5 10"/><path d="M8.5 9V2M8.5 2L6.5 4M8.5 2L10.5 4"/></svg>';
-  const FILTER = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>';
+  const SORT = '<svg width="15" height="15" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5V12M3.5 12L1.5 10M3.5 12L5.5 10"/><path d="M8.5 9V2M8.5 2L6.5 4M8.5 2L10.5 4"/></svg>';
+  const FILTER = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>';
   const PENCIL = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
   const fmtD = ds => `${parseInt(ds.slice(5, 7), 10)}월 ${parseInt(ds.slice(8, 10), 10)}일`;
 
@@ -928,8 +928,8 @@ function renderSites() {
     start: sc.date || '', end: sc.endDate || sc.date || '',
   })).filter(r => r.site && r.start);
 
-  // 2) 공사중 현장 — 현장 상세에서 설정한 공정 기간을 "공사중"으로 표기
-  const constRows = (M.sites || []).filter(s => s.status === '공사중').map(s => {
+  // 2) 진행했던(공정 기간이 있는) 모든 현장 — 공사 기간을 상태 라벨로 표기
+  const constRows = (M.sites || []).map(s => {
     const pk = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
     const pd = window.FB?._procAll?.[pk] || {};
     const starts = [], ends = [];
@@ -939,7 +939,8 @@ function renderSites() {
     });
     if (!starts.length) return null;
     starts.sort(); ends.sort();
-    return { kind: 'const', key: s.name, site: s.name, title: '공사중', start: starts[0], end: ends[ends.length - 1] };
+    const active = s.status === '공사중';
+    return { kind: 'const', key: s.name, site: s.name, title: active ? '공사중' : (s.status || '공사'), active, start: starts[0], end: ends[ends.length - 1] };
   }).filter(Boolean);
 
   const filtered = [...constRows, ...schedRows].filter(r => {
@@ -955,10 +956,10 @@ function renderSites() {
   const groups = Object.entries(gmap).map(([site, items]) => {
     items.sort((a, b) => { const d = a.start < b.start ? -1 : a.start > b.start ? 1 : 0; return _siteSortDesc ? -d : d; });
     const ds = items.map(i => i.start).sort();
-    return { site, items, hasConst: items.some(i => i.kind === 'const'), latest: ds[ds.length - 1], earliest: ds[0] };
+    return { site, items, active: items.some(i => i.kind === 'const' && i.active), latest: ds[ds.length - 1], earliest: ds[0] };
   });
   groups.sort((a, b) => {
-    if (a.hasConst !== b.hasConst) return a.hasConst ? -1 : 1;
+    if (a.active !== b.active) return a.active ? -1 : 1;
     const ka = _siteSortDesc ? a.latest : a.earliest, kb = _siteSortDesc ? b.latest : b.earliest;
     const d = ka < kb ? -1 : ka > kb ? 1 : 0;
     return _siteSortDesc ? -d : d;
@@ -968,8 +969,8 @@ function renderSites() {
     const evHtml = g.items.map(r => {
       const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fmtD(r.start)} ~ ${fmtD(r.end)}`;
       const onclick = r.kind === 'const' ? `openSiteDetail('${r.site.replace(/'/g, "\\'")}')` : `modalSchedule('${r.key}')`;
-      const c = r.kind === 'const' ? 'var(--accent)' : 'var(--ink-2)';
-      const w = r.kind === 'const' ? '700' : '500';
+      const c = (r.kind === 'const' && r.active) ? 'var(--accent)' : 'var(--ink-2)';
+      const w = '700';
       return `<div onclick="${onclick}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;cursor:pointer;">
           <span style="font-size:13px;color:var(--muted);white-space:nowrap;">${period}</span>
           <span style="display:flex;align-items:center;gap:6px;min-width:0;">
@@ -981,7 +982,7 @@ function renderSites() {
     return `
       ${gi > 0 ? '<div style="height:1px;background:var(--hair-soft);margin:6px 0;"></div>' : ''}
       <div onclick="openSiteDetail('${g.site.replace(/'/g, "\\'")}')" style="display:flex;align-items:center;gap:12px;padding:8px 2px 2px;cursor:pointer;">
-        <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#F1F1F5;display:flex;align-items:center;justify-content:center;">${PIN}</div>
+        <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;">${PIN}</div>
         <div style="flex:1;min-width:0;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.site}</div>
         <span style="flex-shrink:0;color:var(--faint);width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:20px;">›</span>
       </div>
