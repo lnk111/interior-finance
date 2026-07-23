@@ -45,6 +45,55 @@ function ymRow(year, month) {
   return `<div class="ym-selects"><select class="ym-sel">${yh}</select><select class="ym-sel">${mh}</select></div>`;
 }
 
+// ===== 노하우 공통 헬퍼 =====
+const TIP_PREVIEW_COUNT = 3;   // 홈에서 보여줄 미리보기 개수
+const TIP_PAGE_SIZE = 20;      // 노하우 전용 페이지에서 "더보기" 단위
+const TIP_FILTERS = [
+  { key: 'pin',  label: '📌 핀 고정' },
+  { key: 'all',  label: '전체' },
+  { key: '실수', label: '😓 실수' },
+  { key: '팁',   label: '💡 팁' },
+  { key: '자재', label: '🔩 자재' },
+  { key: '고객', label: '🤝 고객' },
+];
+
+// 필터 + 검색어로 노하우 목록 뽑기
+function getVisibleTips(filter, query) {
+  let list;
+  if (filter === 'pin') {
+    list = M.tips.filter(t => t.pinned);
+  } else if (filter === 'all') {
+    list = [...M.tips];
+  } else {
+    list = M.tips.filter(t => t.cat === filter);
+  }
+  const q = (query || '').trim().toLowerCase();
+  if (q) {
+    list = list.filter(t =>
+      (t.title    || '').toLowerCase().includes(q) ||
+      (t.site     || '').toLowerCase().includes(q) ||
+      (t.by       || '').toLowerCase().includes(q) ||
+      (t.problem  || '').toLowerCase().includes(q) ||
+      (t.solution || '').toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+function tipCardHtml(tp) {
+  const cls = tp.cat==='실수'?'pill-warn':tp.cat==='팁'?'pill-accent':tp.cat==='자재'?'pill-pin':'pill-info';
+  const ic  = tp.cat==='실수'?'😓':tp.cat==='팁'?'💡':tp.cat==='자재'?'🔩':'🤝';
+  return `<button class="tip-card ${tp.pinned?'pinned':''}" data-tip-key="${tp._key || ''}" style="display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--hair);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;margin-bottom:8px;">
+    <div class="tip-head"><span class="pill ${cls}">${ic} ${tp.cat}</span><span class="tip-meta">${tp.by} · ${tp.site}</span></div>
+    <div class="tip-title">${tp.title}</div></button>`;
+}
+
+function tipFilterChipsHtml(activeKey) {
+  return TIP_FILTERS.map(f =>
+    `<button class="filter-chip ${activeKey===f.key?'is-active':''}" data-tip-filter="${f.key}">${f.label}</button>`
+  ).join('');
+}
+
 // ===== HOME =====
 function renderHome() {
   const t = M.totals;
@@ -76,37 +125,17 @@ function renderHome() {
       </button>`;
   }).join('');
 
-  // 노하우 필터링 — 핀 고정 / 전체 / 카테고리별
+  // 노하우 필터링 — 핀 고정 / 전체 / 카테고리별 (홈은 미리보기 N개만)
   const tipsFilter = window._tipsFilter || 'pin';
-  let visibleTips;
-  if (tipsFilter === 'pin') {
-    visibleTips = M.tips.filter(t => t.pinned);
-  } else if (tipsFilter === 'all') {
-    visibleTips = [...M.tips];
-  } else {
-    visibleTips = M.tips.filter(t => t.cat === tipsFilter);
-  }
-  const tipCard = (tp, idx) => {
-    const cls = tp.cat==='실수'?'pill-warn':tp.cat==='팁'?'pill-accent':tp.cat==='자재'?'pill-pin':'pill-info';
-    const ic  = tp.cat==='실수'?'😓':tp.cat==='팁'?'💡':tp.cat==='자재'?'🔩':'🤝';
-    return `<button class="tip-card ${tp.pinned?'pinned':''}" data-tip-key="${tp._key || ''}" style="display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--hair);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;margin-bottom:8px;">
-      <div class="tip-head"><span class="pill ${cls}">${ic} ${tp.cat}</span><span class="tip-meta">${tp.by} · ${tp.site}</span></div>
-      <div class="tip-title">${tp.title}</div></button>`;
-  };
-  const tipFilters = [
-    { key: 'pin',  label: '📌 핀 고정' },
-    { key: 'all',  label: '전체' },
-    { key: '실수', label: '😓 실수' },
-    { key: '팁',   label: '💡 팁' },
-    { key: '자재', label: '🔩 자재' },
-    { key: '고객', label: '🤝 고객' },
-  ];
-  const tipFilterHtml = tipFilters.map(f =>
-    `<button class="filter-chip ${tipsFilter===f.key?'is-active':''}" data-tip-filter="${f.key}">${f.label}</button>`
-  ).join('');
-  const tipsListHtml = visibleTips.length > 0
-    ? visibleTips.map(tipCard).join('')
+  const allVisibleTips = getVisibleTips(tipsFilter);
+  const previewTips = allVisibleTips.slice(0, TIP_PREVIEW_COUNT);
+  const tipFilterHtml = tipFilterChipsHtml(tipsFilter);
+  const tipsListHtml = previewTips.length > 0
+    ? previewTips.map(tipCardHtml).join('')
     : '<div class="empty" style="padding:20px;font-size:13px;">기록이 없어요</div>';
+  const tipsMoreHtml = allVisibleTips.length > TIP_PREVIEW_COUNT
+    ? `<button class="tip-more-btn" data-goto="tips" style="width:100%;padding:12px;margin-bottom:8px;border:1px solid var(--hair);border-radius:14px;background:var(--surface-2,#f6f7f9);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">노하우 ${allVisibleTips.length}개 전체보기 ›</button>`
+    : '';
 
   return `
     <div class="page-header">
@@ -136,9 +165,10 @@ function renderHome() {
         </div>
         <div id="site-tab-content" style="padding:0;">${renderActiveSitesHtml()}</div>
       </div>
-      <div class="section-label">💡 현장 노하우 <span class="more"><span data-modal="tip">+ 기록</span></span></div>
+      <div class="section-label">💡 현장 노하우 <span class="more"><span data-goto="tips">전체보기 ›</span> &nbsp;<span data-modal="tip">+ 기록</span></span></div>
       <div class="tip-filter-row">${tipFilterHtml}</div>
       ${tipsListHtml}
+      ${tipsMoreHtml}
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
@@ -178,6 +208,50 @@ function renderHome() {
         </div>
         <span class="alert-arrow">›</span>
       </button>` : ''}
+    </div>`;
+}
+
+// ===== 노하우 전용 페이지 =====
+// 결과 영역(개수 + 목록 + 더보기)만 만드는 헬퍼 — 검색 입력 시 이 부분만 갱신해 포커스 유지
+function tipsResultsHtml() {
+  const tipsFilter = window._tipsFilter || 'all';
+  const query = window._tipsSearch || '';
+  const limit = window._tipsPageLimit || TIP_PAGE_SIZE;
+
+  const all = getVisibleTips(tipsFilter, query);
+  const shown = all.slice(0, limit);
+
+  const listHtml = shown.length > 0
+    ? shown.map(tipCardHtml).join('')
+    : `<div class="empty" style="padding:28px 20px;font-size:13px;text-align:center;">${query ? '검색 결과가 없어요' : '기록이 없어요'}</div>`;
+
+  const moreHtml = all.length > limit
+    ? `<button class="tip-more-btn" data-tips-more="1" style="width:100%;padding:12px;margin:4px 0 8px;border:1px solid var(--hair);border-radius:14px;background:var(--surface-2,#f6f7f9);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">더보기 (${all.length - limit}개 더)</button>`
+    : '';
+
+  return `<div style="font-size:12px;color:var(--muted);margin:2px 2px 10px;">${all.length}개${query ? ` · "${query}" 검색` : ''}</div>
+    ${listHtml}
+    ${moreHtml}`;
+}
+
+function renderTips() {
+  const tipsFilter = window._tipsFilter || 'all';
+  const query = window._tipsSearch || '';
+  const filterHtml = tipFilterChipsHtml(tipsFilter);
+
+  return `
+    <div class="breadcrumb"><button class="back-btn" data-goto="home"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M10 4l-4 4 4 4"/></svg> 홈</button></div>
+    <div class="page-header">
+      <div><div class="h-eyebrow">전체 ${M.tips.length}건 기록됨</div><h1 class="h-title">💡 현장 노하우</h1></div>
+      <button class="btn-icon" data-modal="tip" title="기록 추가">＋</button>
+    </div>
+    <div class="page-body">
+      <div class="tip-search-wrap" style="margin-bottom:12px;">
+        <input id="tips-search-input" type="search" placeholder="제목·현장·작성자 검색" value="${(query || '').replace(/"/g,'&quot;')}"
+          style="width:100%;box-sizing:border-box;padding:11px 14px;border:1px solid var(--hair);border-radius:12px;font-size:14px;font-family:inherit;background:#fff;outline:none;">
+      </div>
+      <div class="tip-filter-row">${filterHtml}</div>
+      <div id="tips-results">${tipsResultsHtml()}</div>
     </div>`;
 }
 
@@ -934,6 +1008,7 @@ function renderSites() {
 // ===== Router =====
 const routes={
   home:       { render:renderHome,   tab:'home' },
+  tips:       { render:renderTips,   tab:'home' },
   sites:      { render:renderSites,  tab:'sites' },
   siteDetail: { render:()=>window.PAGES_EXTRA.renderSiteDetail(), tab:'sites' },
   input:      { render:renderInput,  tab:'input' },
@@ -951,6 +1026,8 @@ function navigate(page) {
     resetInputFlow();
   }
   const enteringDetail = page==='siteDetail' && currentPage!=='siteDetail';
+  // 노하우 페이지에 새로 진입할 때 검색어·더보기 상태 초기화
+  if (page==='tips' && currentPage!=='tips') { window._tipsPageLimit=TIP_PAGE_SIZE; window._tipsSearch=''; }
   currentPage=page; window.currentPage=page;
   const activeTab=routes[page].tab;
   $$('.tabbar-item,.tabbar-fab').forEach(b=>b.classList.toggle('is-active',b.dataset.page===activeTab));
@@ -977,7 +1054,24 @@ document.addEventListener('click',e=>{
   const filter=e.target.closest('[data-filter]');
   if (filter&&currentPage==='sites') { sitesFilter=filter.dataset.filter; navigate('sites'); return; }
   const tipFilter=e.target.closest('[data-tip-filter]');
-  if (tipFilter&&currentPage==='home') { window._tipsFilter=tipFilter.dataset.tipFilter; navigate('home'); return; }
+  if (tipFilter&&(currentPage==='home'||currentPage==='tips')) {
+    window._tipsFilter=tipFilter.dataset.tipFilter;
+    window._tipsPageLimit=TIP_PAGE_SIZE;
+    if (currentPage==='tips') {
+      // 필터칩 활성 상태 + 결과만 갱신 (전체 리렌더로 검색창 포커스 잃지 않게)
+      document.querySelectorAll('[data-tip-filter]').forEach(c=>c.classList.toggle('is-active', c.dataset.tipFilter===window._tipsFilter));
+      const box=document.getElementById('tips-results'); if (box) box.innerHTML=tipsResultsHtml();
+    } else {
+      navigate('home');
+    }
+    return;
+  }
+  const tipsMore=e.target.closest('[data-tips-more]');
+  if (tipsMore&&currentPage==='tips') {
+    window._tipsPageLimit=(window._tipsPageLimit||TIP_PAGE_SIZE)+TIP_PAGE_SIZE;
+    const box=document.getElementById('tips-results'); if (box) box.innerHTML=tipsResultsHtml();
+    return;
+  }
   const tipCardEl=e.target.closest('[data-tip-key]');
   if (tipCardEl) { e.preventDefault(); openTipDetail(tipCardEl.dataset.tipKey); return; }
   const iact=e.target.closest('[data-iact]');
@@ -986,6 +1080,12 @@ document.addEventListener('click',e=>{
 });
 
 document.addEventListener('input',e=>{
+  if (e.target.id==='tips-search-input') {
+    window._tipsSearch=e.target.value;
+    window._tipsPageLimit=TIP_PAGE_SIZE;   // 검색 바뀌면 더보기 초기화
+    const box=document.getElementById('tips-results'); if (box) box.innerHTML=tipsResultsHtml();
+    return;
+  }
   if (e.target.id==='iflow-site-search') {
     inputState.site=e.target.value;
     const list=document.getElementById('iflow-site-list');
