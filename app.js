@@ -153,8 +153,8 @@ function renderHome() {
       <button class="btn-icon">${ICON.bell}</button>
     </div>
     <div class="page-body">
+      <div class="briefing-eyebrow">오늘의 브리핑</div>
       <div class="briefing">
-        <div class="briefing-eyebrow">오늘의 브리핑</div>
         <div class="briefing-title">오늘 챙길 일 <span class="num">${M.briefing.length}</span>건</div>
         <div class="briefing-list">${briefingHtml}</div>
       </div>
