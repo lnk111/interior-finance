@@ -200,8 +200,8 @@ function renderHomeTipsHtml() {
     <div class="section-label">현장 노하우 <span class="more"><span data-goto="tips">모두보기</span></span></div>
     <div style="display:flex;margin-bottom:16px;">${chips}</div>
     <div class="home-tips-track" style="display:flex;gap:10px;overflow-x:auto;align-items:stretch;scrollbar-width:none;padding-bottom:6px;">${cards}</div>
-    <div style="font-size:12px;color:var(--faint);text-align:center;margin:8px 0 6px;">← 카드를 좌우로 밀어보세요 →</div>
-    <button data-modal="tip" style="width:100%;padding:13px;margin-bottom:8px;border:1px solid var(--hair);border-radius:12px;background:var(--surface-2,#f6f7f9);color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 기록</button>`;
+    <div style="font-size:12px;color:var(--faint);text-align:center;margin:8px 0;">← 카드를 좌우로 밀어보세요 →</div>
+    <button data-modal="tip" style="display:block;width:150px;padding:13px;margin:0 auto 8px;border:1px solid var(--hair);border-radius:12px;background:#F1F1F5;color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 기록</button>`;
 }
 
 // 최근 거래 내역 — 은행앱 스타일, 월별 그룹(달 바뀔 때만 가로줄)
@@ -253,7 +253,7 @@ function renderHome() {
 
   // 손익 현황 섹션 — 대리(staff)에게는 숨김
   const pnlSection = `
-      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
+      <div style="height:6px;background:#F1F1F5;margin:25px calc(-1 * var(--pad));"></div>
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
@@ -287,17 +287,16 @@ function renderHome() {
     <div class="page-header">
       <div>
         <div class="h-eyebrow">${now.getFullYear()}년 ${now.getMonth()+1}월 · ${M.company}</div>
-        <h1 class="h-title">안녕하세요, ${M.user} ${M.role}님</h1>
+        <h1 class="h-title" style="font-weight:500;">안녕하세요, ${M.user} ${M.role}님</h1>
       </div>
-      <button class="btn-icon">${ICON.bell}</button>
     </div>
     <div class="page-body">
-      <div style="height:6px;background:#E6E6E6;margin:11px calc(-1 * var(--pad)) 25px;"></div>
+      <div style="height:6px;background:#F1F1F5;margin:11px calc(-1 * var(--pad)) 25px;"></div>
       <div class="briefing-eyebrow">오늘의 브리핑</div>
       ${renderHomeProgressHtml()}
-      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
+      <div style="height:6px;background:#F1F1F5;margin:25px calc(-1 * var(--pad));"></div>
       ${renderHomeTipsHtml()}
-      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
+      <div style="height:6px;background:#F1F1F5;margin:25px calc(-1 * var(--pad));"></div>
       <div class="section-label" style="margin-bottom:16px;">최근거래내역</div>
       ${renderRecentTxHtml()}
       ${AUTH.role() !== 'staff' ? pnlSection : ''}
