@@ -198,7 +198,7 @@ function renderHomeTipsHtml() {
     : `<div class="empty" style="padding:20px;font-size:13px;flex:1;">기록이 없어요</div>`;
   return `
     <div class="section-label">현장 노하우 <span class="more"><span data-goto="tips">모두보기</span></span></div>
-    <div style="display:flex;margin-bottom:12px;">${chips}</div>
+    <div style="display:flex;margin-bottom:16px;">${chips}</div>
     <div class="home-tips-track" style="display:flex;gap:10px;overflow-x:auto;align-items:stretch;scrollbar-width:none;padding-bottom:6px;">${cards}</div>
     <div style="font-size:12px;color:var(--faint);text-align:center;margin:8px 0 6px;">← 카드를 좌우로 밀어보세요 →</div>
     <button data-modal="tip" style="width:100%;padding:13px;margin-bottom:8px;border:1px solid var(--hair);border-radius:12px;background:var(--surface-2,#f6f7f9);color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 기록</button>`;
