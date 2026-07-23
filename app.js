@@ -116,12 +116,19 @@ function renderHome() {
 
   const recentHtml = M.recent.slice(0, 5).map(r => {
     const cls = r.kind === '매출' ? 'pill-accent' : r.kind === 'AS' ? 'pill-pin' : 'pill-warn';
-    const sign = r.kind === '매출' ? '+' : '−';
+    const isIn = r.kind === '매출';                                   // 매출=입금(양수), 매입·AS=지출(음수)
+    const amtColor = isIn ? '#2563EB' : 'var(--ink)';                 // 양수=파랑, 음수=흑백
+    const amtText = (isIn ? '' : '-') + (r.amount || 0).toLocaleString('ko-KR') + '원';
+    const ava = (r.site || '').replace(/\s/g, '').slice(0, 2) || '—'; // 현장명 앞 2글자 아바타
+    const meta = [r.stage || r.phase, r.when].filter(Boolean).join(' · ');
     return `
-      <button class="list-row" onclick="modalTxEdit('${r._key||r.id||''}')" style="width:100%;text-align:left;">
+      <button class="list-row list-row--tx" onclick="modalTxEdit('${r._key||r.id||''}')" style="width:100%;text-align:left;">
+        <div class="tx-ava">${ava}</div>
+        <div class="tx-main">
+          <div class="tx-amt num" style="color:${amtColor};">${amtText}</div>
+          <div class="tx-sub">${r.site || ''}${meta ? ' · ' + meta : ''}</div>
+        </div>
         <span class="pill ${cls}">${r.kind}</span>
-        <div><div class="lr-title">${r.site}</div><div class="lr-meta">${r.stage||r.phase||''} · ${r.pay||''} · ${r.when||''}</div></div>
-        <span class="lr-amount num">${sign}${fmtSlim(r.amount)}</span>
       </button>`;
   }).join('');
 

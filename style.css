@@ -310,6 +310,25 @@ input, textarea, select { font-family: inherit; }
 .list-row .lr-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
 .list-row .lr-amount { font-weight: 700; font-size: 15px; white-space: nowrap; flex-shrink: 0; }
 
+/* 최근 거래 전용 — 현장 아바타 + 큰 금액 (은행 스타일) */
+.list-row--tx { align-items: center; }
+.list-row--tx .tx-ava {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--surface-2); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+.list-row--tx .tx-main { min-width: 0; }
+.list-row--tx .tx-amt {
+  font-size: 19px; font-weight: 700; letter-spacing: -0.01em;
+  line-height: 1.2; white-space: nowrap;
+}
+.list-row--tx .tx-sub {
+  color: var(--muted); font-size: 13px; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 .rank-list { border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; }
 .rank-list .rank-row {
   display: grid;
