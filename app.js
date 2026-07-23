@@ -921,13 +921,28 @@ function renderSites() {
   const FILTER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>';
   const fmtD = ds => `${parseInt(ds.slice(5, 7), 10)}월 ${parseInt(ds.slice(8, 10), 10)}일`;
 
-  const rows = Object.entries(schedules).map(([key, sc]) => {
-    const start = sc.date || '';
-    const end = sc.endDate || sc.date || '';
-    return { key, site: sc.site || '', title: sc.title || '', start, end };
-  }).filter(r => {
+  // 1) 직접 입력한 일정 (현장 지정된 것만)
+  const schedRows = Object.entries(schedules).map(([key, sc]) => ({
+    kind: 'sched', key, site: sc.site || '', title: sc.title || '',
+    start: sc.date || '', end: sc.endDate || sc.date || '',
+  })).filter(r => r.site && r.start);
+
+  // 2) 공사중 현장 — 현장 상세에서 설정한 공정 기간을 "공사중"으로 표기
+  const constRows = (M.sites || []).filter(s => s.status === '공사중').map(s => {
+    const pk = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const pd = window.FB?._procAll?.[pk] || {};
+    const starts = [], ends = [];
+    Object.values(pd).forEach(p => {
+      if (p.startDate) { starts.push(p.startDate); ends.push(p.doneDate || p.startDate); }
+      else if (p.doneDate) ends.push(p.doneDate);
+    });
+    if (!starts.length) return null;
+    starts.sort(); ends.sort();
+    return { kind: 'const', key: s.name, site: s.name, title: '공사중', start: starts[0], end: ends[ends.length - 1] };
+  }).filter(Boolean);
+
+  const rows = [...constRows, ...schedRows].filter(r => {
     if (!r.start) return false;
-    if (!r.site) return false;   // 현장을 직접 입력한 일정만 현장 관리에 노출
     const sYM = parseInt(r.start.slice(0, 4), 10) * 100 + parseInt(r.start.slice(5, 7), 10);
     const eYM = r.end ? parseInt(r.end.slice(0, 4), 10) * 100 + parseInt(r.end.slice(5, 7), 10) : sYM;
     return sYM <= ymNum && ymNum <= eYM;
@@ -938,14 +953,17 @@ function renderSites() {
 
   const listHtml = rows.length ? rows.map(r => {
     const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fmtD(r.start)} ~ ${fmtD(r.end)}`;
+    const onclick = r.kind === 'const' ? `openSiteDetail('${r.site.replace(/'/g, "\\'")}')` : `modalSchedule('${r.key}')`;
+    const titleColor = r.kind === 'const' ? 'var(--accent)' : 'var(--ink-2)';
+    const titleWeight = r.kind === 'const' ? '700' : '500';
     return `
-      <div onclick="modalSchedule('${r.key}')" style="display:flex;align-items:center;gap:12px;padding:14px 2px;cursor:pointer;">
+      <div onclick="${onclick}" style="display:flex;align-items:center;gap:12px;padding:14px 2px;cursor:pointer;">
         <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#F1F1F5;display:flex;align-items:center;justify-content:center;">${PIN}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.site || '현장 미지정'}</div>
           <div style="font-size:14px;color:var(--muted);margin-top:3px;">${period}</div>
         </div>
-        <div style="flex-shrink:0;font-size:16px;font-weight:500;color:var(--ink-2);text-align:right;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+        <div style="flex-shrink:0;font-size:16px;font-weight:${titleWeight};color:${titleColor};text-align:right;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
       </div>`;
   }).join('') : `<div class="empty" style="padding:40px 20px;">${mo}월 일정이 없어요</div>`;
 
