@@ -917,8 +917,9 @@ function renderSites() {
   const ymNum = y * 100 + mo;
   const schedules = window.FB?.scheduleData || {};
   const PIN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.686-6-10a6 6 0 0112 0c0 4.314-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>';
-  const SORT = '<svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5V12M3.5 12L1.5 10M3.5 12L5.5 10"/><path d="M8.5 9V2M8.5 2L6.5 4M8.5 2L10.5 4"/></svg>';
-  const FILTER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>';
+  const SORT = '<svg width="20" height="20" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5V12M3.5 12L1.5 10M3.5 12L5.5 10"/><path d="M8.5 9V2M8.5 2L6.5 4M8.5 2L10.5 4"/></svg>';
+  const FILTER = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>';
+  const PENCIL = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
   const fmtD = ds => `${parseInt(ds.slice(5, 7), 10)}월 ${parseInt(ds.slice(8, 10), 10)}일`;
 
   // 1) 직접 입력한 일정 (현장 지정된 것만)
@@ -971,7 +972,10 @@ function renderSites() {
       const w = r.kind === 'const' ? '700' : '500';
       return `<div onclick="${onclick}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;cursor:pointer;">
           <span style="font-size:13px;color:var(--muted);white-space:nowrap;">${period}</span>
-          <span style="font-size:15px;font-weight:${w};color:${c};text-align:right;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</span>
+          <span style="display:flex;align-items:center;gap:6px;min-width:0;">
+            <span style="font-size:15px;font-weight:${w};color:${c};text-align:right;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</span>
+            ${r.kind !== 'const' ? PENCIL : ''}
+          </span>
         </div>`;
     }).join('');
     return `
@@ -979,7 +983,7 @@ function renderSites() {
       <div onclick="openSiteDetail('${g.site.replace(/'/g, "\\'")}')" style="display:flex;align-items:center;gap:12px;padding:8px 2px 2px;cursor:pointer;">
         <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#F1F1F5;display:flex;align-items:center;justify-content:center;">${PIN}</div>
         <div style="flex:1;min-width:0;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.site}</div>
-        <span style="flex-shrink:0;color:var(--faint);font-size:16px;">›</span>
+        <span style="flex-shrink:0;color:var(--faint);width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:20px;">›</span>
       </div>
       <div style="padding-left:52px;">${evHtml}</div>`;
   }).join('') : `<div class="empty" style="padding:40px 20px;">${mo}월 일정이 없어요</div>`;
