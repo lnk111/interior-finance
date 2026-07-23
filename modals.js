@@ -137,13 +137,13 @@ function modalSchedule(editKey = null, prefillDate = null) {
         <div class="modal-body">
           <div class="field">
             <label class="field-label">현장</label>
-            <select class="input" id="sched-site">
-              <option value="">현장 미지정</option>
-              ${(window.MOCK?.sites || []).map(s => `<option value="${(s.name || '').replace(/"/g, '&quot;')}" ${existing.site === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
-            </select>
+            <input class="input" id="sched-site" list="sched-site-list" placeholder="현장명 입력 또는 선택" value="${(existing.site || '').replace(/"/g, '&quot;')}">
+            <datalist id="sched-site-list">
+              ${(window.MOCK?.sites || []).map(s => `<option value="${(s.name || '').replace(/"/g, '&quot;')}"></option>`).join('')}
+            </datalist>
           </div>
           <div class="field">
-            <label class="field-label">제목 <span class="req">*</span></label>
+            <label class="field-label">일정 <span class="req">*</span></label>
             <input class="input" id="sched-title" placeholder="예) 1차미팅, 현장실측, 타일쇼룸" value="${existing.title || ''}">
           </div>
           <div class="grid-2">
@@ -190,7 +190,7 @@ async function schedSave(editKey) {
   const time = document.getElementById('sched-time')?.value || '';
   const memo = document.getElementById('sched-memo')?.value?.trim() || '';
 
-  if (!title) { alert('제목을 입력해주세요'); return; }
+  if (!title) { alert('일정을 입력해주세요'); return; }
   if (!date) { alert('시작일을 선택해주세요'); return; }
   if (endDate && endDate < date) { alert('종료일이 시작일보다 빠를 수 없어요'); return; }
 

@@ -927,6 +927,7 @@ function renderSites() {
     return { key, site: sc.site || '', title: sc.title || '', start, end };
   }).filter(r => {
     if (!r.start) return false;
+    if (!r.site) return false;   // 현장을 직접 입력한 일정만 현장 관리에 노출
     const sYM = parseInt(r.start.slice(0, 4), 10) * 100 + parseInt(r.start.slice(5, 7), 10);
     const eYM = r.end ? parseInt(r.end.slice(0, 4), 10) * 100 + parseInt(r.end.slice(5, 7), 10) : sYM;
     return sYM <= ymNum && ymNum <= eYM;
@@ -950,7 +951,7 @@ function renderSites() {
 
   return `
     <div class="page-header">
-      <div><h1 class="h-title">현장 관리</h1></div>
+      <div><h1 class="h-title" style="font-weight:600;">현장 관리</h1></div>
     </div>
     <div class="page-body">
       <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin:4px 0 16px;">
@@ -958,11 +959,11 @@ function renderSites() {
         <span style="font-size:25px;font-weight:700;color:var(--ink);min-width:70px;text-align:center;">${mo}월</span>
         <button onclick="siteMonthShift(1)" aria-label="다음 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:32px;line-height:1;padding:0 4px;font-family:inherit;">›</button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px 10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding:0 2px;">
         <button onclick="siteSortToggle()" style="background:none;border:0;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:inherit;">${_siteSortDesc ? '최근과거순' : '과거최근순'} ${SORT}</button>
         <button style="background:none;border:0;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:inherit;">상세검색 ${FILTER}</button>
       </div>
-      <div style="height:1px;background:var(--hair);margin:0 calc(-1 * var(--pad)) 4px;"></div>
+      <div style="height:1px;background:var(--hair);margin:10px 0;"></div>
       ${listHtml}
     </div>
     <button data-modal="site" class="site-fab">현장추가</button>`;
