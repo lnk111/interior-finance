@@ -928,8 +928,8 @@ function renderSites() {
     start: sc.date || '', end: sc.endDate || sc.date || '',
   })).filter(r => r.site && r.start);
 
-  // 2) 진행했던(공정 기간이 있는) 모든 현장 — 공사 기간을 상태 라벨로 표기
-  const constRows = (M.sites || []).map(s => {
+  // 2) 진행했던(공정 기간이 있는) 현장 — 공사 기간을 상태 라벨로 표기 (AS관리 현장은 제외)
+  const constRows = (M.sites || []).filter(s => s.status !== 'AS관리' && s.status !== 'as').map(s => {
     const pk = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
     const pd = window.FB?._procAll?.[pk] || {};
     const starts = [], ends = [];
