@@ -239,6 +239,9 @@ function renderHome() {
       ${renderHomeProgressHtml()}
       <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
       ${renderHomeTipsHtml()}
+      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
+      <div class="section-label">최근거래내역 <span class="pill pill-warn" style="cursor:pointer;" onclick="openPendingList()">미정리 ${M.unsorted}건</span></div>
+      <div class="list">${recentHtml}</div>
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
@@ -267,8 +270,6 @@ function renderHome() {
         <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:var(--ink);">${fmtSigned(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${t.margin}%</div><div class="stat-delta flat">목표 ${t.targetMargin}%</div></div>
       </div>
-      <div class="section-label">최근 거래 <span class="pill pill-warn" style="cursor:pointer;" onclick="openPendingList()">미정리 ${M.unsorted}건</span></div>
-      <div class="list">${recentHtml}</div>
       ${AUTH.can('tax') ? `
       <button class="alert" data-goto="tax" style="width:100%;text-align:left;margin-top:8px;">
         <div>
