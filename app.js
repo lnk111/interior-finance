@@ -941,30 +941,46 @@ function renderSites() {
     return { kind: 'const', key: s.name, site: s.name, title: '공사중', start: starts[0], end: ends[ends.length - 1] };
   }).filter(Boolean);
 
-  const rows = [...constRows, ...schedRows].filter(r => {
+  const filtered = [...constRows, ...schedRows].filter(r => {
     if (!r.start) return false;
     const sYM = parseInt(r.start.slice(0, 4), 10) * 100 + parseInt(r.start.slice(5, 7), 10);
     const eYM = r.end ? parseInt(r.end.slice(0, 4), 10) * 100 + parseInt(r.end.slice(5, 7), 10) : sYM;
     return sYM <= ymNum && ymNum <= eYM;
-  }).sort((a, b) => {
-    const d = a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
+  });
+
+  // 현장별 그룹핑 — 공사중 현장을 맨 위로, 그 다음 최근 일정순
+  const gmap = {};
+  filtered.forEach(r => { (gmap[r.site] = gmap[r.site] || []).push(r); });
+  const groups = Object.entries(gmap).map(([site, items]) => {
+    items.sort((a, b) => { const d = a.start < b.start ? -1 : a.start > b.start ? 1 : 0; return _siteSortDesc ? -d : d; });
+    const ds = items.map(i => i.start).sort();
+    return { site, items, hasConst: items.some(i => i.kind === 'const'), latest: ds[ds.length - 1], earliest: ds[0] };
+  });
+  groups.sort((a, b) => {
+    if (a.hasConst !== b.hasConst) return a.hasConst ? -1 : 1;
+    const ka = _siteSortDesc ? a.latest : a.earliest, kb = _siteSortDesc ? b.latest : b.earliest;
+    const d = ka < kb ? -1 : ka > kb ? 1 : 0;
     return _siteSortDesc ? -d : d;
   });
 
-  const listHtml = rows.length ? rows.map(r => {
-    const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fmtD(r.start)} ~ ${fmtD(r.end)}`;
-    const onclick = r.kind === 'const' ? `openSiteDetail('${r.site.replace(/'/g, "\\'")}')` : `modalSchedule('${r.key}')`;
-    const titleColor = r.kind === 'const' ? 'var(--accent)' : 'var(--ink-2)';
-    const titleWeight = r.kind === 'const' ? '700' : '500';
+  const listHtml = groups.length ? groups.map((g, gi) => {
+    const evHtml = g.items.map(r => {
+      const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fmtD(r.start)} ~ ${fmtD(r.end)}`;
+      const onclick = r.kind === 'const' ? `openSiteDetail('${r.site.replace(/'/g, "\\'")}')` : `modalSchedule('${r.key}')`;
+      const c = r.kind === 'const' ? 'var(--accent)' : 'var(--ink-2)';
+      const w = r.kind === 'const' ? '700' : '500';
+      return `<div onclick="${onclick}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;cursor:pointer;">
+          <span style="font-size:13px;color:var(--muted);white-space:nowrap;">${period}</span>
+          <span style="font-size:15px;font-weight:${w};color:${c};text-align:right;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</span>
+        </div>`;
+    }).join('');
     return `
-      <div onclick="${onclick}" style="display:flex;align-items:center;gap:12px;padding:14px 2px;cursor:pointer;">
+      ${gi > 0 ? '<div style="height:1px;background:var(--hair-soft);margin:6px 0;"></div>' : ''}
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 2px 2px;">
         <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#F1F1F5;display:flex;align-items:center;justify-content:center;">${PIN}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.site || '현장 미지정'}</div>
-          <div style="font-size:14px;color:var(--muted);margin-top:3px;">${period}</div>
-        </div>
-        <div style="flex-shrink:0;font-size:16px;font-weight:${titleWeight};color:${titleColor};text-align:right;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
-      </div>`;
+        <div style="font-size:15px;font-weight:700;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.site}</div>
+      </div>
+      <div style="padding-left:52px;">${evHtml}</div>`;
   }).join('') : `<div class="empty" style="padding:40px 20px;">${mo}월 일정이 없어요</div>`;
 
   return `
