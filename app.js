@@ -976,9 +976,10 @@ function renderSites() {
     }).join('');
     return `
       ${gi > 0 ? '<div style="height:1px;background:var(--hair-soft);margin:6px 0;"></div>' : ''}
-      <div style="display:flex;align-items:center;gap:12px;padding:8px 2px 2px;">
+      <div onclick="openSiteDetail('${g.site.replace(/'/g, "\\'")}')" style="display:flex;align-items:center;gap:12px;padding:8px 2px 2px;cursor:pointer;">
         <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#F1F1F5;display:flex;align-items:center;justify-content:center;">${PIN}</div>
-        <div style="font-size:15px;font-weight:700;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.site}</div>
+        <div style="flex:1;min-width:0;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.site}</div>
+        <span style="flex-shrink:0;color:var(--faint);font-size:16px;">›</span>
       </div>
       <div style="padding-left:52px;">${evHtml}</div>`;
   }).join('') : `<div class="empty" style="padding:40px 20px;">${mo}월 일정이 없어요</div>`;
