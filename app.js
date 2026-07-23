@@ -292,7 +292,7 @@ function renderHome() {
       <button class="btn-icon">${ICON.bell}</button>
     </div>
     <div class="page-body">
-      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
+      <div style="height:6px;background:#E6E6E6;margin:11px calc(-1 * var(--pad)) 25px;"></div>
       <div class="briefing-eyebrow">오늘의 브리핑</div>
       ${renderHomeProgressHtml()}
       <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
