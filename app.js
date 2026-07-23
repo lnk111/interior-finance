@@ -116,7 +116,7 @@ function renderHomeProgressHtml() {
     return `<div style="background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};margin-bottom:16px;"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">진행중인 공사 현장이 없어요</div></div>`;
   }
   const multi = activeSites.length > 1;
-  const cardBasis = multi ? '88%' : '100%';
+  const cardBasis = multi ? '88%' : '100%';   // 여러 장은 다음 카드가 살짝 보이게, 한 장은 꽉 차게
   const todayStr = toToday();
   const calcSt = (s, e) => (!s && !e) ? 'wait' : (s && todayStr < s) ? 'wait' : (e && todayStr > e) ? 'done' : 'active';
   const cards = activeSites.map(s => {
@@ -150,11 +150,9 @@ function renderHomeProgressHtml() {
         </div>
       </div>`;
   }).join('');
-  const dotsHtml = multi
-    ? `<div class="home-proc-dots" style="display:flex;justify-content:center;gap:7px;margin-top:12px;">
-        ${activeSites.map((_, i) => `<span style="width:7px;height:7px;border-radius:50%;background:${i === 0 ? 'var(--ink)' : '#D1D6DB'};transition:background .2s;"></span>`).join('')}
-      </div>`
-    : '';
+  const dotsHtml = `<div class="home-proc-dots" style="display:flex;justify-content:center;gap:7px;margin-top:12px;">
+      ${activeSites.map((_, i) => `<span style="width:7px;height:7px;border-radius:50%;background:${i === 0 ? 'var(--ink)' : '#D1D6DB'};transition:background .2s;"></span>`).join('')}
+    </div>`;
   return `
     <div style="margin-bottom:16px;">
       <div class="home-proc-track" onscroll="updateHomeProcDots(this)" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 2px 8px;">
@@ -209,20 +207,6 @@ function renderHome() {
     <div class="page-body">
       <div class="briefing-eyebrow">오늘의 브리핑</div>
       ${renderHomeProgressHtml()}
-      <div class="section-label">현장 현황 <span class="more" data-goto="sites">전체 ›</span></div>
-      <div style="background:#fff;border-radius:16px;border:1px solid var(--hair);overflow:hidden;margin-bottom:16px;">
-        <div style="display:flex;border-bottom:1px solid var(--hair);">
-          <button id="site-tab-active" onclick="switchSiteTab('active')"
-            style="flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-            🔨 공사중 <span style="background:rgba(255,255,255,0.3);border-radius:10px;padding:1px 7px;font-size:13px;">${(M.sites||[]).filter(s=>s.status==='공사중').length}</span>
-          </button>
-          <button id="site-tab-as" onclick="switchSiteTab('as')"
-            style="flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-            🔧 AS관리 <span id="as-badge" style="background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:1px 7px;font-size:13px;">${(M.asList||[]).filter(a=>!a.done&&a.status!=='완료').length}</span>
-          </button>
-        </div>
-        <div id="site-tab-content" style="padding:0;">${renderActiveSitesHtml()}</div>
-      </div>
       <div class="section-label">💡 현장 노하우 <span class="more"><span data-goto="tips">전체보기 ›</span> &nbsp;<span data-modal="tip">+ 기록</span></span></div>
       <div class="tip-filter-row">${tipFilterHtml}</div>
       ${tipsListHtml}
@@ -311,136 +295,6 @@ function renderTips() {
       <div class="tip-filter-row">${filterHtml}</div>
       <div id="tips-results">${tipsResultsHtml()}</div>
     </div>`;
-}
-
-let _siteTab = 'active';
-
-function renderActiveSitesHtml() {
-  const activeSites = (M.sites||[]).filter(s => s.status==='공사중');
-  if (!activeSites.length) return '<div class="empty" style="padding:24px;">진행중인 공사 현장이 없어요</div>';
-  const todayStr = toToday();
-  function calcSt(s,e) {
-    if (!s&&!e) return 'wait';
-    if (s&&todayStr<s) return 'wait';
-    if (e&&todayStr>e) return 'done';
-    return 'active';
-  }
-  return activeSites.map(s => {
-    const key = (s.name||'').replace(/[.#$/ \[\]]/g,'_');
-    const pd = window.FB?._procAll?.[key] || {};
-    const phases = Object.values(pd).sort((a, b) => {
-      const aHas = !!a.startDate, bHas = !!b.startDate;
-      if (aHas && bHas) {
-        if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
-        return (a.order||0) - (b.order||0);
-      }
-      if (aHas) return -1;
-      if (bHas) return 1;
-      return (a.order||0) - (b.order||0);
-    });
-    const done  = phases.filter(p=>calcSt(p.startDate,p.doneDate)==='done').length;
-    const total = phases.length;
-    const pct   = total>0 ? Math.round(done/total*100) : 0;
-    const actPh = phases.find(p=>calcSt(p.startDate,p.doneDate)==='active');
-    return `
-      <div style="padding:14px 16px;border-bottom:1px solid var(--hair);cursor:pointer;"
-        onclick="openSiteDetail('${s.name.replace(/'/g,"\\'")}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div>
-            <div style="font-size:14px;font-weight:700;">${s.name}</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:2px;">${actPh?'🔨 '+actPh.name+' 진행중':s.start&&s.start!=='—'?s.start:'공정 정보 없음'}</div>
-          </div>
-          <span style="font-size:13px;font-weight:800;color:var(--accent);">${pct}%</span>
-        </div>
-        <div style="height:8px;background:var(--hair);border-radius:4px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:4px;transition:width .4s;"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:8px;">
-          <span style="font-size:13px;color:var(--muted);">${done}/${total} 공정 완료</span>
-          <span style="font-size:13px;color:${s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'};font-weight:700;">${fmtSlim(s.profit)}</span>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function renderAsSitesHtml() {
-  const asData = window.FB?.asData || {};
-  if (!Object.keys(asData).length) return '<div class="empty" style="padding:24px;">AS 데이터가 없어요</div>';
-  const grouped = {};
-  Object.entries(asData).forEach(([key,a]) => {
-    const site = a.site||'현장 미지정';
-    if (!grouped[site]) grouped[site]=[];
-    grouped[site].push({...a,_key:key});
-  });
-  const sorted = Object.entries(grouped).sort((a,b)=>{
-    const ap=a[1].filter(x=>!x.done).length, bp=b[1].filter(x=>!x.done).length;
-    if(ap!==bp) return bp-ap;
-    return Math.max(...b[1].map(x=>x.createdAt||0))-Math.max(...a[1].map(x=>x.createdAt||0));
-  });
-  return sorted.map(([siteName,items])=>{
-    const pending=items.filter(a=>!a.done);
-    const done=items.filter(a=>a.done);
-    const pendHtml=pending.map(a=>`
-      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#fffdf8;cursor:pointer;"
-        onclick="modalAS('${a._key}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;margin-bottom:3px;">${a.content||'내용 없음'}</div>
-            <div style="font-size:13px;color:var(--muted);line-height:1.6;">
-              ${a.phone&&a.phone!=='없음'?'📞 '+a.phone+'<br>':''}
-              ${a.manager?'👤 '+a.manager:''}${a.worker?' · 작업자: '+a.worker:''}<br>
-              📅 ${a.date==='날짜 조율중'?'🕐 날짜 조율중':(a.date||'날짜 미정')}
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-            <span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:3px 8px;font-size:12px;font-weight:700;">미처리</span>
-            <span style="font-size:12px;color:var(--muted);">탭하여 수정 ›</span>
-          </div>
-        </div>
-      </div>`).join('');
-    const doneHtml=done.map(a=>`
-      <div style="padding:10px 16px 10px 32px;border-bottom:1px solid var(--hair-soft);background:#f8faf8;opacity:.7;cursor:pointer;"
-        onclick="modalAS('${a._key}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;color:var(--muted);text-decoration:line-through;">${a.content||''}</div>
-            <div style="font-size:13px;color:var(--muted);">${a.date||''}</div>
-          </div>
-          <span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:3px 8px;font-size:12px;font-weight:700;flex-shrink:0;">✅ 완료</span>
-        </div>
-      </div>`).join('');
-    return `
-      <div style="border-bottom:2px solid var(--hair);">
-        <div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#fff;"
-          onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-          <div>
-            <div style="font-size:14px;font-weight:700;">${siteName}</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:2px;">전체 ${items.length}건 · 미처리 ${pending.length}건</div>
-          </div>
-          ${pending.length>0
-            ?`<span style="background:#fff3cd;color:#b07d00;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:700;">미처리 ${pending.length}건</span>`
-            :`<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:700;">✅ 완료</span>`}
-        </div>
-        <div style="${pending.length>0?'':'display:none;'}">${pendHtml}${doneHtml}</div>
-      </div>`;
-  }).join('');
-}
-
-function switchSiteTab(tab) {
-  _siteTab = tab;
-  const content = document.getElementById('site-tab-content');
-  const btnActive = document.getElementById('site-tab-active');
-  const btnAs = document.getElementById('site-tab-as');
-  if (!content||!btnActive||!btnAs) return;
-  if (tab==='active') {
-    btnActive.style.cssText='flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
-    btnAs.style.cssText='flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
-    content.innerHTML = renderActiveSitesHtml();
-  } else {
-    btnAs.style.cssText='flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
-    btnActive.style.cssText='flex:1;padding:12px;border:none;background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;';
-    content.innerHTML = renderAsSitesHtml();
-  }
 }
 
 function tapSite(el, siteName) {
