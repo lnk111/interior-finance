@@ -967,7 +967,9 @@ function renderSites() {
 
   const listHtml = groups.length ? groups.map((g, gi) => {
     const evHtml = g.items.map(r => {
-      const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fmtD(r.start)} ~ ${fmtD(r.end)}`;
+      const crossY = r.end && r.start.slice(0, 4) !== r.end.slice(0, 4);
+      const fD = ds => crossY ? `${ds.slice(2, 4)}.${parseInt(ds.slice(5, 7), 10)}.${parseInt(ds.slice(8, 10), 10)}` : fmtD(ds);
+      const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fD(r.start)} ~ ${fD(r.end)}`;
       const onclick = r.kind === 'const' ? `openSiteDetail('${r.site.replace(/'/g, "\\'")}')` : `modalSchedule('${r.key}')`;
       const c = (r.kind === 'const' && r.active) ? 'var(--accent)' : 'var(--ink-2)';
       const w = '700';
