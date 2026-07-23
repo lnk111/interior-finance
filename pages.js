@@ -421,19 +421,22 @@ function renderEntryList(siteName, grouped) {
   function entryRow([key, e]) {
     const cls = e.type==='revenue'?'pill-accent':e.type==='as'?'pill-pin':'pill-warn';
     const label = e.type==='revenue'?'매출':e.type==='as'?'AS':'매입';
-    const isRev = e.type==='revenue';
-    const sign = isRev ? '' : '−';
-    const amtStyle = isRev ? 'color:#2563EB;' : '';
+    const isRev = e.type==='revenue';                                  // 매출=입금(양수), 매입·AS=지출(음수)
+    const amtColor = isRev ? '#2563EB' : 'var(--ink)';                 // 양수=파랑, 음수=흑백
+    const amtText = (isRev ? '' : '-') + (e.amount||0).toLocaleString('ko-KR') + '원';
+    const proc = e.process || e.payStage || '기타';
+    const ava = proc.replace(/\s/g,'').slice(0,2) || '—';             // 공정 앞 2글자 아바타 (현장 상세라 현장명은 공통)
     const date = e.date ? e.date.slice(5).replace('-', '/') : '';
+    const meta = [e.writer, date].filter(Boolean).join(' · ');
     return `
-      <button class="list-row" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
-        <span class="pill ${cls}">${label}</span>
-        <div style="min-width:0;">
-          <div class="lr-title">${e.process||e.payStage||'기타'}</div>
-          <div class="lr-meta">${e.writer||''} · ${date}</div>
-          ${e.memo ? `<div style="font-size:13px;color:var(--muted);margin-top:2px;white-space:normal;line-height:1.4;">💬 ${e.memo}</div>` : ''}
+      <button class="list-row list-row--tx" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
+        <div class="tx-ava">${ava}</div>
+        <div class="tx-main">
+          <div class="tx-amt num" style="color:${amtColor};">${amtText}</div>
+          <div class="tx-sub">${proc}${meta ? ' · ' + meta : ''}</div>
+          ${e.memo ? `<div class="tx-memo">💬 ${e.memo}</div>` : ''}
         </div>
-        <span class="lr-amount num" style="flex-shrink:0;${amtStyle}">${sign}${(e.amount||0).toLocaleString('ko-KR')}</span>
+        <span class="pill ${cls}">${label}</span>
       </button>`;
   }
 

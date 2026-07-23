@@ -328,6 +328,10 @@ input, textarea, select { font-family: inherit; }
   color: var(--muted); font-size: 13px; margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.list-row--tx .tx-memo {
+  color: var(--muted); font-size: 13px; margin-top: 3px;
+  white-space: normal; line-height: 1.4;
+}
 
 .rank-list { border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; }
 .rank-list .rank-row {
