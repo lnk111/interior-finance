@@ -95,24 +95,100 @@ function tipFilterChipsHtml(activeKey) {
 }
 
 // ===== HOME =====
+// 공사중 현장별 [이전 · 진행 중 · 다음] 공정 스텝퍼 (현장 상세와 동일한 지하철식 UI)
+function renderHomeProgressHtml() {
+  const activeSites = (M.sites || []).filter(s => s.status === '공사중');
+  if (!activeSites.length) {
+    return `<div class="briefing"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">진행중인 공사 현장이 없어요</div></div>`;
+  }
+  const todayStr = toToday();
+  const calcSt = (s, e) => (!s && !e) ? 'wait' : (s && todayStr < s) ? 'wait' : (e && todayStr > e) ? 'done' : 'active';
+  const mmdd = d => d ? d.slice(5).replace('-', '.') : '';
+  function procMeta(ph) {
+    const st = calcSt(ph.startDate, ph.doneDate), a = mmdd(ph.startDate), b = mmdd(ph.doneDate);
+    if (st === 'done')   return b || a || '완료';
+    if (st === 'active') return a ? a + ' ~' : '진행 중';
+    return a ? a + ' 예정' : '예정';
+  }
+  function station(ph, role, curIsActive, lineL, lineR) {
+    const labelMap = { prev: '이전', cur: curIsActive ? '진행 중' : '다음 차례', next: '다음' };
+    const labelColor = role === 'cur' ? 'var(--accent)' : 'var(--muted)';
+    if (!ph) {
+      const txt = role === 'prev' ? '시작 전' : role === 'next' ? '마지막 공정' : '-';
+      return `<div style="flex:1;text-align:center;opacity:.45;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">${labelMap[role]}</div>
+        <div style="display:flex;align-items:center;height:20px;">
+          <div style="flex:1;height:2px;background:${lineL};"></div>
+          <span style="width:11px;height:11px;border-radius:50%;background:var(--faint);flex-shrink:0;"></span>
+          <div style="flex:1;height:2px;background:${lineR};"></div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-top:5px;">${txt}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:1px;">&nbsp;</div>
+      </div>`;
+    }
+    const st = calcSt(ph.startDate, ph.doneDate), isCur = role === 'cur';
+    let dot;
+    if (st === 'active') dot = 'width:15px;height:15px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px rgba(154,75,46,.18);flex-shrink:0;';
+    else if (st === 'done') dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--accent);flex-shrink:0;`;
+    else dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--faint);flex-shrink:0;`;
+    const nameColor = isCur ? 'var(--ink)' : 'var(--muted)';
+    const nameWeight = isCur ? '800' : '700';
+    return `<div style="flex:1;text-align:center;">
+      <div style="font-size:12px;font-weight:700;color:${labelColor};margin-bottom:4px;">${labelMap[role]}</div>
+      <div style="display:flex;align-items:center;height:20px;">
+        <div style="flex:1;height:2px;background:${lineL};"></div>
+        <span style="${dot}"></span>
+        <div style="flex:1;height:2px;background:${lineR};"></div>
+      </div>
+      <div style="font-size:13.5px;font-weight:${nameWeight};color:${nameColor};margin-top:5px;line-height:1.3;">${ph.name}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:1px;">${procMeta(ph)}</div>
+    </div>`;
+  }
+  return activeSites.map(s => {
+    const key = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const pd = window.FB?._procAll?.[key] || {};
+    const phases = Object.entries(pd).map(([id, p]) => ({ ...p, id })).sort((a, b) => {
+      const aHas = !!a.startDate, bHas = !!b.startDate;
+      if (aHas && bHas) {
+        if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
+        return (a.order || 0) - (b.order || 0);
+      }
+      if (aHas) return -1;
+      if (bHas) return 1;
+      return (a.order || 0) - (b.order || 0);
+    });
+    let curIdx = phases.findIndex(ph => calcSt(ph.startDate, ph.doneDate) === 'active');
+    if (curIdx === -1) curIdx = phases.findIndex(ph => calcSt(ph.startDate, ph.doneDate) === 'wait');
+    if (curIdx === -1) curIdx = phases.length - 1;
+    const prevP = curIdx > 0 ? phases[curIdx - 1] : null;
+    const curP  = phases[curIdx] || null;
+    const nextP = curIdx < phases.length - 1 ? phases[curIdx + 1] : null;
+    const curIsActive = curP && calcSt(curP.startDate, curP.doneDate) === 'active';
+    const segL = prevP ? 'var(--accent)' : 'var(--hair)';
+    const segR = 'var(--hair)';
+    const done = phases.filter(p => calcSt(p.startDate, p.doneDate) === 'done').length;
+    const pct  = phases.length ? Math.round(done / phases.length * 100) : 0;
+    const stepper = phases.length
+      ? `<div style="display:flex;align-items:flex-start;">
+          ${station(prevP, 'prev', curIsActive, 'transparent', segL)}
+          ${station(curP,  'cur',  curIsActive, segL, segR)}
+          ${station(nextP, 'next', curIsActive, segR, 'transparent')}
+        </div>`
+      : `<div style="padding:8px 0;text-align:center;color:var(--muted);font-size:13px;">등록된 공정이 없어요</div>`;
+    return `
+      <div class="briefing" style="cursor:pointer;" onclick="openSiteDetail('${s.name.replace(/'/g, "\\'")}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:15px;font-weight:800;color:var(--ink);">${s.name}</div>
+          <span style="font-size:13px;font-weight:800;color:var(--accent);">${pct}%</span>
+        </div>
+        ${stepper}
+      </div>`;
+  }).join('');
+}
+
 function renderHome() {
   const t = M.totals;
   const now = new Date();
-
-  const briefingHtml = M.briefing.map(b => {
-    const clickAction = b.kind === 'as'
-      ? `onclick="navigate('home');setTimeout(()=>switchSiteTab('as'),100)"`
-      : b.kind === 'task' ? `onclick="navigate('sites')"`
-      : b.kind === 'pay'  ? `onclick="navigate('sites')"`
-      : b.kind === 'cal'  ? `onclick="navigate('calendar')"`
-      : b.kind === 'unsorted' ? `onclick="openPendingList()"` : '';
-    return `
-    <div class="briefing-item" style="cursor:pointer;" ${clickAction}>
-      <div class="dot" style="background:var(--${b.color}-soft);color:var(--${b.color});">${b.icon}</div>
-      <div><div class="label">${b.label}</div><div class="meta">${b.meta}</div></div>
-      <span style="color:var(--muted);font-size:16px;">›</span>
-    </div>`;
-  }).join('');
 
   const recentHtml = M.recent.slice(0, 5).map(r => {
     const cls = r.kind === '매출' ? 'pill-accent' : r.kind === 'AS' ? 'pill-pin' : 'pill-warn';
@@ -154,10 +230,7 @@ function renderHome() {
     </div>
     <div class="page-body">
       <div class="briefing-eyebrow">오늘의 브리핑</div>
-      <div class="briefing">
-        <div class="briefing-title">오늘 챙길 일 <span class="num">${M.briefing.length}</span>건</div>
-        <div class="briefing-list">${briefingHtml}</div>
-      </div>
+      ${renderHomeProgressHtml()}
       <div class="section-label">현장 현황 <span class="more" data-goto="sites">전체 ›</span></div>
       <div style="background:#fff;border-radius:16px;border:1px solid var(--hair);overflow:hidden;margin-bottom:16px;">
         <div style="display:flex;border-bottom:1px solid var(--hair);">
