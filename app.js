@@ -162,6 +162,48 @@ function renderHomeProgressHtml() {
     </div>`;
 }
 
+// 홈 현장 노하우 — 가로 스크롤 카드 + 6등분 필터 + 하단 기록 버튼
+const HOME_TIP_FILTERS = [
+  { key: 'pin', label: '핀 고정' },
+  { key: 'all', label: '전체' },
+  { key: '실수', label: '실수' },
+  { key: '팁',   label: '팁' },
+  { key: '자재', label: '자재' },
+  { key: '고객', label: '고객' },
+];
+const HOME_TIP_CAT_COLOR = {
+  '실수': ['#F4E8E0', '#9A4B2E'],
+  '팁':   ['#F4E9D9', '#B8895A'],
+  '자재': ['#E2E8F2', '#5B7CB5'],
+  '고객': ['#E1ECE5', '#2F6B47'],
+};
+function renderHomeTipsHtml() {
+  const filter = window._tipsFilter || 'pin';
+  const preview = getVisibleTips(filter).slice(0, TIP_PREVIEW_COUNT);
+  const chips = HOME_TIP_FILTERS.map(f => {
+    const inner = filter === f.key
+      ? `<span style="font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:14px;padding:5px 10px;white-space:nowrap;">${f.label}</span>`
+      : `<span style="font-size:13px;color:var(--muted);white-space:nowrap;">${f.label}</span>`;
+    return `<button data-tip-filter="${f.key}" style="flex:1;min-width:0;display:flex;justify-content:center;align-items:center;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;">${inner}</button>`;
+  }).join('');
+  const cards = preview.length > 0
+    ? preview.map(tp => {
+        const cc = HOME_TIP_CAT_COLOR[tp.cat] || ['#F1F0EC', '#6B7684'];
+        return `<div class="tip-hcard" data-tip-key="${tp._key || ''}" style="flex:0 0 150px;box-sizing:border-box;background:#fff;border:1px solid var(--hair);border-radius:4px;padding:12px;text-align:left;display:flex;flex-direction:column;cursor:pointer;">
+          <span style="align-self:flex-start;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;background:${cc[0]};color:${cc[1]};">${tp.cat}</span>
+          <div style="font-size:16px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1.35;">${tp.title}</div>
+          <div style="font-size:12px;color:var(--faint);margin-top:auto;padding-top:10px;line-height:1.35;">${tp.by} · ${tp.site}</div>
+        </div>`;
+      }).join('')
+    : `<div class="empty" style="padding:20px;font-size:13px;flex:1;">기록이 없어요</div>`;
+  return `
+    <div class="section-label">현장 노하우 <span class="more"><span data-goto="tips">모두보기</span></span></div>
+    <div style="display:flex;margin-bottom:12px;">${chips}</div>
+    <div class="home-tips-track" style="display:flex;gap:10px;overflow-x:auto;align-items:stretch;scrollbar-width:none;padding-bottom:6px;">${cards}</div>
+    <div style="font-size:12px;color:var(--faint);text-align:center;margin:8px 0 6px;">← 카드를 좌우로 밀어보세요 →</div>
+    <button data-modal="tip" style="width:100%;padding:13px;margin-bottom:8px;border:1px solid var(--hair);border-radius:12px;background:var(--surface-2,#f6f7f9);color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 기록</button>`;
+}
+
 function renderHome() {
   const t = M.totals;
   const now = new Date();
@@ -184,18 +226,6 @@ function renderHome() {
       </button>`;
   }).join('');
 
-  // 노하우 필터링 — 핀 고정 / 전체 / 카테고리별 (홈은 미리보기 N개만)
-  const tipsFilter = window._tipsFilter || 'pin';
-  const allVisibleTips = getVisibleTips(tipsFilter);
-  const previewTips = allVisibleTips.slice(0, TIP_PREVIEW_COUNT);
-  const tipFilterHtml = tipFilterChipsHtml(tipsFilter);
-  const tipsListHtml = previewTips.length > 0
-    ? previewTips.map(tipCardHtml).join('')
-    : '<div class="empty" style="padding:20px;font-size:13px;">기록이 없어요</div>';
-  const tipsMoreHtml = allVisibleTips.length > TIP_PREVIEW_COUNT
-    ? `<button class="tip-more-btn" data-goto="tips" style="width:100%;padding:12px;margin-bottom:8px;border:1px solid var(--hair);border-radius:14px;background:var(--surface-2,#f6f7f9);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">노하우 ${allVisibleTips.length}개 전체보기 ›</button>`
-    : '';
-
   return `
     <div class="page-header">
       <div>
@@ -207,10 +237,7 @@ function renderHome() {
     <div class="page-body">
       <div class="briefing-eyebrow">오늘의 브리핑</div>
       ${renderHomeProgressHtml()}
-      <div class="section-label">💡 현장 노하우 <span class="more"><span data-goto="tips">전체보기 ›</span> &nbsp;<span data-modal="tip">+ 기록</span></span></div>
-      <div class="tip-filter-row">${tipFilterHtml}</div>
-      ${tipsListHtml}
-      ${tipsMoreHtml}
+      ${renderHomeTipsHtml()}
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
