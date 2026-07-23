@@ -1003,10 +1003,6 @@ function renderSites() {
     </div>
     <div class="filter-row">${filterHtml}</div>
     <div class="page-body">
-      <div class="cal-mini-bar">
-        <button class="btn btn-ghost btn-sm" data-goto="calendar">📅 현장 달력</button>
-        <button class="btn btn-ghost btn-sm">📤 구글 캘린더</button>
-      </div>
       ${upcomingHtml}
       ${cardsHtml}
     </div>`;
