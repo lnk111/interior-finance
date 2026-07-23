@@ -267,6 +267,7 @@ function renderHome() {
       <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
       <div class="section-label" style="margin-bottom:16px;">최근거래내역</div>
       ${renderRecentTxHtml()}
+      <div style="height:8px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>
