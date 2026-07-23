@@ -210,6 +210,7 @@ input, textarea, select { font-family: inherit; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 .briefing-eyebrow { font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin: 4px 0 10px; }
+.home-proc-track::-webkit-scrollbar { display: none; }
 .briefing-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 14px; line-height: 1.4; }
 .briefing-list { display: flex; flex-direction: column; gap: 8px; }
 .briefing-item {

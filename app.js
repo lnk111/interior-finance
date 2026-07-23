@@ -95,16 +95,31 @@ function tipFilterChipsHtml(activeKey) {
 }
 
 // ===== HOME =====
-// 공사중 현장별 [오늘 공정 » 내일 공정] 카드 (연한 그린 배경)
+// 스와이프 시 하단 점 인디케이터 활성 위치 갱신 (인라인 onscroll에서 호출)
+function updateHomeProcDots(track) {
+  const wrap = track.parentElement;
+  const dotsWrap = wrap && wrap.querySelector('.home-proc-dots');
+  if (!dotsWrap) return;
+  const dots = dotsWrap.children;
+  const n = dots.length;
+  if (!n) return;
+  const raw = Math.round(track.scrollLeft / (track.scrollWidth / n));
+  const idx = Math.max(0, Math.min(n - 1, raw));
+  for (let k = 0; k < n; k++) dots[k].style.background = k === idx ? 'var(--ink)' : '#D1D6DB';
+}
+
+// 공사중 현장별 [오늘 공정 » 내일 공정] 카드 — 좌우 스와이프 + 하단 점 인디케이터
 function renderHomeProgressHtml() {
   const activeSites = (M.sites || []).filter(s => s.status === '공사중');
-  const cardBase = 'cursor:pointer;background:#F1F7F3;border-color:var(--accent-soft);';
+  const cardShadow = '0 2px 8px rgba(0,0,0,0.05)';
   if (!activeSites.length) {
-    return `<div class="briefing" style="background:#F1F7F3;border-color:var(--accent-soft);"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">진행중인 공사 현장이 없어요</div></div>`;
+    return `<div style="background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};margin-bottom:16px;"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">진행중인 공사 현장이 없어요</div></div>`;
   }
+  const multi = activeSites.length > 1;
+  const cardBasis = multi ? '88%' : '100%';
   const todayStr = toToday();
   const calcSt = (s, e) => (!s && !e) ? 'wait' : (s && todayStr < s) ? 'wait' : (e && todayStr > e) ? 'done' : 'active';
-  return activeSites.map(s => {
+  const cards = activeSites.map(s => {
     const key = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
     const pd = window.FB?._procAll?.[key] || {};
     const phases = Object.entries(pd).map(([id, p]) => ({ ...p, id })).sort((a, b) => {
@@ -126,18 +141,27 @@ function renderHomeProgressHtml() {
     const tomorrowName = nextP ? nextP.name : '—';
     const nameEsc = (s.name || '').replace(/'/g, "\\'");
     return `
-      <div class="briefing" style="${cardBase}" onclick="openSiteDetail('${nameEsc}')">
-        <div style="font-size:16px;font-weight:400;color:var(--muted);margin-bottom:14px;">${s.name}</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px;min-width:0;">
-            <span style="font-size:36px;font-weight:800;color:var(--ink);line-height:1.05;">${todayName}</span>
-            <span style="font-size:22px;font-weight:700;color:var(--muted);">»</span>
-            <span style="font-size:28px;font-weight:800;color:var(--muted);line-height:1.05;">${tomorrowName}</span>
-          </div>
-          <div style="flex-shrink:0;width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 1px 4px rgba(0,0,0,.06);">🔨</div>
+      <div style="scroll-snap-align:center;flex:0 0 ${cardBasis};box-sizing:border-box;background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};cursor:pointer;" onclick="openSiteDetail('${nameEsc}')">
+        <div style="font-size:16px;font-weight:400;color:var(--muted);margin-bottom:6px;">${s.name}</div>
+        <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px;min-width:0;">
+          <span style="font-size:28px;font-weight:800;color:var(--ink);line-height:1.05;">${todayName}</span>
+          <span style="font-size:22px;font-weight:700;color:var(--muted);">»</span>
+          <span style="font-size:28px;font-weight:300;color:var(--muted);line-height:1.05;">${tomorrowName}</span>
         </div>
       </div>`;
   }).join('');
+  const dotsHtml = multi
+    ? `<div class="home-proc-dots" style="display:flex;justify-content:center;gap:7px;margin-top:12px;">
+        ${activeSites.map((_, i) => `<span style="width:7px;height:7px;border-radius:50%;background:${i === 0 ? 'var(--ink)' : '#D1D6DB'};transition:background .2s;"></span>`).join('')}
+      </div>`
+    : '';
+  return `
+    <div style="margin-bottom:16px;">
+      <div class="home-proc-track" onscroll="updateHomeProcDots(this)" style="display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 2px 8px;">
+        ${cards}
+      </div>
+      ${dotsHtml}
+    </div>`;
 }
 
 function renderHome() {
