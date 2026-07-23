@@ -251,22 +251,8 @@ function renderHome() {
   const t = M.totals;
   const now = new Date();
 
-  return `
-    <div class="page-header">
-      <div>
-        <div class="h-eyebrow">${now.getFullYear()}년 ${now.getMonth()+1}월 · ${M.company}</div>
-        <h1 class="h-title">안녕하세요, ${M.user} ${M.role}님</h1>
-      </div>
-      <button class="btn-icon">${ICON.bell}</button>
-    </div>
-    <div class="page-body">
-      <div class="briefing-eyebrow">오늘의 브리핑</div>
-      ${renderHomeProgressHtml()}
-      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
-      ${renderHomeTipsHtml()}
-      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
-      <div class="section-label" style="margin-bottom:16px;">최근거래내역</div>
-      ${renderRecentTxHtml()}
+  // 손익 현황 섹션 — 대리(staff)에게는 숨김
+  const pnlSection = `
       <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
@@ -295,7 +281,25 @@ function renderHome() {
       <div class="stat-row">
         <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:var(--ink);">${fmtSigned(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${t.margin}%</div><div class="stat-delta flat">목표 ${t.targetMargin}%</div></div>
+      </div>`;
+
+  return `
+    <div class="page-header">
+      <div>
+        <div class="h-eyebrow">${now.getFullYear()}년 ${now.getMonth()+1}월 · ${M.company}</div>
+        <h1 class="h-title">안녕하세요, ${M.user} ${M.role}님</h1>
       </div>
+      <button class="btn-icon">${ICON.bell}</button>
+    </div>
+    <div class="page-body">
+      <div class="briefing-eyebrow">오늘의 브리핑</div>
+      ${renderHomeProgressHtml()}
+      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
+      ${renderHomeTipsHtml()}
+      <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
+      <div class="section-label" style="margin-bottom:16px;">최근거래내역</div>
+      ${renderRecentTxHtml()}
+      ${AUTH.role() !== 'staff' ? pnlSection : ''}
       ${AUTH.can('tax') ? `
       <button class="alert" data-goto="tax" style="width:100%;text-align:left;margin-top:8px;">
         <div>
