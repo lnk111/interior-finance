@@ -1,6 +1,6 @@
 // 디자인포 머니플로우 — 캐시 우선 전략 (빠른 로딩)
 // 파일이 바뀔 때마다 CACHE_NAME의 버전을 올리면 사용자 기기에서 새 파일을 받음
-const CACHE_NAME = 'designfor-v3';
+const CACHE_NAME = 'designfor-v4';
 
 // 앱 셸 — 설치 시 미리 캐싱 (다음 접속부터 즉시 로딩)
 const ASSETS = [
@@ -43,10 +43,9 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-// 요청 처리: 캐시 우선 + 백그라운드 갱신 (Stale-While-Revalidate)
-// 1) 캐시에 있으면 즉시 반환 (체감 속도 ↑)
-// 2) 동시에 백그라운드에서 네트워크로 새 버전 받아 캐시 갱신
-// 3) 다음 접속 때 새 버전 사용
+// 요청 처리: 네트워크 우선 (Network-First) + 오프라인 시 캐시 폴백
+// 1) 온라인이면 항상 최신 파일을 받고 캐시도 갱신 → 배포 즉시 반영
+// 2) 네트워크 실패(오프라인)면 캐시로 폴백 → 오프라인에서도 동작
 self.addEventListener('fetch', function(e) {
   if (e.request.method !== 'GET') return;
 
@@ -61,22 +60,16 @@ self.addEventListener('fetch', function(e) {
   }
 
   e.respondWith(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.match(e.request).then(function(cached) {
-        // 백그라운드 갱신 (응답을 기다리지 않음)
-        var networkPromise = fetch(e.request).then(function(res) {
-          // 200 OK인 정상 응답만 캐시에 저장
-          if (res && res.status === 200 && res.type === 'basic') {
-            cache.put(e.request, res.clone());
-          }
-          return res;
-        }).catch(function() {
-          // 네트워크 실패는 무시 — 캐시가 있으면 그걸 쓰면 됨
-        });
-
-        // 캐시 있으면 즉시 반환, 없으면 네트워크 응답 기다림
-        return cached || networkPromise;
-      });
+    fetch(e.request).then(function(res) {
+      // 정상 응답이면 캐시 갱신 후 반환
+      if (res && res.status === 200 && res.type === 'basic') {
+        var copy = res.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, copy); });
+      }
+      return res;
+    }).catch(function() {
+      // 오프라인 — 캐시에서 폴백
+      return caches.open(CACHE_NAME).then(function(cache) { return cache.match(e.request); });
     })
   );
 });
