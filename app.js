@@ -237,7 +237,7 @@ function renderHome() {
     <div class="page-body">
       <div class="briefing-eyebrow">오늘의 브리핑</div>
       ${renderHomeProgressHtml()}
-      <div style="height:1px;background:var(--hair);margin:6px 0 18px;"></div>
+      <div style="height:6px;background:#E6E6E6;margin:10px calc(-1 * var(--pad)) 18px;"></div>
       ${renderHomeTipsHtml()}
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
