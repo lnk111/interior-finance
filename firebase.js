@@ -210,6 +210,7 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
       phase: e.process || '',
       amount: e.amount || 0,
       when: formatWhen(e.date),
+      date: e.date || '',
       invoice: e.taxInvoice || false,
       pay: e.payMethod || '',
     }));

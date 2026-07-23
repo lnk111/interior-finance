@@ -204,27 +204,52 @@ function renderHomeTipsHtml() {
     <button data-modal="tip" style="width:100%;padding:13px;margin-bottom:8px;border:1px solid var(--hair);border-radius:12px;background:var(--surface-2,#f6f7f9);color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 기록</button>`;
 }
 
+// 최근 거래 내역 — 은행앱 스타일, 월별 그룹(달 바뀔 때만 가로줄)
+function renderRecentTxHtml() {
+  const rows = (M.recent || []).slice(0, 5);
+  if (!rows.length) return `<div class="empty" style="padding:20px;font-size:13px;">거래 내역이 없어요</div>`;
+  const groups = [];
+  rows.forEach(r => {
+    const d = r.date || '';
+    const ym = d ? d.slice(0, 7) : '기타';
+    let g = groups.find(x => x.ym === ym);
+    if (!g) {
+      g = { ym, label: d ? `${d.slice(0, 4)}년 ${parseInt(d.slice(5, 7), 10)}월` : '날짜 미상', items: [] };
+      groups.push(g);
+    }
+    g.items.push(r);
+  });
+  return groups.map((g, gi) => {
+    const divider = gi > 0 ? `<div style="height:1px;background:var(--hair);margin:10px 0 0;"></div>` : '';
+    const labelMargin = gi > 0 ? '15px 0 4px' : '4px 0 4px';
+    const label = `<div style="font-size:14px;font-weight:500;color:var(--muted);margin:${labelMargin};">${g.label}</div>`;
+    const items = g.items.map(r => {
+      const isRev = r.kind === '매출';
+      const circleBg = isRev ? 'var(--info-soft)' : 'var(--warn-soft)';
+      const circleFg = isRev ? 'var(--info)' : 'var(--warn)';
+      const amtColor = isRev ? '#2563EB' : 'var(--ink)';
+      const amt = (r.amount || 0).toLocaleString('ko-KR') + '원';
+      const dd = r.date ? `${parseInt(r.date.slice(5, 7), 10)}월 ${parseInt(r.date.slice(8, 10), 10)}일` : (r.when || '');
+      const content = r.stage || r.phase || '거래';
+      return `<div onclick="modalTxEdit('${r._key || r.id || ''}')" style="display:flex;align-items:center;gap:12px;padding:12px 2px;cursor:pointer;">
+        <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:${circleBg};color:${circleFg};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">${r.kind}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:16px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${content}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;">${dd}</div>
+        </div>
+        <div style="flex-shrink:0;text-align:right;max-width:140px;">
+          <div style="font-size:16px;font-weight:700;color:${amtColor};">${amt}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.site || ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return divider + label + items;
+  }).join('');
+}
+
 function renderHome() {
   const t = M.totals;
   const now = new Date();
-
-  const recentHtml = M.recent.slice(0, 5).map(r => {
-    const cls = r.kind === '매출' ? 'pill-accent' : r.kind === 'AS' ? 'pill-pin' : 'pill-warn';
-    const isIn = r.kind === '매출';                                   // 매출=입금(양수), 매입·AS=지출(음수)
-    const amtColor = isIn ? '#2563EB' : 'var(--ink)';                 // 양수=파랑, 음수=흑백
-    const amtText = (isIn ? '' : '-') + (r.amount || 0).toLocaleString('ko-KR') + '원';
-    const ava = (r.site || '').replace(/\s/g, '').slice(0, 2) || '—'; // 현장명 앞 2글자 아바타
-    const meta = [r.stage || r.phase, r.when].filter(Boolean).join(' · ');
-    return `
-      <button class="list-row list-row--tx" onclick="modalTxEdit('${r._key||r.id||''}')" style="width:100%;text-align:left;">
-        <div class="tx-ava">${ava}</div>
-        <div class="tx-main">
-          <div class="tx-amt num" style="color:${amtColor};">${amtText}</div>
-          <div class="tx-sub">${r.site || ''}${meta ? ' · ' + meta : ''}</div>
-        </div>
-        <span class="pill ${cls}">${r.kind}</span>
-      </button>`;
-  }).join('');
 
   return `
     <div class="page-header">
@@ -240,8 +265,8 @@ function renderHome() {
       <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
       ${renderHomeTipsHtml()}
       <div style="height:6px;background:#E6E6E6;margin:25px calc(-1 * var(--pad));"></div>
-      <div class="section-label">최근거래내역 <span class="pill pill-warn" style="cursor:pointer;" onclick="openPendingList()">미정리 ${M.unsorted}건</span></div>
-      <div class="list">${recentHtml}</div>
+      <div class="section-label" style="margin-bottom:16px;">최근거래내역</div>
+      ${renderRecentTxHtml()}
       <div class="section-label" style="margin-top:8px;">손익 현황
         <span class="more"><span class="pill pill-muted" style="font-size:11px;">${AUTH.roleLabel()} 모드</span></span>
       </div>

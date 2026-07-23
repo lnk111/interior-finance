@@ -33,13 +33,13 @@ window.MOCK = {
   ],
 
   recent: [
-    { id: 'r1', kind: '매출', site: '서초 래미안 32평', stage: '중도금', amount: 18_000_000, when: '오늘 14:32', invoice: true, pay: '계좌이체' },
-    { id: 'r2', kind: '매입', site: '판교 푸르지오', phase: '목공자재', amount: 4_280_000, when: '오늘 11:08', invoice: true, pay: '계좌이체' },
-    { id: 'r3', kind: '매출', site: '강남 아이파크', stage: '잔금', amount: 9_600_000, when: '어제', invoice: false, pay: '현금' },
-    { id: 'r4', kind: 'AS', site: '마포 자이 18평', phase: '실리콘 재시공', amount: 350_000, when: '어제', invoice: false, pay: '현금' },
-    { id: 'r5', kind: '매입', site: '서초 래미안', phase: '타일·접착제', amount: 2_140_000, when: '5/3', invoice: true, pay: '신용카드' },
-    { id: 'r6', kind: '매출', site: '판교 푸르지오', stage: '착수금', amount: 12_750_000, when: '5/2', invoice: true, pay: '계좌이체' },
-    { id: 'r7', kind: '매입', site: '판교 푸르지오', phase: '인건비 (목수 2인)', amount: 1_800_000, when: '5/2', invoice: false, pay: '계좌이체' },
+    { id: 'r1', kind: '매출', site: '서초 래미안 32평', stage: '중도금', amount: 18_000_000, when: '오늘 14:32', date: '2026-07-23', invoice: true, pay: '계좌이체' },
+    { id: 'r2', kind: '매입', site: '판교 푸르지오', phase: '목공자재', amount: 4_280_000, when: '오늘 11:08', date: '2026-07-23', invoice: true, pay: '계좌이체' },
+    { id: 'r3', kind: '매출', site: '강남 아이파크', stage: '잔금', amount: 9_600_000, when: '어제', date: '2026-07-22', invoice: false, pay: '현금' },
+    { id: 'r4', kind: 'AS', site: '마포 자이 18평', phase: '실리콘 재시공', amount: 350_000, when: '어제', date: '2026-07-22', invoice: false, pay: '현금' },
+    { id: 'r5', kind: '매입', site: '서초 래미안', phase: '타일·접착제', amount: 2_140_000, when: '5/3', date: '2026-05-03', invoice: true, pay: '신용카드' },
+    { id: 'r6', kind: '매출', site: '판교 푸르지오', stage: '착수금', amount: 12_750_000, when: '5/2', date: '2026-05-02', invoice: true, pay: '계좌이체' },
+    { id: 'r7', kind: '매입', site: '판교 푸르지오', phase: '인건비 (목수 2인)', amount: 1_800_000, when: '5/2', date: '2026-05-02', invoice: false, pay: '계좌이체' },
   ],
 
   asList: [
