@@ -136,18 +136,29 @@ function modalSchedule(editKey = null, prefillDate = null) {
         </div>
         <div class="modal-body">
           <div class="field">
+            <label class="field-label">현장</label>
+            <select class="input" id="sched-site">
+              <option value="">현장 미지정</option>
+              ${(window.MOCK?.sites || []).map(s => `<option value="${(s.name || '').replace(/"/g, '&quot;')}" ${existing.site === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
             <label class="field-label">제목 <span class="req">*</span></label>
-            <input class="input" id="sched-title" placeholder="예) 서초 래미안 점검" value="${existing.title || ''}">
+            <input class="input" id="sched-title" placeholder="예) 1차미팅, 현장실측, 타일쇼룸" value="${existing.title || ''}">
           </div>
           <div class="grid-2">
             <div class="field">
-              <label class="field-label">날짜 <span class="req">*</span></label>
+              <label class="field-label">시작일 <span class="req">*</span></label>
               <input class="input" type="date" id="sched-date" value="${existing.date || prefillDate || today}">
             </div>
             <div class="field">
-              <label class="field-label">시간</label>
-              <input class="input" type="time" id="sched-time" value="${existing.time || ''}">
+              <label class="field-label">종료일</label>
+              <input class="input" type="date" id="sched-enddate" value="${existing.endDate || ''}">
             </div>
+          </div>
+          <div class="field">
+            <label class="field-label">시간</label>
+            <input class="input" type="time" id="sched-time" value="${existing.time || ''}">
           </div>
           <div class="field">
             <label class="field-label">메모</label>
@@ -173,12 +184,15 @@ function modalSchedule(editKey = null, prefillDate = null) {
 
 async function schedSave(editKey) {
   const title = document.getElementById('sched-title')?.value?.trim();
+  const site = document.getElementById('sched-site')?.value || '';
   const date = document.getElementById('sched-date')?.value;
+  const endDate = document.getElementById('sched-enddate')?.value || '';
   const time = document.getElementById('sched-time')?.value || '';
   const memo = document.getElementById('sched-memo')?.value?.trim() || '';
 
   if (!title) { alert('제목을 입력해주세요'); return; }
-  if (!date) { alert('날짜를 선택해주세요'); return; }
+  if (!date) { alert('시작일을 선택해주세요'); return; }
+  if (endDate && endDate < date) { alert('종료일이 시작일보다 빠를 수 없어요'); return; }
 
   // 참석자 수집
   const attendees = [];
@@ -186,7 +200,7 @@ async function schedSave(editKey) {
     attendees.push(cb.value);
   });
 
-  const data = { title, date, time, memo, attendees };
+  const data = { title, site, date, endDate, time, memo, attendees };
   const btn = document.querySelector('.modal-foot .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
 

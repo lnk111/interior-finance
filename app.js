@@ -896,80 +896,76 @@ function entryRemovePhoto(idx) { window._entryPhotos.splice(idx,1); entryRenderP
 
 // ===== SITES =====
 let sitesFilter='공사중';
+let _siteYear = new Date().getFullYear();
+let _siteMonth = new Date().getMonth() + 1;
+let _siteSortDesc = true;
 
+function siteMonthShift(delta) {
+  let m = _siteMonth + delta, y = _siteYear;
+  if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+  _siteMonth = m; _siteYear = y;
+  navigate('sites');
+}
+function siteSortToggle() {
+  _siteSortDesc = !_siteSortDesc;
+  navigate('sites');
+}
+
+// 현장 관리 — 월별 일정 리스트 (scheduleData 기반)
 function renderSites() {
-  const filters=['공사중','전체','계약완료','AS관리'];
-  let list = sitesFilter==='전체'?[...M.sites]:M.sites.filter(s=>s.status===sitesFilter);
-  list.sort((a,b)=>{
-    const aa=a.status==='공사중'?1:0, bb=b.status==='공사중'?1:0;
-    if(aa!==bb) return bb-aa;
-    return (b._createdAt||0)-(a._createdAt||0);
+  const y = _siteYear, mo = _siteMonth;
+  const ymNum = y * 100 + mo;
+  const schedules = window.FB?.scheduleData || {};
+  const PIN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.686-6-10a6 6 0 0112 0c0 4.314-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>';
+  const SORT = '<svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5V12M3.5 12L1.5 10M3.5 12L5.5 10"/><path d="M8.5 9V2M8.5 2L6.5 4M8.5 2L10.5 4"/></svg>';
+  const FILTER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>';
+  const fmtD = ds => `${parseInt(ds.slice(5, 7), 10)}월 ${parseInt(ds.slice(8, 10), 10)}일`;
+
+  const rows = Object.entries(schedules).map(([key, sc]) => {
+    const start = sc.date || '';
+    const end = sc.endDate || sc.date || '';
+    return { key, site: sc.site || '', title: sc.title || '', start, end };
+  }).filter(r => {
+    if (!r.start) return false;
+    const sYM = parseInt(r.start.slice(0, 4), 10) * 100 + parseInt(r.start.slice(5, 7), 10);
+    const eYM = r.end ? parseInt(r.end.slice(0, 4), 10) * 100 + parseInt(r.end.slice(5, 7), 10) : sYM;
+    return sYM <= ymNum && ymNum <= eYM;
+  }).sort((a, b) => {
+    const d = a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
+    return _siteSortDesc ? -d : d;
   });
-  const filterHtml=filters.map(f=>`<button class="filter-chip ${sitesFilter===f?'is-active':''}" data-filter="${f}">${f}</button>`).join('');
 
-  // 다가오는 공사 섹션 — 공사중·전체·계약완료 필터일 때 표시
-  let upcomingHtml = '';
-  const upcomingArr = (M.upcomingSites || []);
-  if (upcomingArr.length > 0 && (sitesFilter === '공사중' || sitesFilter === '전체' || sitesFilter === '계약완료')) {
-    const cards = upcomingArr.map(u => {
-      const dLabel = u.dDays === 0 ? 'D-day' : `D-${u.dDays}`;
-      const isUrgent = u.dDays <= 2;
-      const isImminent = u.dDays <= 7;
-      const badgeBg = isUrgent ? '#DC2626' : isImminent ? 'var(--warn, #D97706)' : 'var(--accent)';
-      const startStr = u.firstStart.slice(5).replace('-', '.');
-      const escName = u.name.replace(/'/g, "\\'");
-      return `
-        <div class="site-card" onclick="tapSite(this,'${escName}')" style="border-left:3px solid ${badgeBg};">
-          <div class="site-card-head">
-            <div>
-              <div class="site-card-name">${u.name}</div>
-              <div class="site-card-meta">${u.client || ''} · ${startStr} 공사 시작 예정</div>
-            </div>
-            <span class="pill" style="background:${badgeBg};color:#fff;border:none;font-weight:800;">${dLabel}</span>
-          </div>
-        </div>`;
-    }).join('');
-    upcomingHtml = `
-      <div class="section-label" style="margin-top:4px;margin-bottom:8px;">🚧 곧 시작하는 공사 <span class="more">${upcomingArr.length}건</span></div>
-      ${cards}
-      <div style="height:14px;"></div>`;
-  }
-
-  const cardsRaw = list.map(s=>`
-    <div class="site-card" onclick="tapSite(this,'${s.name.replace(/'/g,"\\'")}')">
-      <div class="site-card-head">
-        <div>
-          <div class="site-card-name">${s.name}</div>
-          <div class="site-card-meta">${s.client} · ${s.start}${s.end&&s.end!=='—'?' – '+s.end:''}</div>
+  const listHtml = rows.length ? rows.map(r => {
+    const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fmtD(r.start)} ~ ${fmtD(r.end)}`;
+    return `
+      <div onclick="modalSchedule('${r.key}')" style="display:flex;align-items:center;gap:12px;padding:14px 2px;cursor:pointer;">
+        <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#F1F1F5;display:flex;align-items:center;justify-content:center;">${PIN}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.site || '현장 미지정'}</div>
+          <div style="font-size:14px;color:var(--muted);margin-top:3px;">${period}</div>
         </div>
-        <span class="pill status-${s.status}">${s.status}</span>
-      </div>
-      <div class="site-card-stats">
-        <div><div class="s-k">매출</div><div class="s-v num">${fmtSlim(s.revenue)}</div></div>
-        <div><div class="s-k">매입</div><div class="s-v num">${fmtSlim(s.cost)}</div></div>
-        <div><div class="s-k">이익</div><div class="s-v num" style="color:${s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'};">${fmtSlim(s.profit)}</div></div>
-      </div>
-      ${s.progress>0?`<div class="progress-row">
-        <span class="p-label">${s.phase}</span>
-        <div class="p-track"><div class="p-fill" style="width:${s.progress}%"></div></div>
-        <span class="p-pct num">${s.progress}%</span>
-      </div>`:''}
-    </div>`).join('');
-  // 다가오는 공사가 있으면 빈 메시지 숨김
-  const cardsHtml = cardsRaw || (upcomingArr.length > 0 ? '' : '<div class="empty">결과가 없습니다</div>');
+        <div style="flex-shrink:0;font-size:16px;font-weight:500;color:var(--ink-2);text-align:right;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+      </div>`;
+  }).join('') : `<div class="empty" style="padding:40px 20px;">${mo}월 일정이 없어요</div>`;
+
   return `
     <div class="page-header">
-      <div>
-        <div class="h-eyebrow">현장 ${M.sites.length}개 · 진행중 ${M.sites.filter(x=>x.status==='공사중').length}</div>
-        <h1 class="h-title">현장 관리</h1>
-      </div>
-      <button class="btn btn-primary btn-sm" data-modal="site">+ 등록</button>
+      <div><h1 class="h-title">현장 관리</h1></div>
     </div>
-    <div class="filter-row">${filterHtml}</div>
     <div class="page-body">
-      ${upcomingHtml}
-      ${cardsHtml}
-    </div>`;
+      <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin:4px 0 16px;">
+        <button onclick="siteMonthShift(-1)" aria-label="이전 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:32px;line-height:1;padding:0 4px;font-family:inherit;">‹</button>
+        <span style="font-size:25px;font-weight:700;color:var(--ink);min-width:70px;text-align:center;">${mo}월</span>
+        <button onclick="siteMonthShift(1)" aria-label="다음 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:32px;line-height:1;padding:0 4px;font-family:inherit;">›</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px 10px;">
+        <button onclick="siteSortToggle()" style="background:none;border:0;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:inherit;">${_siteSortDesc ? '최근과거순' : '과거최근순'} ${SORT}</button>
+        <button style="background:none;border:0;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:inherit;">상세검색 ${FILTER}</button>
+      </div>
+      <div style="height:1px;background:var(--hair);margin:0 calc(-1 * var(--pad)) 4px;"></div>
+      ${listHtml}
+    </div>
+    <button data-modal="site" class="site-fab">현장추가</button>`;
 }
 
 // ===== Router =====

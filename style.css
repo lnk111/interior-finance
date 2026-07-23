@@ -212,6 +212,27 @@ input, textarea, select { font-family: inherit; }
 .briefing-eyebrow { font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin: 4px 0 10px; }
 .home-proc-track::-webkit-scrollbar { display: none; }
 .home-tips-track::-webkit-scrollbar { display: none; }
+
+/* 현장 관리 하단 플로팅 '현장추가' 버튼 */
+.site-fab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--tabbar-h) + 14px);
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid var(--hair);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  font-family: inherit;
+  z-index: 90;
+}
+.site-fab:active { transform: translateX(-50%) scale(0.96); }
 .briefing-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin: 6px 0 14px; line-height: 1.4; }
 .briefing-list { display: flex; flex-direction: column; gap: 8px; }
 .briefing-item {
