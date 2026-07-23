@@ -641,7 +641,7 @@ function renderSiteDetail() {
   const _segL = prevP ? 'var(--accent)' : 'var(--hair)';
   const _segR = 'var(--hair)';
   const subwayBar = `
-    <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:14px 8px 12px;margin-bottom:8px;display:flex;">
+    <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:14px 8px 12px;margin-bottom:8px;display:flex;align-items:flex-start;">
       ${subwayStation(prevP, 'prev', 'transparent', _segL)}
       ${subwayStation(curP, 'cur', _segL, _segR)}
       ${subwayStation(nextP, 'next', _segR, 'transparent')}
