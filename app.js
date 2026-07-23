@@ -95,55 +95,15 @@ function tipFilterChipsHtml(activeKey) {
 }
 
 // ===== HOME =====
-// 공사중 현장별 [이전 · 진행 중 · 다음] 공정 스텝퍼 (현장 상세와 동일한 지하철식 UI)
+// 공사중 현장별 [오늘 공정 » 내일 공정] 카드 (연한 그린 배경)
 function renderHomeProgressHtml() {
   const activeSites = (M.sites || []).filter(s => s.status === '공사중');
+  const cardBase = 'cursor:pointer;background:#F1F7F3;border-color:var(--accent-soft);';
   if (!activeSites.length) {
-    return `<div class="briefing"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">진행중인 공사 현장이 없어요</div></div>`;
+    return `<div class="briefing" style="background:#F1F7F3;border-color:var(--accent-soft);"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">진행중인 공사 현장이 없어요</div></div>`;
   }
   const todayStr = toToday();
   const calcSt = (s, e) => (!s && !e) ? 'wait' : (s && todayStr < s) ? 'wait' : (e && todayStr > e) ? 'done' : 'active';
-  const mmdd = d => d ? d.slice(5).replace('-', '.') : '';
-  function procMeta(ph) {
-    const st = calcSt(ph.startDate, ph.doneDate), a = mmdd(ph.startDate), b = mmdd(ph.doneDate);
-    if (st === 'done')   return b || a || '완료';
-    if (st === 'active') return a ? a + ' ~' : '진행 중';
-    return a ? a + ' 예정' : '예정';
-  }
-  function station(ph, role, curIsActive, lineL, lineR) {
-    const labelMap = { prev: '이전', cur: curIsActive ? '진행 중' : '다음 차례', next: '다음' };
-    const labelColor = role === 'cur' ? 'var(--accent)' : 'var(--muted)';
-    if (!ph) {
-      const txt = role === 'prev' ? '시작 전' : role === 'next' ? '마지막 공정' : '-';
-      return `<div style="flex:1;text-align:center;opacity:.45;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">${labelMap[role]}</div>
-        <div style="display:flex;align-items:center;height:20px;">
-          <div style="flex:1;height:2px;background:${lineL};"></div>
-          <span style="width:11px;height:11px;border-radius:50%;background:var(--faint);flex-shrink:0;"></span>
-          <div style="flex:1;height:2px;background:${lineR};"></div>
-        </div>
-        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-top:5px;">${txt}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:1px;">&nbsp;</div>
-      </div>`;
-    }
-    const st = calcSt(ph.startDate, ph.doneDate), isCur = role === 'cur';
-    let dot;
-    if (st === 'active') dot = 'width:15px;height:15px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px rgba(154,75,46,.18);flex-shrink:0;';
-    else if (st === 'done') dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--accent);flex-shrink:0;`;
-    else dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--faint);flex-shrink:0;`;
-    const nameColor = isCur ? 'var(--ink)' : 'var(--muted)';
-    const nameWeight = isCur ? '800' : '700';
-    return `<div style="flex:1;text-align:center;">
-      <div style="font-size:12px;font-weight:700;color:${labelColor};margin-bottom:4px;">${labelMap[role]}</div>
-      <div style="display:flex;align-items:center;height:20px;">
-        <div style="flex:1;height:2px;background:${lineL};"></div>
-        <span style="${dot}"></span>
-        <div style="flex:1;height:2px;background:${lineR};"></div>
-      </div>
-      <div style="font-size:13.5px;font-weight:${nameWeight};color:${nameColor};margin-top:5px;line-height:1.3;">${ph.name}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:1px;">${procMeta(ph)}</div>
-    </div>`;
-  }
   return activeSites.map(s => {
     const key = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
     const pd = window.FB?._procAll?.[key] || {};
@@ -160,28 +120,22 @@ function renderHomeProgressHtml() {
     let curIdx = phases.findIndex(ph => calcSt(ph.startDate, ph.doneDate) === 'active');
     if (curIdx === -1) curIdx = phases.findIndex(ph => calcSt(ph.startDate, ph.doneDate) === 'wait');
     if (curIdx === -1) curIdx = phases.length - 1;
-    const prevP = curIdx > 0 ? phases[curIdx - 1] : null;
-    const curP  = phases[curIdx] || null;
-    const nextP = curIdx < phases.length - 1 ? phases[curIdx + 1] : null;
-    const curIsActive = curP && calcSt(curP.startDate, curP.doneDate) === 'active';
-    const segL = prevP ? 'var(--accent)' : 'var(--hair)';
-    const segR = 'var(--hair)';
-    const done = phases.filter(p => calcSt(p.startDate, p.doneDate) === 'done').length;
-    const pct  = phases.length ? Math.round(done / phases.length * 100) : 0;
-    const stepper = phases.length
-      ? `<div style="display:flex;align-items:flex-start;">
-          ${station(prevP, 'prev', curIsActive, 'transparent', segL)}
-          ${station(curP,  'cur',  curIsActive, segL, segR)}
-          ${station(nextP, 'next', curIsActive, segR, 'transparent')}
-        </div>`
-      : `<div style="padding:8px 0;text-align:center;color:var(--muted);font-size:13px;">등록된 공정이 없어요</div>`;
+    const curP  = phases[curIdx] || null;                                  // 오늘 공정 (진행 중)
+    const nextP = curIdx < phases.length - 1 ? phases[curIdx + 1] : null;  // 내일 공정 (다음)
+    const todayName    = curP  ? curP.name  : '공정 정보 없음';
+    const tomorrowName = nextP ? nextP.name : '—';
+    const nameEsc = (s.name || '').replace(/'/g, "\\'");
     return `
-      <div class="briefing" style="cursor:pointer;" onclick="openSiteDetail('${s.name.replace(/'/g, "\\'")}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-size:15px;font-weight:800;color:var(--ink);">${s.name}</div>
-          <span style="font-size:13px;font-weight:800;color:var(--accent);">${pct}%</span>
+      <div class="briefing" style="${cardBase}" onclick="openSiteDetail('${nameEsc}')">
+        <div style="font-size:16px;font-weight:400;color:var(--muted);margin-bottom:14px;">${s.name}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px;min-width:0;">
+            <span style="font-size:36px;font-weight:800;color:var(--ink);line-height:1.05;">${todayName}</span>
+            <span style="font-size:22px;font-weight:700;color:var(--muted);">»</span>
+            <span style="font-size:28px;font-weight:800;color:var(--muted);line-height:1.05;">${tomorrowName}</span>
+          </div>
+          <div style="flex-shrink:0;width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 1px 4px rgba(0,0,0,.06);">🔨</div>
         </div>
-        ${stepper}
       </div>`;
   }).join('');
 }
