@@ -405,6 +405,7 @@ let inputState = {
 };
 function resetInputFlow() {
   inputState.step = 1;
+  inputState.sub = 'proc';
   inputState.tab = '매입';
   inputState.stage = '';
   inputState.phase = '';
@@ -502,8 +503,9 @@ function renderInput() {
   const st = inputState;
   if (!st.step) st.step = 1;
   if (st.step === 1) return inputStepTypeSite();   // 거래내용 입력 = 거래 종류(탭) + 현장 선택 통합
-  const total = 8;
-  const stepLabel = ['거래내용 입력', st.tab==='매출' ? '결제 단계' : '공정 선택', '금액 입력', '결제 방법', '입력자', '메모', '영수증 첨부', '입력 확인'];
+  if (st.step === 2) return inputStepDetail();      // 공정/결제 · 상세내용 · 금액 통합
+  const total = 6;
+  const stepLabel = ['', '', '결제 방법', '입력자', '영수증 첨부', '입력 확인'];
   const header = `
     <div style="display:flex;align-items:center;gap:10px;padding:14px var(--pad) 8px;">
       <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--hair);background:#fff;cursor:pointer;font-size:17px;flex-shrink:0;">‹</button>
@@ -517,14 +519,73 @@ function renderInput() {
       </div>
     </div>`;
   let body = '';
-  if (st.step===2) body = inputStepMid();
-  else if (st.step===3) body = inputStepAmount();
-  else if (st.step===4) body = inputStepPay();
-  else if (st.step===5) body = inputStepWriter();
-  else if (st.step===6) body = inputStepMemo();
-  else if (st.step===7) body = inputStepReceipt();
+  if (st.step===3) body = inputStepPay();
+  else if (st.step===4) body = inputStepWriter();
+  else if (st.step===5) body = inputStepReceipt();
   else body = inputStepConfirm();
   return `${header}<div style="padding:0 0 28px;">${body}</div>`;
+}
+
+// 2단계 통합 — 공정/결제 선택 → 상세내용 → 금액 (진행형)
+function inputStepDetail() {
+  const st = inputState;
+  if (!st.sub) st.sub = 'proc';
+  const isRev = st.tab === '매출';
+  const ctxWord = isRev ? '매출액' : st.tab === 'AS' ? 'AS비용' : '매입액';
+  const midLabel = isRev ? '결제 단계' : '공정';
+  const midVal = isRev ? (st.stage||'') : (st.phase||'');
+  const items = isRev ? (M.paymentStages||[]) : (M.phases||[]);
+  const pickAct = isRev ? 'stage2' : 'proc2';
+  const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
+  const name = st.site || '';
+  const dm = name.match(/\d+동/);
+  const siteHtml = dm ? `<span style="color:var(--ink);">${name.slice(0,name.indexOf(dm[0])).trim()}</span> <span style="color:var(--muted);">${name.slice(name.indexOf(dm[0])).trim()}</span>` : `<span style="color:var(--ink);">${name}</span>`;
+  const PENCIL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+  const LAB = 'font-size:15px;font-weight:400;color:var(--ink);';
+  const VAL = 'font-size:15px;font-weight:600;color:var(--ink);';
+  const fieldLine = (l, v) => `<span style="${LAB}">${l}</span> <span style="${VAL}">${v}</span>`;
+  const esc = v => String(v || '').replace(/"/g, '&quot;');
+
+  const head = `
+    <div style="display:flex;align-items:center;padding:12px var(--pad) 8px;">
+      <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:0;background:none;cursor:pointer;font-size:22px;color:var(--ink);padding:0;">‹</button>
+    </div>
+    <div style="padding:0 var(--pad);">
+      <div><span style="font-size:18px;font-weight:700;color:var(--ink);">${ctxWord}</span><span style="font-size:18px;font-weight:400;color:var(--muted);">을 입력중입니다</span></div>
+      <div style="font-size:15px;font-weight:400;margin-top:8px;">${siteHtml}</div>
+    </div>`;
+
+  let content = '', bottom = '';
+  if (st.sub === 'proc') {
+    const btns = items.map(p => `<button data-iact="${pickAct}" data-val="${esc(p)}" style="display:flex;align-items:center;justify-content:center;margin:4px 0;background:none;border:0;padding:16px 0;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${p}</button>`).join('');
+    const direct = `<button data-iact="proc2-direct" style="display:flex;align-items:center;justify-content:center;gap:5px;margin:4px 0;background:none;border:0;padding:16px 0;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL}</button>`;
+    content = `<div style="padding:22px var(--pad) 0;">
+        <div style="${LAB}margin-bottom:20px;">${midLabel} 선택</div>
+        <div style="border:1px solid var(--hair);border-radius:10px;overflow:hidden;"><div style="display:grid;grid-template-columns:repeat(3,1fr);">${btns}${direct}</div></div>
+      </div>`;
+  } else if (st.sub === 'detail') {
+    content = `<div style="padding:22px var(--pad) 0;">
+        <div>${fieldLine(midLabel, midVal)}</div>
+        <div style="${LAB}margin-top:26px;">상세내용</div>
+        <div style="position:relative;margin:12px 0;">
+          <input id="iflow-detail" placeholder="예) 걸레받이 교체, 자재비" value="${esc(st.memo)}" onkeydown="if(event.key==='Enter'){event.preventDefault();handleInputFlow('detail-ok',this);}"
+            style="width:100%;box-sizing:border-box;border:1.5px solid var(--hair);border-radius:12px;padding:14px 66px 14px 14px;font-size:16px;font-family:inherit;outline:none;">
+          <button data-iact="detail-ok" id="iflow-detail-ok" style="display:${(st.memo||'').trim()?'block':'none'};position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--ink);color:#fff;border:0;border-radius:9px;padding:8px 12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button>
+        </div>
+      </div>`;
+  } else {
+    const keys = ['1','2','3','4','5','6','7','8','9','00','0','del'];
+    const pad = `<div style="display:grid;grid-template-columns:repeat(3,1fr);">${keys.map(k => `<button data-iact="key2" data-val="${k}" style="background:none;border:0;padding:16px 0;font-size:24px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${k==='del'?'⌫':k}</button>`).join('')}</div>`;
+    const nextBtn = amt ? `<button data-iact="detail-next" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;">다음</button>` : '';
+    content = `<div style="padding:22px var(--pad) 0;">
+        <div>${fieldLine(midLabel, midVal)}</div>
+        <div style="margin-top:20px;">${fieldLine('상세내용', (st.memo||'').trim()||'(없음)')}</div>
+        <div style="margin-top:28px;font-size:24px;font-weight:${amt?'700':'500'};color:${amt?'var(--ink)':'#8B95A1'};">${amt ? amt.toLocaleString('ko-KR')+'원' : '금액을 입력해주세요'}</div>
+      </div>`;
+    bottom = `<div style="padding:0 var(--pad);">${nextBtn}${pad}</div>`;
+  }
+
+  return `<div style="display:flex;flex-direction:column;min-height:calc(100dvh - var(--tabbar-h));">${head}${content}<div style="flex:1;"></div>${bottom}</div>`;
 }
 
 // 1단계 통합 화면 — 상단 매입/매출/AS 탭 + 현장 검색/목록
@@ -830,11 +891,11 @@ function inputStepConfirm() {
         ${_confRow('종류', st.tab, 1)}
         ${_confRow('현장', st.site||'-', 1)}
         ${_confRow(midK, midV, 2)}
-        ${_confRow('금액', `<span style="font-size:18px;font-weight:800;">${amt.toLocaleString('ko-KR')}원</span>`, 3)}
-        ${_confRow('결제 방법', st.payMethod||'-', 4)}
-        ${_confRow('입력자', st.inputter||'-', 5)}
-        ${_confRow('메모', (st.memo||'').trim()||'없음', 6)}
-        ${_confRow('영수증', nPhoto?nPhoto+'장':'없음', 7, true)}
+        ${_confRow('상세내용', (st.memo||'').trim()||'없음', 2)}
+        ${_confRow('금액', `<span style="font-size:18px;font-weight:800;">${amt.toLocaleString('ko-KR')}원</span>`, 2)}
+        ${_confRow('결제 방법', st.payMethod||'-', 3)}
+        ${_confRow('입력자', st.inputter||'-', 4)}
+        ${_confRow('영수증', nPhoto?nPhoto+'장':'없음', 5, true)}
       </div>
       <div class="field">
         <label class="field-label">날짜</label>
@@ -859,12 +920,37 @@ function handleInputFlow(act, el) {
   if (act==='tab') {
     st.tab = el.dataset.val; st.phase=''; st.stage=''; navigate('input');   // 종류 탭 변경 (같은 화면 유지)
   } else if (act==='site') {
-    st.site = el.dataset.val; st.step=2; navigate('input');
+    st.site = el.dataset.val; st.step=2; st.sub='proc'; navigate('input');
   } else if (act==='site-direct') {
     const inp = document.getElementById('iflow-site-search');
     const v = (inp && inp.value.trim()) || '';
     if (!v) { alert('현장명을 입력하거나 목록에서 선택해주세요'); return; }
-    st.site = v; st.step=2; navigate('input');
+    st.site = v; st.step=2; st.sub='proc'; navigate('input');
+  } else if (act==='proc2') {
+    st.phase = el.dataset.val; st.sub='detail'; navigate('input');
+    setTimeout(()=>document.getElementById('iflow-detail')?.focus(), 60);
+  } else if (act==='stage2') {
+    st.stage = el.dataset.val; st.sub='detail'; navigate('input');
+    setTimeout(()=>document.getElementById('iflow-detail')?.focus(), 60);
+  } else if (act==='proc2-direct') {
+    const v = (prompt('공정명을 직접 입력하세요') || '').trim();
+    if (!v) return;
+    st.phase = v; st.sub='detail'; navigate('input');
+    setTimeout(()=>document.getElementById('iflow-detail')?.focus(), 60);
+  } else if (act==='detail-ok') {
+    const inp = document.getElementById('iflow-detail');
+    st.memo = (inp && inp.value.trim()) || '';
+    st.sub='amount'; navigate('input');
+  } else if (act==='key2') {
+    let cur = String(st.amount||'').replace(/[^0-9]/g,'');
+    const v = el.dataset.val;
+    if (v==='del') cur = cur.slice(0,-1); else cur = cur + v;
+    cur = cur.replace(/^0+/,''); if (cur.length>12) cur = cur.slice(0,12);
+    st.amount = cur; navigate('input');
+  } else if (act==='detail-next') {
+    const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
+    if (!amt) { alert('금액을 입력해주세요'); return; }
+    st.step=3; st.sub=undefined; navigate('input');
   } else if (act==='proc') {
     st.phase = el.dataset.val; st.step=3; navigate('input');
   } else if (act==='proc-direct') {
@@ -891,15 +977,20 @@ function handleInputFlow(act, el) {
     if (!amt) { alert('금액을 입력해주세요'); return; }
     st.step=4; navigate('input');
   } else if (act==='back') {
-    if (st.step>1) { st.step--; navigate('input'); }
+    if (st.step===2) {
+      if (st.sub==='amount') { st.sub='detail'; navigate('input'); setTimeout(()=>document.getElementById('iflow-detail')?.focus(),60); }
+      else if (st.sub==='detail') { st.sub='proc'; navigate('input'); }
+      else { st.step=1; navigate('input'); }
+    } else if (st.step>1) { st.step--; navigate('input'); }
   } else if (act==='pay') {
-    st.payMethod = el.dataset.val; st.step=5; navigate('input');
+    st.payMethod = el.dataset.val; st.step=4; navigate('input');
   } else if (act==='inputter') {
-    st.inputter = el.dataset.val; st.step=6; navigate('input');
+    st.inputter = el.dataset.val; st.step=5; navigate('input');
   } else if (act==='next') {
     st.step++; navigate('input');
   } else if (act==='goto') {
-    st.step = parseInt(el.dataset.step,10) || 1; navigate('input');
+    const gs = parseInt(el.dataset.step,10) || 1;
+    st.step = gs; if (gs===2) st.sub='proc'; navigate('input');
   } else if (act==='invoice') {
     st.invoice = !st.invoice; navigate('input');
   } else if (act==='pending') {
@@ -1153,6 +1244,11 @@ document.addEventListener('input',e=>{
     inputState.site=e.target.value;
     const list=document.getElementById('iflow-site-list');
     if (list) list.innerHTML=inputSiteRowsNew(e.target.value);
+    return;
+  }
+  if (e.target.id==='iflow-detail') {
+    const ok=document.getElementById('iflow-detail-ok');
+    if (ok) ok.style.display = e.target.value.trim() ? 'block' : 'none';
     return;
   }
   if (e.target.id==='iflow-memo') {
