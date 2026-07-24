@@ -928,19 +928,20 @@ function renderSites() {
     start: sc.date || '', end: sc.endDate || sc.date || '',
   })).filter(r => r.site && r.start);
 
-  // 2) 공사중·계약완료 현장만 — 공사 기간을 상태 라벨로 표기
-  const constRows = (M.sites || []).filter(s => s.status === '공사중' || s.status === '계약완료').map(s => {
+  // 2) 모든 현장의 실제 공사 기간 — "A/S(AS)" 공정은 제외하고 "공사중"으로 표기
+  const isASphase = nm => (nm || '').toUpperCase().replace(/[\s/]/g, '').includes('AS');
+  const constRows = (M.sites || []).map(s => {
     const pk = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
     const pd = window.FB?._procAll?.[pk] || {};
     const starts = [], ends = [];
     Object.values(pd).forEach(p => {
+      if (isASphase(p.name)) return;   // A/S(AS) 공정은 공사 기간에서 제외
       if (p.startDate) { starts.push(p.startDate); ends.push(p.doneDate || p.startDate); }
       else if (p.doneDate) ends.push(p.doneDate);
     });
     if (!starts.length) return null;
     starts.sort(); ends.sort();
-    const active = s.status === '공사중';
-    return { kind: 'const', key: s.name, site: s.name, title: active ? '공사중' : (s.status || '공사'), active, start: starts[0], end: ends[ends.length - 1] };
+    return { kind: 'const', key: s.name, site: s.name, title: '공사중', active: true, start: starts[0], end: ends[ends.length - 1] };
   }).filter(Boolean);
 
   const filtered = [...constRows, ...schedRows].filter(r => {
