@@ -96,7 +96,7 @@ input, textarea, select { font-family: inherit; }
 
 /* Header */
 .page-header {
-  padding: calc(16px + env(safe-area-inset-top)) var(--pad) 14px;
+  padding: 16px var(--pad) 14px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -218,7 +218,7 @@ input, textarea, select { font-family: inherit; }
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(var(--tabbar-h) + 14px);
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px);
   padding: 10px 30px;
   border-radius: 20px;
   background: var(--ink);
