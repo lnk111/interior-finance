@@ -977,7 +977,7 @@ function renderSites() {
       return `<div onclick="${onclick}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;cursor:pointer;">
           <span style="font-size:13px;color:var(--muted);white-space:nowrap;">${period}</span>
           <span style="display:flex;align-items:center;gap:6px;min-width:0;">
-            <span style="font-size:15px;font-weight:${w};color:${c};text-align:right;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</span>
+            <span style="font-size:13px;font-weight:${w};color:${c};text-align:right;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</span>
             ${r.kind !== 'const' ? PENCIL : ''}
           </span>
         </div>`;
@@ -987,10 +987,10 @@ function renderSites() {
       <div onclick="openSiteDetail('${g.site.replace(/'/g, "\\'")}')" style="display:flex;align-items:center;gap:12px;padding:8px 2px 2px;cursor:pointer;">
         <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;">${PIN}</div>
         <div style="flex:1;min-width:0;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.site}</div>
-        <span style="flex-shrink:0;color:var(--faint);width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:20px;">›</span>
+        <span style="flex-shrink:0;color:var(--faint);width:25px;height:25px;display:inline-flex;align-items:center;justify-content:center;font-size:25px;">›</span>
       </div>
       <div style="padding-left:52px;">${evHtml}</div>`;
-  }).join('') : `<div class="empty" style="padding:40px 20px;">${mo}월 일정이 없어요</div>`;
+  }).join('') : `<div class="empty" style="padding:40px 20px;font-size:15px;">${mo}월 일정이 없어요</div>`;
 
   return `
     <div class="page-header">
@@ -998,9 +998,9 @@ function renderSites() {
     </div>
     <div class="page-body">
       <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin:4px 0 16px;">
-        <button onclick="siteMonthShift(-1)" aria-label="이전 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:32px;line-height:1;padding:0 4px;font-family:inherit;">‹</button>
+        <button onclick="siteMonthShift(-1)" aria-label="이전 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:35px;line-height:1;padding:0 4px;font-family:inherit;">‹</button>
         <span style="font-size:25px;font-weight:700;color:var(--ink);min-width:70px;text-align:center;">${mo}월</span>
-        <button onclick="siteMonthShift(1)" aria-label="다음 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:32px;line-height:1;padding:0 4px;font-family:inherit;">›</button>
+        <button onclick="siteMonthShift(1)" aria-label="다음 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:35px;line-height:1;padding:0 4px;font-family:inherit;">›</button>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding:0 2px;">
         <button onclick="siteSortToggle()" style="background:none;border:0;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:inherit;">${_siteSortDesc ? '최근과거순' : '과거최근순'} ${SORT}</button>
