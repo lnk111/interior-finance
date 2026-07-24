@@ -561,7 +561,7 @@ function inputSiteRowsNew(q) {
   const row = s => `<button data-iact="site" data-val="${String(s.name).replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:14px;width:100%;background:none;border:0;padding:12px 2px;cursor:pointer;font-family:inherit;text-align:left;">
       ${ava}
       <span style="flex:1;min-width:0;">
-        <span style="display:block;font-size:15px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</span>
+        <span style="display:block;font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</span>
         <span style="display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:3px;">${s.status||''}</span>
       </span>
     </button>`;
