@@ -185,17 +185,17 @@ function renderHomeTipsHtml() {
       : `<span style="font-size:13px;color:var(--muted);white-space:nowrap;">${f.label}</span>`;
     return `<button data-tip-filter="${f.key}" style="flex:1;min-width:0;display:flex;justify-content:center;align-items:center;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;">${inner}</button>`;
   }).join('');
-  const addCard = `<div data-modal="tip" style="flex:0 0 96px;box-sizing:border-box;background:#F1F1F5;border-radius:4px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--accent);cursor:pointer;">
+  const addCard = `<div data-modal="tip" style="flex:0 0 150px;height:158px;box-sizing:border-box;background:#fff;border:1px solid var(--hair);border-radius:4px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--accent);cursor:pointer;">
       <span style="font-size:24px;line-height:1;font-weight:400;">＋</span>
       <span style="font-size:14px;font-weight:700;">기록</span>
     </div>`;
   const tipCards = preview.length > 0
     ? preview.map(tp => {
         const cc = HOME_TIP_CAT_COLOR[tp.cat] || ['#F1F0EC', '#6B7684'];
-        return `<div class="tip-hcard" data-tip-key="${tp._key || ''}" style="flex:0 0 150px;box-sizing:border-box;background:#fff;border:1px solid var(--hair);border-radius:4px;padding:12px;text-align:left;display:flex;flex-direction:column;cursor:pointer;">
+        return `<div class="tip-hcard" data-tip-key="${tp._key || ''}" style="flex:0 0 150px;height:158px;box-sizing:border-box;background:#fff;border:1px solid var(--hair);border-radius:4px;padding:12px;text-align:left;display:flex;flex-direction:column;overflow:hidden;cursor:pointer;">
           <span style="align-self:flex-start;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;background:${cc[0]};color:${cc[1]};">${tp.cat}</span>
-          <div style="font-size:16px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1.35;">${tp.title}</div>
-          <div style="font-size:12px;color:var(--faint);margin-top:auto;padding-top:10px;line-height:1.35;">${tp.by} · ${tp.site}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${tp.title}</div>
+          <div style="font-size:12px;color:var(--faint);margin-top:auto;padding-top:10px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${tp.by} · ${tp.site}</div>
         </div>`;
       }).join('')
     : '';
@@ -296,7 +296,7 @@ function renderHome() {
       <div class="briefing-eyebrow">오늘의 브리핑</div>
       ${renderHomeProgressHtml()}
       <div style="height:6px;background:#F1F1F5;margin:25px calc(-1 * var(--pad));"></div>
-      ${renderHomeTipsHtml()}
+      <div id="home-tips-section">${renderHomeTipsHtml()}</div>
       <div style="height:6px;background:#F1F1F5;margin:25px calc(-1 * var(--pad));"></div>
       <div class="section-label" style="margin-bottom:16px;">최근거래내역</div>
       ${renderRecentTxHtml()}
@@ -1070,7 +1070,10 @@ document.addEventListener('click',e=>{
       document.querySelectorAll('[data-tip-filter]').forEach(c=>c.classList.toggle('is-active', c.dataset.tipFilter===window._tipsFilter));
       const box=document.getElementById('tips-results'); if (box) box.innerHTML=tipsResultsHtml();
     } else {
-      navigate('home');
+      // 홈: 노하우 섹션만 제자리 갱신 (전체 리렌더로 스크롤이 위로 튀지 않게)
+      const box=document.getElementById('home-tips-section');
+      if (box) box.innerHTML=renderHomeTipsHtml();
+      else navigate('home');
     }
     return;
   }
