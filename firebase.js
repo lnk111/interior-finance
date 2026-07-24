@@ -339,7 +339,14 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
         createdAt: kh.createdAt || 0,
       };
     });
-  M.tips = khArr;
+  // 같은 내용이 여러 번 저장된 중복 제거 (최신 1건만 유지)
+  const _tipSeen = new Set();
+  M.tips = khArr.filter(t => {
+    const sig = [t._catRaw, t.title, t.by, t.problem, t.solution].join('||');
+    if (_tipSeen.has(sig)) return false;
+    _tipSeen.add(sig);
+    return true;
+  });
 
   // 회사명 & 사용자명
   const session = AUTH.current();

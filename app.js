@@ -165,7 +165,6 @@ function renderHomeProgressHtml() {
 // 홈 현장 노하우 — 가로 스크롤 카드 + 6등분 필터 + 하단 기록 버튼
 const HOME_TIP_FILTERS = [
   { key: 'pin', label: '핀 고정' },
-  { key: 'all', label: '전체' },
   { key: '실수', label: '실수' },
   { key: '팁',   label: '팁' },
   { key: '자재', label: '자재' },
@@ -186,7 +185,11 @@ function renderHomeTipsHtml() {
       : `<span style="font-size:13px;color:var(--muted);white-space:nowrap;">${f.label}</span>`;
     return `<button data-tip-filter="${f.key}" style="flex:1;min-width:0;display:flex;justify-content:center;align-items:center;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;">${inner}</button>`;
   }).join('');
-  const cards = preview.length > 0
+  const addCard = `<div data-modal="tip" style="flex:0 0 96px;box-sizing:border-box;background:#F1F1F5;border-radius:4px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--accent);cursor:pointer;">
+      <span style="font-size:24px;line-height:1;font-weight:400;">＋</span>
+      <span style="font-size:14px;font-weight:700;">기록</span>
+    </div>`;
+  const tipCards = preview.length > 0
     ? preview.map(tp => {
         const cc = HOME_TIP_CAT_COLOR[tp.cat] || ['#F1F0EC', '#6B7684'];
         return `<div class="tip-hcard" data-tip-key="${tp._key || ''}" style="flex:0 0 150px;box-sizing:border-box;background:#fff;border:1px solid var(--hair);border-radius:4px;padding:12px;text-align:left;display:flex;flex-direction:column;cursor:pointer;">
@@ -195,13 +198,11 @@ function renderHomeTipsHtml() {
           <div style="font-size:12px;color:var(--faint);margin-top:auto;padding-top:10px;line-height:1.35;">${tp.by} · ${tp.site}</div>
         </div>`;
       }).join('')
-    : `<div class="empty" style="padding:20px;font-size:13px;flex:1;">기록이 없어요</div>`;
+    : '';
   return `
     <div class="section-label">현장 노하우 <span class="more"><span data-goto="tips">모두보기</span></span></div>
     <div style="display:flex;margin-bottom:16px;">${chips}</div>
-    <div class="home-tips-track" style="display:flex;gap:10px;overflow-x:auto;align-items:stretch;scrollbar-width:none;padding-bottom:6px;">${cards}</div>
-    <div style="font-size:12px;color:var(--faint);text-align:center;margin:8px 0;">← 카드를 좌우로 밀어보세요 →</div>
-    <button data-modal="tip" style="display:block;width:150px;padding:13px;margin:0 auto 8px;border:1px solid var(--hair);border-radius:12px;background:#F1F1F5;color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 기록</button>`;
+    <div class="home-tips-track" style="display:flex;gap:10px;overflow-x:auto;align-items:stretch;scrollbar-width:none;padding-bottom:8px;">${addCard}${tipCards}</div>`;
 }
 
 // 최근 거래 내역 — 은행앱 스타일, 월별 그룹(달 바뀔 때만 가로줄)

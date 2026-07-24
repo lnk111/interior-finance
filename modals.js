@@ -228,28 +228,35 @@ async function schedDelete(editKey) {
 }
 
 // 3. Tip (노하우) modal
-function modalTip() {
-  const tipId = 'tip_' + Date.now();
-  return openModal(`
-    ${modalHeader('💡 노하우 기록', '실수·팁·자재·고객 노하우를 남겨두세요')}
+function modalTip(editKey) {
+  const ex = editKey ? (window.FB?.knowhow?.[editKey] || {}) : {};
+  const cat = ex.cat || 'mistake';
+  const act = c => cat === c ? ' is-active' : '';
+  const photosObj = ex.photos || {};
+  const pP = Array.isArray(ex.problemPhotos) ? ex.problemPhotos : (Array.isArray(photosObj.problem) ? photosObj.problem : []);
+  const sP = Array.isArray(ex.solutionPhotos) ? ex.solutionPhotos : (Array.isArray(photosObj.solution) ? photosObj.solution : []);
+  window._tipPhotos = { problem: [...pP], solution: [...sP] };
+  const esc = v => (v || '').replace(/"/g, '&quot;');
+  const result = openModal(`
+    ${modalHeader(editKey ? '✏️ 노하우 수정' : '💡 노하우 기록', '실수·팁·자재·고객 노하우를 남겨두세요')}
     <div class="modal-body">
       <div class="field">
         <label class="field-label">카테고리</label>
         <div class="chip-group">
-          <button type="button" class="chip is-active" onclick="tipPickCat(this,'mistake')">😓 실수</button>
-          <button type="button" class="chip" onclick="tipPickCat(this,'tip')">💡 팁</button>
-          <button type="button" class="chip" onclick="tipPickCat(this,'material')">🔩 자재</button>
-          <button type="button" class="chip" onclick="tipPickCat(this,'client')">🤝 고객</button>
+          <button type="button" class="chip${act('mistake')}" onclick="tipPickCat(this,'mistake')">😓 실수</button>
+          <button type="button" class="chip${act('tip')}" onclick="tipPickCat(this,'tip')">💡 팁</button>
+          <button type="button" class="chip${act('material')}" onclick="tipPickCat(this,'material')">🔩 자재</button>
+          <button type="button" class="chip${act('client')}" onclick="tipPickCat(this,'client')">🤝 고객</button>
         </div>
-        <input type="hidden" id="tip-cat" value="mistake">
+        <input type="hidden" id="tip-cat" value="${cat}">
       </div>
       <div class="field">
         <label class="field-label">제목 <span class="req">*</span></label>
-        <input class="input" id="tip-title" placeholder="예) 욕실 방수 24시간 양생 누락">
+        <input class="input" id="tip-title" placeholder="예) 욕실 방수 24시간 양생 누락" value="${esc(ex.title)}">
       </div>
       <div class="field">
         <label class="field-label">문제 상황</label>
-        <textarea class="input" id="tip-problem" rows="3" placeholder="어떤 일이 있었는지"></textarea>
+        <textarea class="input" id="tip-problem" rows="3" placeholder="어떤 일이 있었는지">${ex.problem || ''}</textarea>
       </div>
       <div class="field">
         <label class="field-label">사진 (문제) <span class="muted">최대 3장</span></label>
@@ -262,7 +269,7 @@ function modalTip() {
       </div>
       <div class="field">
         <label class="field-label">해결 방법</label>
-        <textarea class="input" id="tip-solution" rows="3" placeholder="어떻게 해결했는지"></textarea>
+        <textarea class="input" id="tip-solution" rows="3" placeholder="어떻게 해결했는지">${ex.solution || ''}</textarea>
       </div>
       <div class="field">
         <label class="field-label">사진 (해결) <span class="muted">최대 3장</span></label>
@@ -278,26 +285,29 @@ function modalTip() {
           <label class="field-label">현장</label>
           <select class="input" id="tip-site">
             <option value="">—</option>
-            ${(window.MOCK?.sites || []).map(s => `<option>${s.name}</option>`).join('')}
+            ${(window.MOCK?.sites || []).map(s => `<option ${ex.site === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
           </select>
         </div>
         <div class="field">
           <label class="field-label">작성자</label>
           <select class="input" id="tip-writer">
-            ${(window.MOCK?.inputters || []).map(n => `<option>${n}</option>`).join('')}
+            ${(window.MOCK?.inputters || []).map(n => `<option ${ex.writer === n ? 'selected' : ''}>${n}</option>`).join('')}
           </select>
         </div>
       </div>
       <label class="check-row">
-        <input type="checkbox" id="tip-pinned">
+        <input type="checkbox" id="tip-pinned" ${ex.pinned ? 'checked' : ''}>
         <span>📌 주의사항으로 핀 고정</span>
       </label>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" data-modal-close onclick="closeModal()">취소</button>
-      <button class="btn btn-primary" onclick="saveTip()">저장</button>
+      <button class="btn btn-primary" onclick="saveTip(${editKey ? `'${editKey}'` : ''})">저장</button>
     </div>
   `);
+  tipRenderPhotos('problem');
+  tipRenderPhotos('solution');
+  return result;
 }
 
 // 사진 첨부 - 선택창 표시
@@ -364,9 +374,12 @@ function tipPickCat(el, cat) {
   el.classList.add('is-active');
   document.getElementById('tip-cat').value = cat;
 }
-async function saveTip() {
+async function saveTip(editKey) {
   const title = document.getElementById('tip-title')?.value?.trim();
   if(!title) { alert('제목을 입력해주세요'); return; }
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn && btn.disabled) return;            // 중복 저장 방지 (여러 번 탭 방어)
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
   const data = {
     cat: document.getElementById('tip-cat')?.value || 'mistake',
     title,
@@ -376,13 +389,15 @@ async function saveTip() {
     writer: document.getElementById('tip-writer')?.value || '',
     pinned: document.getElementById('tip-pinned')?.checked || false,
     photos: window._tipPhotos,
-    createdAt: Date.now(),
   };
   try {
-    await window.FB_API.saveKnowhow(data);
+    await window.FB_API.saveKnowhow(data, editKey || null);
     window._tipPhotos = { problem: [], solution: [] };
     closeModal();
-  } catch(e) { alert('저장 실패. 다시 시도해주세요.'); }
+  } catch(e) {
+    alert('저장 실패. 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
 }
 
 // 4. Staff add modal
@@ -1635,6 +1650,7 @@ window.openTipDetail = function(tipKey) {
           <button class="btn btn-ghost" data-tip-pin-toggle="${tip._key}" data-tip-pinned="${tip.pinned ? '1' : '0'}" style="${tip.pinned ? 'background:var(--warn-soft);color:var(--warn);border-color:var(--warn);' : ''}">
             ${tip.pinned ? '📌 핀고정 해제' : '📌 핀 고정하기'}
           </button>
+          <button class="btn btn-ghost" onclick="modalTip('${tip._key}')">✏️ 수정</button>
           <button class="btn btn-ghost danger" onclick="deleteTip('${tip._key}')">🗑️ 삭제</button>
           <button class="btn btn-primary" style="margin-left:auto;" onclick="closeModal()">닫기</button>
         </div>
