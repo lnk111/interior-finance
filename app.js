@@ -422,17 +422,14 @@ function resetInputFlow() {
 const SITE_STATUS_ORDER = ['공사중','계약완료','AS관리','마감'];
 const SITE_STATUS_ICON = {'공사중':'🔨','계약완료':'📋','AS관리':'🔧','마감':'📁'};
 
-async function submitEntry() {
+// Firebase 저장만 담당 (UI 없음) — 성공 시 true
+async function doSaveEntry() {
   const st = inputState;
   const site = (st.site || '').trim();
   const amount = parseInt(String(st.amount || '').replace(/[^0-9]/g,'')) || 0;
-  const dateInp = document.getElementById('iflow-date');
-  const date = (dateInp && dateInp.value) || st.date || toToday();
-  const memoInp = document.getElementById('iflow-memo');
-  const memo = (memoInp && memoInp.value.trim()) || st.memo || '';
+  const date = st.date || toToday();
+  const memo = st.memo || '';
   const writer = st.inputter || AUTH.current()?.name || '';
-  if (!site)   { alert('현장을 선택해주세요'); return; }
-  if (!amount) { alert('금액을 입력해주세요'); return; }
   const entry = {
     type: st.tab==='매출'?'revenue':st.tab==='AS'?'as':'cost',
     site, amount, date,
@@ -444,17 +441,23 @@ async function submitEntry() {
     imageBase64: window._entryPhotos?.[0]||null,
     extraPhotos: window._entryPhotos?.slice(1)||[],
   };
-  const btn = document.querySelector('[data-iact="submit"]');
-  if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
-  try {
-    await window.FB_API.saveEntry(entry);
-    resetInputFlow();
-    navigate('input');
-    setTimeout(()=>alert('✅ 저장 완료!'),100);
-  } catch(e) {
-    alert('저장 실패. 다시 시도해주세요.');
-    if (btn) { btn.disabled=false; btn.textContent='✅ 저장하기'; }
-  }
+  try { await window.FB_API.saveEntry(entry); return true; }
+  catch(e) { return false; }
+}
+
+// 완료하기 → 저장중 화면 → 저장 완료 화면 (토스식)
+async function startSave() {
+  const st = inputState;
+  const site = (st.site || '').trim();
+  const amount = parseInt(String(st.amount || '').replace(/[^0-9]/g,'')) || 0;
+  if (!site)   { alert('현장을 선택해주세요'); return; }
+  if (!amount) { alert('금액을 입력해주세요'); return; }
+  st.step = 5; st._saveDone = false; navigate('input');       // "저장하고 있어요"
+  const minWait = new Promise(r => setTimeout(r, 900));        // 최소 노출 시간
+  const ok = await doSaveEntry();
+  await minWait;
+  if (ok) { st._saveDone = true; navigate('input'); }         // "저장 완료!"
+  else    { alert('저장 실패. 다시 시도해주세요.'); st.step = 4; navigate('input'); }
 }
 
 function openSiteDropdown() {
@@ -505,7 +508,8 @@ function renderInput() {
   if (st.step === 1) return inputStepTypeSite();   // 거래내용 입력 = 거래 종류(탭) + 현장 선택 통합
   if (st.step === 2) return inputStepDetail();      // 공정 · 상세내용 · 금액 통합
   if (st.step === 3) return inputStepConfirm();     // 입력 내용 확인 + 인증하기
-  return inputStepReceipt();                        // 4단계 = 영수증 사진 인증 + 저장
+  if (st.step === 4) return inputStepReceipt();     // 영수증 사진 인증 → 완료하기
+  return inputStepSaving();                         // 5단계 = 저장중 → 저장 완료
 }
 
 // 2단계 통합 — 공정/결제 선택 → 상세내용 → 금액 (진행형)
@@ -765,11 +769,18 @@ function inputStepAmount() {
     </div>`;
 }
 
-// 4단계 — 영수증 사진 촬영 인증 + 최종 저장
+// 4단계 — 영수증 사진 촬영 인증 (1장) → 완료하기
 function inputStepReceipt() {
   const photos = window._entryPhotos || [];
-  const n = photos.length;
-  const has = n > 0;
+  const has = photos.length > 0;
+  const camBox = `<button type="button" onclick="entryOpenCamera()" style="width:250px;height:250px;margin:0 auto;background:var(--surface-2);border:0;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;font-family:inherit;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <span style="font-size:16px;font-weight:700;color:var(--ink);">카메라로 촬영</span>
+    </button>`;
+  const photoBox = `<div style="position:relative;width:250px;height:250px;margin:0 auto;">
+      <img src="${has?photos[0]:''}" style="width:250px;height:250px;object-fit:cover;border-radius:16px;border:1px solid var(--hair);">
+      <button onclick="entryRemovePhoto(0)" aria-label="사진 삭제" style="position:absolute;top:-8px;right:-8px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;border:0;font-size:14px;cursor:pointer;line-height:1;">✕</button>
+    </div>`;
   return `
     <div style="display:flex;flex-direction:column;min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));">
       <div style="display:flex;align-items:center;padding:12px var(--pad) 8px;">
@@ -777,21 +788,47 @@ function inputStepReceipt() {
       </div>
       <div style="padding:0 var(--pad);">
         <div><span style="font-size:21px;font-weight:700;color:var(--ink);">영수증</span><span style="font-size:21px;font-weight:400;color:var(--muted);">을 촬영해 인증해주세요</span></div>
-        <div style="font-size:15px;font-weight:400;color:var(--muted);margin-top:8px;">사진을 찍으면 거래가 인증돼요 · 최대 5장</div>
       </div>
       <div style="padding:24px var(--pad) 0;">
-        <button type="button" onclick="entryOpenCamera()" style="width:100%;background:var(--surface-2);border:0;border-radius:16px;padding:32px 0;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;font-family:inherit;">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span style="font-size:16px;font-weight:700;color:var(--ink);">카메라로 촬영</span>
-        </button>
-        <button type="button" onclick="entryOpenGallery()" style="width:100%;background:none;border:0;padding:14px 0 0;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;font-family:inherit;">갤러리에서 선택</button>
+        ${has ? photoBox : camBox}
+        <button type="button" onclick="entryOpenGallery()" style="width:100%;background:none;border:0;padding:16px 0 0;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;font-family:inherit;">갤러리에서 엘범 선택</button>
         <input type="file" id="entry-file-camera" accept="image/*" capture="environment" style="display:none" onchange="entryHandleFile(event)">
-        <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
-        <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;"></div>
+        <input type="file" id="entry-file-gallery" accept="image/*" style="display:none" onchange="entryHandleFile(event)">
       </div>
       <div style="flex:1;min-height:16px;"></div>
-      <div style="padding:0 var(--pad) 6px;">
-        <button data-iact="submit" id="iflow-receipt-submit" style="width:100%;background:${has?'var(--ink)':'var(--surface-2)'};color:${has?'#fff':'var(--faint)'};border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">${has?`인증 완료 · 영수증 ${n}장`:'영수증 없이 저장'}</button>
+      <div style="padding:0 var(--pad) 12px;min-height:20px;">
+        ${has ? `<button data-iact="submit" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">완료하기</button>` : ''}
+      </div>
+    </div>`;
+}
+
+// 5단계 — 저장중 → 저장 완료 (Medium 500)
+function inputStepSaving() {
+  const st = inputState;
+  const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
+  const amtStr = amt.toLocaleString('ko-KR');
+  const site = st.site || '';
+  const done = !!st._saveDone;
+  const T = 'font-size:22px;font-weight:500;line-height:1.4;color:var(--ink);';
+  const full = 'min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));';
+  const center = inner => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;">${inner}</div>`;
+  const coin = `<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="34" fill="var(--surface-2)" stroke="var(--hair)" stroke-width="1.5"/><text x="36" y="49" text-anchor="middle" font-size="34" font-weight="800" fill="var(--accent)" font-family="Pretendard,sans-serif">₩</text></svg>`;
+  const check = `<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="36" fill="var(--accent)"/><path d="M22 37l10 10 18-20" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if (!done) {
+    return `<div style="display:flex;flex-direction:column;${full}">${center(`
+      <div>${coin}</div>
+      <div style="${T}margin-top:22px;">${site}에<br>${amtStr}원을</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <span style="width:16px;height:16px;border:2px solid var(--hair);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span>
+        <span style="${T}color:var(--faint);">저장하고 있어요</span>
+      </div>`)}</div>`;
+  }
+  return `<div style="display:flex;flex-direction:column;${full}">
+      ${center(`
+        <div>${check}</div>
+        <div style="${T}margin-top:22px;">${site}에<br>${amtStr}원을<br>저장 완료!</div>`)}
+      <div style="padding:0 var(--pad) 12px;">
+        <button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button>
       </div>
     </div>`;
 }
@@ -921,7 +958,9 @@ function handleInputFlow(act, el) {
   } else if (act==='pending') {
     openPendingList();
   } else if (act==='submit') {
-    submitEntry();
+    startSave();
+  } else if (act==='save-done-ok') {
+    resetInputFlow(); inputState.step=1; navigate('input');
   }
 }
 
@@ -937,33 +976,23 @@ window._entryPhotos=[];
 function entryOpenCamera() { document.getElementById('entry-file-camera')?.click(); }
 function entryOpenGallery() { document.getElementById('entry-file-gallery')?.click(); }
 function entryHandleFile(e) {
-  Array.from(e.target.files||[]).forEach(file=>{
-    if (window._entryPhotos.length>=5) return;
+  const files = Array.from(e.target.files||[]);
+  if (files.length && (window._entryPhotos||[]).length < 1) {   // 영수증 1장만
     const r=new FileReader();
-    r.onload=ev=>{ window._entryPhotos.push(ev.target.result); entryRenderPhotos(); };
-    r.readAsDataURL(file);
-  });
+    r.onload=ev=>{
+      window._entryPhotos=[ev.target.result];
+      if (currentPage==='input' && inputState.step===4) navigate('input');
+    };
+    r.readAsDataURL(files[0]);
+  }
   e.target.value='';
 }
-function entryRenderPhotos() {
-  const wrap=document.getElementById('entry-photo-preview');
-  if (wrap) {
-  wrap.innerHTML=window._entryPhotos.map((p,i)=>`
-    <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
-      <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);">
-      <button onclick="entryRemovePhoto(${i})"
-        style="position:absolute;top:-6px;right:-6px;background:#191F28;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
-    </div>`).join('');
-  }
-  const rb=document.getElementById('iflow-receipt-submit');
-  if (rb) {
-    const n=window._entryPhotos.length;
-    rb.textContent = n ? `인증 완료 · 영수증 ${n}장` : '영수증 없이 저장';
-    rb.style.background = n ? 'var(--ink)' : 'var(--surface-2)';
-    rb.style.color = n ? '#fff' : 'var(--faint)';
-  }
+// 영수증 미리보기는 inputStepReceipt가 window._entryPhotos에서 직접 렌더 (navigate 재호출 시 no-op)
+function entryRenderPhotos() {}
+function entryRemovePhoto(idx) {
+  window._entryPhotos.splice(idx,1);
+  if (currentPage==='input' && inputState.step===4) navigate('input');
 }
-function entryRemovePhoto(idx) { window._entryPhotos.splice(idx,1); entryRenderPhotos(); }
 
 // ===== SITES =====
 let sitesFilter='공사중';
