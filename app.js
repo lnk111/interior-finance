@@ -549,7 +549,7 @@ function inputStepDetail() {
         <div style="${LAB}margin-bottom:20px;">${midLabel} 선택</div>
         <div style="border:1px solid var(--hair);border-radius:10px;overflow:hidden;">
           <div style="display:grid;grid-template-columns:repeat(3,1fr);">${btns}</div>
-          <div style="width:40px;height:1px;background:var(--hair);margin:4px auto;"></div>
+          <div style="width:300px;max-width:calc(100% - 24px);height:1px;background:var(--hair);margin:4px auto;"></div>
           ${direct}
         </div>
       </div>`;
@@ -824,25 +824,14 @@ function inputStepSaving() {
     : `<span style="font-weight:300;color:var(--ink);">${site}</span>`;
   // [입력값] 800/ink + 원을 500/muted
   const amtLine = `<span style="font-weight:800;color:var(--ink);">${amtStr}</span><span style="font-weight:500;color:var(--muted);">원을</span>`;
-  // 현장명 + 금액 (22px 한 블록, 줄바꿈)
-  const block = `<div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}</div>`;
-  if (!done) {
-    return `<div style="display:flex;flex-direction:column;${full}">${center(`
-      <div>${coin}</div>
-      ${block}
-      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-        <span style="width:16px;height:16px;border:2px solid var(--hair);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span>
-        <span style="font-size:22px;font-weight:500;color:var(--faint);">저장하고 있어요</span>
-      </div>`)}</div>`;
-  }
-  return `<div style="display:flex;flex-direction:column;${full}">
-      ${center(`
-        <div>${check}</div>
-        <div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}<br><span style="font-weight:500;color:var(--ink);">저장 완료!</span></div>`)}
-      <div style="padding:0 var(--pad) 12px;">
-        <button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button>
-      </div>
-    </div>`;
+  // 저장중 ↔ 저장완료: 아이콘 / 상태문구+색 / 확인버튼만 달라지고 현장명·금액은 완전히 동일
+  const statusColor = done ? 'var(--ink)' : 'var(--faint)';
+  const statusText = done ? '저장 완료!' : '저장하고 있어요';
+  const block = `<div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}<br><span style="font-weight:500;color:${statusColor};">${statusText}</span></div>`;
+  const btn = done
+    ? `<div style="padding:0 var(--pad) 12px;"><button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button></div>`
+    : '';
+  return `<div style="display:flex;flex-direction:column;${full}">${center(`<div>${done ? check : coin}</div>${block}`)}${btn}</div>`;
 }
 
 // 3단계 — 입력 내용 확인 (현장·공정·상세·금액 + 작성자 자동) → 인증하기
