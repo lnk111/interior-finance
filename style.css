@@ -189,7 +189,7 @@ input, textarea, select { font-family: inherit; }
 .btn-primary { background: var(--ink); color: var(--bg); }
 .btn-ghost { background: transparent; border-color: var(--hair); color: var(--ink-2); }
 .btn-ghost.danger { color: var(--warn); border-color: rgba(154, 75, 46, 0.3); }
-.btn-block { width: 100%; padding: 14px; font-size: 14px; border-radius: 11px; }
+.btn-block { width: 100%; padding: 15px; font-size: 15px; border-radius: 13px; }
 .btn-sm { padding: 6px 11px; font-size: 13px; border-radius: 7px; }
 .btn-icon {
   width: 36px; height: 36px;
@@ -491,7 +491,7 @@ input, textarea, select { font-family: inherit; }
 }
 
 .field { margin-bottom: 16px; }
-.field-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+.field-label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 7px; }
 .field-label .req { color: var(--warn); }
 .input {
   width: 100%;
@@ -638,7 +638,7 @@ input, textarea, select { font-family: inherit; }
 .settings-row:last-child { border-bottom: 0; }
 .settings-row .sr-key { color: var(--ink); font-weight: 500; display: flex; align-items: center; gap: 8px; }
 .settings-row .sr-val { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px; }
-.settings-group-label { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 24px 0 8px; }
+.settings-group-label { font-size: 15px; font-weight: 600; color: var(--ink); margin: 24px 0 10px; }
 .fc-icon { font-size: 16px; }
 .fc-input {
   width: 130px;

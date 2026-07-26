@@ -293,38 +293,38 @@ function renderSettings() {
 
   return `
     <div class="page-header">
-      <div><div class="h-eyebrow">${AUTH.roleLabel()} · ${AUTH.current()?.name||''}</div><h1 class="h-title">설정</h1></div>
+      <div><div class="h-eyebrow">${AUTH.roleLabel()} · ${AUTH.current()?.name||''}</div><h1 class="h-title" style="font-weight:600;">설정</h1></div>
       <button class="btn-icon" id="logout-btn" title="로그아웃">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4h4v12h-4M8 14l-4-4 4-4M4 10h10"/></svg>
       </button>
     </div>
     <div class="page-body">
       <button class="menu-card" data-goto="photos" style="width:100%;">
-        <div class="mc-icon">📸</div>
+        <div class="mc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
         <div class="mc-body"><div class="mc-title">현장 사진 보관함</div><div class="mc-meta">현장별 시공 전·중·후 사진 모아보기</div></div>
         <span class="chev">›</span>
       </button>
-      ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runPhotoMigration(this)" style="margin-top:10px;">⚡ 사진 저장방식 최적화 (1회 실행)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">기존 거래에 들어있는 사진을 분리해 홈·목록 로딩을 빠르게 합니다. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
-      ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runFullPhotoMigration(this)" style="margin-top:10px;">📦 사진 정리 (Cloudinary 이전)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">미정리·거래에 base64로 저장된 사진을 Cloudinary로 이전합니다. 첫 접속 속도가 크게 빨라져요. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
+      ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runPhotoMigration(this)" style="margin-top:10px;">사진 저장방식 최적화 (1회 실행)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">기존 거래에 들어있는 사진을 분리해 홈·목록 로딩을 빠르게 합니다. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
+      ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runFullPhotoMigration(this)" style="margin-top:10px;">사진 정리 (Cloudinary 이전)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">미정리·거래에 base64로 저장된 사진을 Cloudinary로 이전합니다. 첫 접속 속도가 크게 빨라져요. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
       ${canFC ? `
-      <div class="settings-group-label">📌 월 고정비</div>
+      <div class="settings-group-label">월 고정비</div>
       ${ymSelect(new Date().getFullYear(), new Date().getMonth()+1)}
       <div class="settings-group" style="margin-top:10px;">
         ${aligned.map(c => `
           <div class="settings-row">
-            <span class="sr-key"><span class="fc-icon">${c.icon}</span> ${c.label}</span>
+            <span class="sr-key">${c.label}</span>
             <input class="fc-input num" value="${c.value.toLocaleString('ko-KR')}">
           </div>`).join('')}
       </div>
       <div class="total-bar"><span class="tb-k">합계</span><span class="tb-v num">${fmtFull2(total)}</span></div>
-      <button class="btn btn-primary btn-block" style="margin-top:12px;">💾 저장</button>
-      ` : `<div class="locked-card"><div class="lc-icon">🔒</div><div><div class="lc-title">월 고정비 (대표 전용)</div><div class="lc-meta">임대료·급여·마케팅 등 고정 지출은 대표 권한으로만 확인할 수 있어요.</div></div></div>`}
-      ${canCsv ? `<div class="settings-group-label">📥 데이터 내보내기</div><button class="btn btn-ghost btn-block">현장별 손익 CSV 다운로드</button>` : ''}
-      <div class="settings-group-label">👥 직원 관리</div>
+      <button class="btn btn-primary btn-block" style="margin-top:12px;">저장</button>
+      ` : `<div class="locked-card"><div class="lc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><div><div class="lc-title">월 고정비 (대표 전용)</div><div class="lc-meta">임대료·급여·마케팅 등 고정 지출은 대표 권한으로만 확인할 수 있어요.</div></div></div>`}
+      ${canCsv ? `<div class="settings-group-label">데이터 내보내기</div><button class="btn btn-ghost btn-block">현장별 손익 CSV 다운로드</button>` : ''}
+      <div class="settings-group-label">직원 관리</div>
       ${canStaffMgmt ? `
       <div class="tabs" style="margin-bottom:12px;">
-        <button class="tab is-active">🟢 재직중 (${PMS.staff.length})</button>
-        <button class="tab">🔴 퇴사자 (0)</button>
+        <button class="tab is-active">재직중 (${PMS.staff.length})</button>
+        <button class="tab">퇴사자 (0)</button>
       </div>
       <div class="settings-group">
         ${PMS.staff.map(s => `
@@ -353,7 +353,7 @@ function renderSettings() {
             </div>
           </div>`).join('')}
       </div>
-      ${!canStaffSalary ? '<div class="locked-inline">🔒 급여 정보는 대표만 볼 수 있어요</div>' : ''}`}
+      ${!canStaffSalary ? '<div class="locked-inline">급여 정보는 대표만 볼 수 있어요</div>' : ''}`}
       <div style="text-align:center;padding:32px 0 8px;color:var(--faint);font-size:13px;">머니플로우 v1.2 · ${PMS.company} · ${AUTH.roleLabel()}</div>
     </div>`;
 }

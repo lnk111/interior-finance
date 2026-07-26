@@ -129,7 +129,7 @@ function modalSchedule(editKey = null, prefillDate = null) {
       <div class="modal-sheet" onclick="event.stopPropagation()">
         <div class="modal-head">
           <div>
-            <div class="modal-title">${isEdit ? '✏️ 일정 수정' : '📅 일정 추가'}</div>
+            <div class="modal-title">${isEdit ? '일정 수정' : '일정 추가'}</div>
             <div class="modal-sub">캘린더에 표시됩니다</div>
           </div>
           <button class="btn-icon" onclick="closeModal()">${MODAL_BACK}</button>
@@ -171,7 +171,7 @@ function modalSchedule(editKey = null, prefillDate = null) {
         </div>
         <div class="modal-foot">
           ${isEdit
-            ? `<button class="btn btn-ghost danger" onclick="schedDelete('${editKey}')">🗑️ 삭제</button>`
+            ? `<button class="btn btn-ghost danger" onclick="schedDelete('${editKey}')">삭제</button>`
             : `<button class="btn btn-ghost" onclick="closeModal()">취소</button>`
           }
           <button class="btn btn-primary" onclick="schedSave('${editKey || ''}')">저장</button>
@@ -238,15 +238,15 @@ function modalTip(editKey) {
   window._tipPhotos = { problem: [...pP], solution: [...sP] };
   const esc = v => (v || '').replace(/"/g, '&quot;');
   const result = openModal(`
-    ${modalHeader(editKey ? '✏️ 노하우 수정' : '💡 노하우 기록', '실수·팁·자재·고객 노하우를 남겨두세요')}
+    ${modalHeader(editKey ? '노하우 수정' : '노하우 기록', '실수·팁·자재·고객 노하우를 남겨두세요')}
     <div class="modal-body">
       <div class="field">
         <label class="field-label">카테고리</label>
         <div class="chip-group">
-          <button type="button" class="chip${act('mistake')}" onclick="tipPickCat(this,'mistake')">😓 실수</button>
-          <button type="button" class="chip${act('tip')}" onclick="tipPickCat(this,'tip')">💡 팁</button>
-          <button type="button" class="chip${act('material')}" onclick="tipPickCat(this,'material')">🔩 자재</button>
-          <button type="button" class="chip${act('client')}" onclick="tipPickCat(this,'client')">🤝 고객</button>
+          <button type="button" class="chip${act('mistake')}" onclick="tipPickCat(this,'mistake')">실수</button>
+          <button type="button" class="chip${act('tip')}" onclick="tipPickCat(this,'tip')">팁</button>
+          <button type="button" class="chip${act('material')}" onclick="tipPickCat(this,'material')">자재</button>
+          <button type="button" class="chip${act('client')}" onclick="tipPickCat(this,'client')">고객</button>
         </div>
         <input type="hidden" id="tip-cat" value="${cat}">
       </div>
@@ -261,9 +261,9 @@ function modalTip(editKey) {
       <div class="field">
         <label class="field-label">사진 (문제) <span class="muted">최대 3장</span></label>
         <div class="photo-row" id="tip-photos-problem">
-          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',0)">📷</button>
-          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',1)">📷</button>
-          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',2)">📷</button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',0)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('problem',2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
         </div>
         <input type="file" id="tip-file-problem" accept="image/*" capture="environment" style="display:none" onchange="tipFileSelected(event,'problem')">
       </div>
@@ -274,9 +274,9 @@ function modalTip(editKey) {
       <div class="field">
         <label class="field-label">사진 (해결) <span class="muted">최대 3장</span></label>
         <div class="photo-row" id="tip-photos-solution">
-          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',0)">📷</button>
-          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',1)">📷</button>
-          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',2)">📷</button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',0)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+          <button type="button" class="photo-add" onclick="tipAddPhoto('solution',2)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
         </div>
         <input type="file" id="tip-file-solution" accept="image/*" capture="environment" style="display:none" onchange="tipFileSelected(event,'solution')">
       </div>
@@ -297,7 +297,7 @@ function modalTip(editKey) {
       </div>
       <label class="check-row">
         <input type="checkbox" id="tip-pinned" ${ex.pinned ? 'checked' : ''}>
-        <span>📌 주의사항으로 핀 고정</span>
+        <span>주의사항으로 핀 고정</span>
       </label>
     </div>
     <div class="modal-foot">
@@ -322,8 +322,8 @@ function tipAddPhoto(type, idx) {
     <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 40px;">
       <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 20px;"></div>
       <div style="font-size:16px;font-weight:700;margin-bottom:16px;">사진 추가</div>
-      <button onclick="tipTakePhoto('${type}')" style="width:100%;padding:16px;background:#f5f5f5;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit;">📷 카메라 촬영</button>
-      <button onclick="tipSelectPhoto('${type}')" style="width:100%;padding:16px;background:#f5f5f5;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit;">🖼️ 갤러리에서 선택</button>
+      <button onclick="tipTakePhoto('${type}')" style="width:100%;padding:16px;background:var(--surface-2);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit;">카메라로 촬영</button>
+      <button onclick="tipSelectPhoto('${type}')" style="width:100%;padding:16px;background:var(--surface-2);border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;font-family:inherit;">갤러리에서 선택</button>
       <button onclick="document.getElementById('tip-photo-sheet').remove()" style="width:100%;padding:16px;background:none;border:none;border-radius:12px;font-size:15px;color:#999;cursor:pointer;font-family:inherit;">취소</button>
     </div>
   `;
@@ -362,7 +362,7 @@ function tipRenderPhotos(type) {
       <img src="${p}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid #e0e0e0;">
       <button onclick="tipRemovePhoto('${type}',${i})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>`).join('');
-  if(photos.length < 3) html += `<button type="button" class="photo-add" onclick="tipAddPhoto('${type}',${photos.length})">📷</button>`;
+  if(photos.length < 3) html += `<button type="button" class="photo-add" onclick="tipAddPhoto('${type}',${photos.length})"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>`;
   row.innerHTML = html;
 }
 function tipRemovePhoto(type, idx) {
@@ -672,16 +672,16 @@ function modalTxEdit(entryKey) {
       <div class="modal-sheet" onclick="event.stopPropagation()">
         <div class="modal-head">
           <div>
-            <div class="modal-title">✏️ 거래 수정</div>
+            <div class="modal-title">거래 수정</div>
             <div class="modal-sub">입력한 거래 내용을 수정합니다</div>
           </div>
           <button class="btn-icon" onclick="closeModal()">${MODAL_BACK}</button>
         </div>
         <div class="modal-body">
           <div class="tabs">
-            <button class="tab ${curType==='매출'?'is-active':''}" onclick="txEditSetType('매출',this)">💰 매출</button>
-            <button class="tab ${curType==='매입'?'is-active':''}" onclick="txEditSetType('매입',this)">📦 매입</button>
-            <button class="tab ${curType==='AS'?'is-active':''}" onclick="txEditSetType('AS',this)">🔧 AS</button>
+            <button class="tab ${curType==='매출'?'is-active':''}" onclick="txEditSetType('매출',this)">매출</button>
+            <button class="tab ${curType==='매입'?'is-active':''}" onclick="txEditSetType('매입',this)">매입</button>
+            <button class="tab ${curType==='AS'?'is-active':''}" onclick="txEditSetType('AS',this)">AS</button>
           </div>
           <div class="field">
             <label class="field-label">현장 <span class="req">*</span></label>
@@ -707,14 +707,14 @@ function modalTxEdit(entryKey) {
             <div class="field">
               <label class="field-label">결제 단계</label>
               <div class="chip-group">
-                ${stages.map(s=>`<button type="button" class="chip ${entry.payStage===s?'is-active':''}" onclick="txEditChip(this,'stage','${s}')">${stageIcons[s]} ${s}</button>`).join('')}
+                ${stages.map(s=>`<button type="button" class="chip ${entry.payStage===s?'is-active':''}" onclick="txEditChip(this,'stage','${s}')">${s}</button>`).join('')}
               </div>
             </div>
           </div>
           <div class="field">
             <label class="field-label">결제 방법</label>
             <div class="chip-group">
-              ${pays.map(p=>`<button type="button" class="chip ${entry.payMethod===p?'is-active':''}" onclick="txEditChip(this,'pay','${p}')">${payIcons[p]} ${p}</button>`).join('')}
+              ${pays.map(p=>`<button type="button" class="chip ${entry.payMethod===p?'is-active':''}" onclick="txEditChip(this,'pay','${p}')">${p}</button>`).join('')}
             </div>
           </div>
           <div id="txe-phase-wrap" style="${curType==='매입'||curType==='AS'?'':'display:none;'}">
@@ -738,8 +738,8 @@ function modalTxEdit(entryKey) {
           </div>
         </div>
         <div class="modal-foot">
-          <button class="btn btn-ghost danger" onclick="txEditDelete()">🗑️ 삭제</button>
-          <button class="btn btn-primary" onclick="txEditSave()">✅ 수정 완료</button>
+          <button class="btn btn-ghost danger" onclick="txEditDelete()">삭제</button>
+          <button class="btn btn-primary" onclick="txEditSave()">수정 완료</button>
         </div>
       </div>
     </div>
@@ -821,7 +821,7 @@ async function txEditSave() {
     closeModal();
   } catch(e) {
     alert('저장 실패');
-    if (btn) { btn.disabled = false; btn.textContent = '✅ 수정 완료'; }
+    if (btn) { btn.disabled = false; btn.textContent = '수정 완료'; }
   }
 }
 
