@@ -820,10 +820,10 @@ function inputStepSaving() {
   // 현장명: 아파트명 700/ink + 동·호수 400/muted
   const dm = site.match(/\d+동/);
   const siteHtml = dm
-    ? `<span style="font-weight:700;color:var(--ink);">${site.slice(0,site.indexOf(dm[0])).trim()}</span> <span style="font-weight:400;color:var(--muted);">${site.slice(site.indexOf(dm[0])).trim()}</span>`
-    : `<span style="font-weight:700;color:var(--ink);">${site}</span>`;
-  // [입력값] 500/ink + 원을 500/muted
-  const amtLine = `<span style="font-weight:500;color:var(--ink);">${amtStr}</span><span style="font-weight:500;color:var(--muted);">원을</span>`;
+    ? `<span style="font-weight:300;color:var(--ink);">${site.slice(0,site.indexOf(dm[0])).trim()}</span> <span style="font-weight:300;color:var(--muted);">${site.slice(site.indexOf(dm[0])).trim()}</span>`
+    : `<span style="font-weight:300;color:var(--ink);">${site}</span>`;
+  // [입력값] 800/ink + 원을 500/muted
+  const amtLine = `<span style="font-weight:800;color:var(--ink);">${amtStr}</span><span style="font-weight:500;color:var(--muted);">원을</span>`;
   // 현장명 + 금액 (22px 한 블록, 줄바꿈)
   const block = `<div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}</div>`;
   if (!done) {
