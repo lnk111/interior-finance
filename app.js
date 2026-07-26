@@ -544,10 +544,14 @@ function inputStepDetail() {
   let content = '', bottom = '';
   if (st.sub === 'proc') {
     const btns = items.map(p => `<button data-iact="${pickAct}" data-val="${esc(p)}" style="display:flex;align-items:center;justify-content:center;margin:4px 0;background:none;border:0;padding:16px 0;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${p}</button>`).join('');
-    const direct = `<button data-iact="proc2-direct" style="display:flex;align-items:center;justify-content:center;gap:5px;margin:4px 0;background:none;border:0;padding:16px 0;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL}</button>`;
+    const direct = `<button data-iact="proc2-direct" style="display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin:4px 0;background:none;border:0;padding:16px 0;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL}</button>`;
     content = `<div style="padding:22px var(--pad) 0;">
         <div style="${LAB}margin-bottom:20px;">${midLabel} 선택</div>
-        <div style="border:1px solid var(--hair);border-radius:10px;overflow:hidden;"><div style="display:grid;grid-template-columns:repeat(3,1fr);">${btns}${direct}</div></div>
+        <div style="border:1px solid var(--hair);border-radius:10px;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);">${btns}</div>
+          <div style="width:40px;height:1px;background:var(--hair);margin:4px auto;"></div>
+          ${direct}
+        </div>
       </div>`;
   } else if (st.sub === 'detail') {
     content = `<div style="padding:22px var(--pad) 0;">
@@ -791,7 +795,7 @@ function inputStepReceipt() {
       </div>
       <div style="padding:24px var(--pad) 0;">
         ${has ? photoBox : camBox}
-        <button type="button" onclick="entryOpenGallery()" style="width:100%;background:none;border:0;padding:16px 0 0;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;font-family:inherit;">갤러리에서 엘범 선택</button>
+        <button type="button" onclick="entryOpenGallery()" style="width:100%;background:none;border:0;margin-top:8px;padding:0;font-size:15px;font-weight:500;color:var(--ink);cursor:pointer;font-family:inherit;">갤러리에서 엘범 선택</button>
         <input type="file" id="entry-file-camera" accept="image/*" capture="environment" style="display:none" onchange="entryHandleFile(event)">
         <input type="file" id="entry-file-gallery" accept="image/*" style="display:none" onchange="entryHandleFile(event)">
       </div>
