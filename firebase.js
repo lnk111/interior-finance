@@ -1017,8 +1017,7 @@ window.bootAuth = function() {
       if (isFresh && window.MOCK) {
         Object.assign(window.MOCK, snap);
         if (window.navigate) window.navigate(window.currentPage || 'home');
-        const ls = document.getElementById('loading-screen');
-        if (ls) ls.style.display = 'none';
+        if (window.hideLanding) window.hideLanding();
         if (window._cacheDebug) {
           const ageMin = Math.round((Date.now() - snap._cachedAt) / 60000);
           console.log(`[캐시 복원] ${ageMin}분 전 데이터로 즉시 표시`);

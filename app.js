@@ -1141,9 +1141,8 @@ function navigate(page) {
   const activeTab=routes[page].tab;
   $$('.tabbar-item,.tabbar-fab').forEach(b=>b.classList.toggle('is-active',b.dataset.page===activeTab));
   $('#app').innerHTML=`<div class="page is-active${enteringDetail?' page-enter':''}">${routes[page].render()}</div>`;
-  // 로딩 화면 숨기기
-  const ls=document.getElementById('loading-screen');
-  if (ls) ls.style.display='none';
+  // 로딩(랜딩) 화면 숨기기 — 최소 1초 노출 보장
+  hideLanding();
   // 탭바 보이기
   const tb=document.getElementById('tabbar');
   if (tb) tb.style.display='flex';
@@ -1386,6 +1385,19 @@ async function savePending(key) {
   }
 }
 
+// 랜딩(로딩) 화면 숨김 — 페이지 로드 후 최소 1초 노출 뒤 페이드아웃. 여러 번 호출해도 1회만 실행.
+function hideLanding() {
+  const ls = document.getElementById('loading-screen');
+  if (!ls || ls.__hidden) return;
+  ls.__hidden = true;
+  const wait = Math.max(0, 1000 - performance.now());
+  setTimeout(function() {
+    ls.style.opacity = '0';
+    setTimeout(function() { ls.style.display = 'none'; }, 300);
+  }, wait);
+}
+window.hideLanding = hideLanding;
+
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', function() {
   // window.navigate 즉시 등록 (firebase.js initFirebase 에서 호출 가능하도록)
@@ -1395,19 +1407,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const loggedIn = bootAuth();
 
   if (!loggedIn) {
-    // 로그인 안된 경우 로딩 화면 숨기기
-    const ls = document.getElementById('loading-screen');
-    if (ls) ls.style.display = 'none';
+    // 로그인 안된 경우 랜딩 화면 숨기기 (최소 1초 보장)
+    hideLanding();
   } else {
     // 로그인된 경우 Firebase 데이터 로드 후 navigate 호출됨
-    // 최대 5초 후 강제로 로딩 화면 숨기기 (안전장치)
+    // 최대 5초 후 강제로 랜딩 화면 숨기기 (안전장치)
     setTimeout(() => {
       const ls = document.getElementById('loading-screen');
-      if (ls && ls.style.display !== 'none') {
-        ls.style.display = 'none';
-        if (!document.querySelector('.page.is-active')) {
-          navigate('home');
-        }
+      if (ls && !ls.__hidden) {
+        if (!document.querySelector('.page.is-active')) navigate('home');
+        hideLanding();
       }
     }, 5000);
   }
