@@ -131,15 +131,11 @@ function _buildCalendarHtml() {
     const dateStr = _calYear + '-' + String(_calMonth).padStart(2, '0') + '-' + String(d).padStart(2, '0');
     const isToday = dateStr === todayStr;
     const ev = evMap[d] || [];
-    // 각 이벤트마다 자기 색의 배경 (15% 투명도)으로 박스 표시
-    const evHtml = ev.slice(0, 2).map(e => {
-      const c = e.color || '#5B7684';
-      return `<span class="cal-event" style="color:${c};background:${c}33;border-left:3px solid ${c};">${e.t}</span>`;
-    }).join('');
-    const hasMore = ev.length > 2;
-    cells.push(`<div class="cal-day ${isToday?'today':''} ${col===0?'sun':col===6?'sat':''}" onclick="openCalDayPopup('${dateStr}')" style="cursor:pointer;">
-      <span class="num">${d}</span>${evHtml}
-      ${hasMore ? `<span style="font-size:11px;color:var(--muted);">+${ev.length-2}건</span>` : ''}
+    // 이벤트는 현장색 점으로 (최대 4개) — 상세는 날짜 탭 → 팝업
+    const dots = ev.slice(0, 4).map(e => `<span class="cal-dot" style="background:${e.color || 'var(--faint)'};"></span>`).join('');
+    cells.push(`<div class="cal-day ${isToday?'today':''} ${col===0?'sun':col===6?'sat':''}" onclick="openCalDayPopup('${dateStr}')">
+      <span class="cal-num">${d}</span>
+      <span class="cal-dots">${dots}</span>
     </div>`);
   }
 
@@ -148,42 +144,39 @@ function _buildCalendarHtml() {
     .filter(([, sc]) => sc.date && new Date(sc.date) >= today)
     .sort((a, b) => a[1].date.localeCompare(b[1].date))
     .slice(0, 5)
-    .map(([, sc]) => ({ d: sc.date.slice(5).replace('-', '/'), t: (sc.time ? sc.time + ' ' : '') + sc.title, c: 'accent' }));
+    .map(([key, sc]) => ({ key, d: sc.date.slice(5).replace('-', '.'), t: (sc.time ? sc.time + ' ' : '') + sc.title }));
 
   return `
     <div class="page-header">
-      <div><div class="h-eyebrow">📅 일정 · 결제 · AS</div><h1 class="h-title">달력</h1></div>
-      <button class="btn btn-primary btn-sm" data-modal="schedule">+ 일정</button>
+      <div><h1 class="h-title" style="font-weight:600;">달력</h1></div>
     </div>
-    <div style="padding:0 var(--pad) 12px;">${ymSelect(_calYear, _calMonth)}</div>
-    <div class="cal-head">
-      <div class="cal-title num">${_calYear}년 ${_calMonth}월</div>
-      <div class="nav-btns">
-        <button class="btn-icon" id="cal-prev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M10 4l-4 4 4 4"/></svg></button>
-        <button class="btn-icon" id="cal-next"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M6 4l4 4-4 4"/></svg></button>
+    <div class="page-body" style="padding-top:0;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin:4px 0 14px;">
+        <button id="cal-prev" aria-label="이전 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:35px;line-height:1;padding:0 4px;font-family:inherit;">‹</button>
+        <span class="num" style="font-size:22px;font-weight:700;color:var(--ink);min-width:132px;text-align:center;">${_calYear}년 ${_calMonth}월</span>
+        <button id="cal-next" aria-label="다음 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:35px;line-height:1;padding:0 4px;font-family:inherit;">›</button>
       </div>
-    </div>
-    ${legendSites.size ? `<div style="display:flex;flex-wrap:wrap;gap:8px 16px;padding:12px 16px;margin:0 var(--pad) 12px;background:var(--card);border-radius:10px;border:1px solid var(--hair-soft);">
-      ${[...legendSites.entries()].map(([name, c]) => {
-        const display = name.length > 20 ? name.slice(0, 19) + '…' : name;
-        return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--ink);white-space:nowrap;"><span style="width:16px;height:16px;border-radius:50%;background:${c};flex-shrink:0;"></span>${display}</span>`;
-      }).join('')}
-    </div>` : ''}
-    <div class="cal-grid">
-      <div class="cal-week-head">${weekHead}</div>
-      <div class="cal-grid-days">${cells.join('')}</div>
-    </div>
-    <div class="cal-list">
-      <div class="section-label">다가오는 일정 <button class="more" data-modal="schedule">+ 추가</button></div>
-      <div class="list">
-        ${upcoming.length > 0 ? upcoming.map(u => `
-          <div class="list-row">
-            <span class="num" style="font-size:13px;color:var(--muted);font-weight:600;min-width:30px;">${u.d}</span>
-            <div><div class="lr-title">${u.t}</div></div>
-            <span class="pill pill-${u.c}" style="font-size:11px;">●</span>
-          </div>`).join('') : '<div class="empty">다가오는 일정이 없어요</div>'}
+      <div class="cal-grid">
+        <div class="cal-week-head">${weekHead}</div>
+        <div class="cal-grid-days">${cells.join('')}</div>
       </div>
-    </div>`;
+      ${legendSites.size ? `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;padding:16px 2px 0;">
+        ${[...legendSites.entries()].map(([name, c]) => {
+          const display = name.length > 18 ? name.slice(0, 17) + '…' : name;
+          return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;"></span>${display}</span>`;
+        }).join('')}
+      </div>` : ''}
+      <div style="height:6px;background:#F1F1F5;margin:22px calc(-1 * var(--pad));"></div>
+      <div class="section-label" style="margin-bottom:6px;">다가오는 일정</div>
+      ${upcoming.length > 0 ? upcoming.map((u, i) => `
+        <div onclick="modalSchedule('${u.key}')" style="display:flex;align-items:center;gap:14px;padding:13px 2px;cursor:pointer;${i>0?'border-top:1px solid var(--hair-soft);':''}">
+          <span class="num" style="font-size:13px;color:var(--muted);font-weight:500;min-width:44px;">${u.d}</span>
+          <span style="flex:1;min-width:0;font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.t}</span>
+          <span style="flex-shrink:0;color:var(--faint);font-size:22px;">›</span>
+        </div>`).join('') : '<div class="empty" style="padding:28px 0;">다가오는 일정이 없어요</div>'}
+      <div style="height:40px;"></div>
+    </div>
+    <button data-modal="schedule" class="site-fab">일정 추가</button>`;
 }
 
 document.addEventListener('click', (e) => {
