@@ -815,7 +815,7 @@ function inputStepSaving() {
   const done = !!st._saveDone;
   const full = 'min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));';
   const center = inner => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;">${inner}</div>`;
-  const coin = `<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="34" fill="var(--surface-2)" stroke="var(--hair)" stroke-width="1.5"/><text x="36" y="49" text-anchor="middle" font-size="34" font-weight="800" fill="var(--accent)" font-family="Pretendard,sans-serif">₩</text></svg>`;
+  const coin = `<div style="width:72px;height:72px;border-radius:50%;border:1.5px solid var(--hair);box-shadow:0 6px 16px rgba(0,0,0,0.16);display:flex;align-items:center;justify-content:center;box-sizing:border-box;"><span style="font-size:34px;font-weight:800;color:var(--ink);line-height:1;">₩</span></div>`;
   const check = `<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="36" fill="var(--accent)"/><path d="M22 37l10 10 18-20" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   // 현장명: 아파트명 700/ink + 동·호수 400/muted
   const dm = site.match(/\d+동/);
