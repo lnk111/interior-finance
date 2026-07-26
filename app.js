@@ -828,10 +828,11 @@ function inputStepSaving() {
   const statusColor = done ? 'var(--ink)' : 'var(--faint)';
   const statusText = done ? '저장 완료!' : '저장하고 있어요';
   const block = `<div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}<br><span style="font-weight:500;color:${statusColor};">${statusText}</span></div>`;
+  // 확인 버튼은 absolute로 하단 고정 → 버튼 유무가 가운데 콘텐츠 위치에 영향 주지 않음
   const btn = done
-    ? `<div style="padding:0 var(--pad) 12px;"><button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button></div>`
+    ? `<div style="position:absolute;left:0;right:0;bottom:0;padding:0 var(--pad) 12px;"><button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button></div>`
     : '';
-  return `<div style="display:flex;flex-direction:column;${full}">${center(`<div>${done ? check : coin}</div>${block}`)}${btn}</div>`;
+  return `<div style="display:flex;flex-direction:column;position:relative;${full}">${center(`<div>${done ? check : coin}</div>${block}`)}${btn}</div>`;
 }
 
 // 3단계 — 입력 내용 확인 (현장·공정·상세·금액 + 작성자 자동) → 인증하기
