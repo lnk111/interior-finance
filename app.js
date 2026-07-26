@@ -503,27 +503,9 @@ function renderInput() {
   const st = inputState;
   if (!st.step) st.step = 1;
   if (st.step === 1) return inputStepTypeSite();   // 거래내용 입력 = 거래 종류(탭) + 현장 선택 통합
-  if (st.step === 2) return inputStepDetail();      // 공정/결제 · 상세내용 · 금액 통합
-  const total = 6;
-  const stepLabel = ['', '', '결제 방법', '입력자', '영수증 첨부', '입력 확인'];
-  const header = `
-    <div style="display:flex;align-items:center;gap:10px;padding:14px var(--pad) 8px;">
-      <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--hair);background:#fff;cursor:pointer;font-size:17px;flex-shrink:0;">‹</button>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:18px;font-weight:800;">${stepLabel[st.step-1]}</div>
-      </div>
-    </div>
-    <div style="padding:0 var(--pad);margin-bottom:16px;">
-      <div style="height:4px;background:var(--hair);border-radius:2px;overflow:hidden;">
-        <div style="height:100%;width:${st.step/total*100}%;background:var(--accent);border-radius:2px;transition:width .25s;"></div>
-      </div>
-    </div>`;
-  let body = '';
-  if (st.step===3) body = inputStepPay();
-  else if (st.step===4) body = inputStepWriter();
-  else if (st.step===5) body = inputStepReceipt();
-  else body = inputStepConfirm();
-  return `${header}<div style="padding:0 0 28px;">${body}</div>`;
+  if (st.step === 2) return inputStepDetail();      // 공정 · 상세내용 · 금액 통합
+  if (st.step === 3) return inputStepConfirm();     // 입력 내용 확인 + 인증하기
+  return inputStepReceipt();                        // 4단계 = 영수증 사진 인증 + 저장
 }
 
 // 2단계 통합 — 공정/결제 선택 → 상세내용 → 금액 (진행형)
@@ -783,134 +765,77 @@ function inputStepAmount() {
     </div>`;
 }
 
-function _confRow(k, v, step, last) {
-  return `<button data-iact="goto" data-step="${step}" style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;${last?'':'border-bottom:1px solid var(--hair-soft);'}padding:12px 0;font-size:13px;font-family:inherit;cursor:pointer;text-align:left;">
-    <span style="color:var(--muted);">${k}</span>
-    <span style="display:flex;align-items:center;gap:6px;font-weight:700;max-width:64%;justify-content:flex-end;"><span style="text-align:right;">${v}</span><span style="color:#ccc;font-size:13px;">›</span></span>
-  </button>`;
-}
-
-function inputStepPay() {
-  const st = inputState;
-  const payIcons={'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
-  return `
-    <div style="padding:0 var(--pad);">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">결제 방법은요?</div>
-      <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">기본값은 계좌이체예요 · 탭하면 다음으로</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${(M.paymentMethods||[]).map(p=>{
-          const on = st.payMethod===p;
-          return `<button data-iact="pay" data-val="${p}" style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid ${on?'var(--accent)':'var(--hair)'};border-radius:13px;padding:15px 14px;cursor:pointer;font-family:inherit;text-align:left;">
-            <span style="font-size:20px;">${payIcons[p]||''}</span>
-            <span style="flex:1;font-size:14.5px;font-weight:700;">${p}</span>
-            <span style="color:${on?'var(--accent)':'#ccc'};font-size:16px;">${on?'✓':'›'}</span>
-          </button>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-
-function inputStepWriter() {
-  const st = inputState;
-  const list = M.inputters || [];
-  if (!st.inputter) st.inputter = (window.AUTH && AUTH.current && AUTH.current()?.name) || list[0] || '';
-  if (list.length === 0) {
-    return `
-      <div style="padding:0 var(--pad);">
-        <div style="font-size:15px;font-weight:700;margin-bottom:4px;">누가 입력하나요?</div>
-        <div style="font-size:13.5px;color:var(--muted);margin-bottom:20px;">아직 등록된 입력자가 없어요</div>
-        <div style="background:var(--warn-soft);border:1px solid var(--warn);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;">
-          <div style="font-size:14px;line-height:1.6;color:var(--ink);">
-            <strong>입력자 명단이 비어있어요.</strong><br>
-            <span style="color:var(--muted);font-size:13px;">설정 → 직원 추가에서 입력자를 먼저 등록해주세요.</span>
-          </div>
-          <button data-goto="settings" style="background:var(--warn);color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">⚙️ 설정으로 이동</button>
-        </div>
-      </div>`;
-  }
-  return `
-    <div style="padding:0 var(--pad);">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">누가 입력하나요?</div>
-      <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">탭하면 다음으로</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${list.map(n=>{
-          const on = st.inputter===n;
-          return `<button data-iact="inputter" data-val="${n}" style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid ${on?'var(--accent)':'var(--hair)'};border-radius:13px;padding:13px 14px;cursor:pointer;font-family:inherit;text-align:left;">
-            <span style="width:34px;height:34px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${String(n).slice(0,1)}</span>
-            <span style="flex:1;font-size:14.5px;font-weight:700;">${n}</span>
-            <span style="color:${on?'var(--accent)':'#ccc'};font-size:16px;">${on?'✓':'›'}</span>
-          </button>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-
-function inputStepMemo() {
-  const st = inputState;
-  const has = (st.memo||'').trim();
-  return `
-    <div style="padding:0 var(--pad);">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">메모를 남길까요?</div>
-      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 비워두고 넘어가도 돼요</div>
-      <textarea class="input" id="iflow-memo" rows="4" placeholder="예: 락카 1개, 자재 추가 구매" style="margin-bottom:16px;">${st.memo||''}</textarea>
-      <button data-iact="next" id="iflow-memo-next" class="btn btn-primary btn-block">${has?'다음':'메모 없이 계속'}</button>
-    </div>`;
-}
-
+// 4단계 — 영수증 사진 촬영 인증 + 최종 저장
 function inputStepReceipt() {
-  const n = (window._entryPhotos||[]).length;
+  const photos = window._entryPhotos || [];
+  const n = photos.length;
+  const has = n > 0;
   return `
-    <div style="padding:0 var(--pad);">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">영수증을 첨부할까요?</div>
-      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">선택사항이에요 · 최대 5장</div>
-      <div class="grid-2" style="margin-bottom:12px;">
-        <button type="button" class="attach" onclick="entryOpenCamera()">📷 카메라 촬영</button>
-        <button type="button" class="attach" onclick="entryOpenGallery()">🖼️ 갤러리 업로드</button>
+    <div style="display:flex;flex-direction:column;min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));">
+      <div style="display:flex;align-items:center;padding:12px var(--pad) 8px;">
+        <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:0;background:none;cursor:pointer;font-size:24px;color:var(--ink);padding:0;">‹</button>
       </div>
-      <input type="file" id="entry-file-camera" accept="image/*" capture="environment" style="display:none" onchange="entryHandleFile(event)">
-      <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
-      <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;min-height:44px;margin-bottom:16px;"></div>
-      <button data-iact="next" id="iflow-receipt-next" class="btn btn-primary btn-block">${n?`다음 · 영수증 ${n}장`:'영수증 없이 계속'}</button>
+      <div style="padding:0 var(--pad);">
+        <div><span style="font-size:21px;font-weight:700;color:var(--ink);">영수증</span><span style="font-size:21px;font-weight:400;color:var(--muted);">을 촬영해 인증해주세요</span></div>
+        <div style="font-size:15px;font-weight:400;color:var(--muted);margin-top:8px;">사진을 찍으면 거래가 인증돼요 · 최대 5장</div>
+      </div>
+      <div style="padding:24px var(--pad) 0;">
+        <button type="button" onclick="entryOpenCamera()" style="width:100%;background:var(--surface-2);border:0;border-radius:16px;padding:32px 0;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;font-family:inherit;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span style="font-size:16px;font-weight:700;color:var(--ink);">카메라로 촬영</span>
+        </button>
+        <button type="button" onclick="entryOpenGallery()" style="width:100%;background:none;border:0;padding:14px 0 0;font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;font-family:inherit;">갤러리에서 선택</button>
+        <input type="file" id="entry-file-camera" accept="image/*" capture="environment" style="display:none" onchange="entryHandleFile(event)">
+        <input type="file" id="entry-file-gallery" accept="image/*" multiple style="display:none" onchange="entryHandleFile(event)">
+        <div id="entry-photo-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;"></div>
+      </div>
+      <div style="flex:1;min-height:16px;"></div>
+      <div style="padding:0 var(--pad) 6px;">
+        <button data-iact="submit" id="iflow-receipt-submit" style="width:100%;background:${has?'var(--ink)':'var(--surface-2)'};color:${has?'#fff':'var(--faint)'};border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">${has?`인증 완료 · 영수증 ${n}장`:'영수증 없이 저장'}</button>
+      </div>
     </div>`;
 }
 
+// 3단계 — 입력 내용 확인 (현장·공정·상세·금액 + 작성자 자동) → 인증하기
 function inputStepConfirm() {
   const st = inputState;
   if (!st.date) st.date = toToday();
-  if (!st.inputter) st.inputter = (window.AUTH && AUTH.current && AUTH.current()?.name) || (M.inputters||[])[0] || '';
+  const isRev = st.tab === '매출';
+  const ctxWord = isRev ? '매출액' : st.tab === 'AS' ? 'AS비용' : '매입액';
+  const midLabel = isRev ? '결제 단계' : '공정';
+  const midVal = isRev ? (st.stage||'-') : (st.phase||'-');
   const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
-  const midK = st.tab==='매출' ? '결제 단계' : '공정';
-  const midV = st.tab==='매출' ? (st.stage||'-') : (st.phase||'-');
-  const nPhoto = (window._entryPhotos||[]).length;
-  const vat = Math.round(amt*0.1);
+  const memo = (st.memo||'').trim() || '(없음)';
+  // 작성자(입력자) = 로그인한 사용자 아이디 자동 지정
+  const writer = (window.AUTH && AUTH.current && AUTH.current()?.name) || st.inputter || '';
+  st.inputter = writer;
+  const name = st.site || '';
+  const dm = name.match(/\d+동/);
+  const siteHtml = dm
+    ? `<span style="color:var(--ink);">${name.slice(0,name.indexOf(dm[0])).trim()}</span> <span style="color:var(--muted);">${name.slice(name.indexOf(dm[0])).trim()}</span>`
+    : `<span style="color:var(--ink);">${name}</span>`;
+  const LAB = 'font-size:18px;font-weight:400;color:var(--ink);';
+  const VAL = 'font-size:18px;font-weight:600;color:var(--ink);';
+  const fieldLine = (l, v) => `<span style="${LAB}">${l}</span> <span style="${VAL}">${v}</span>`;
   return `
-    <div style="padding:0 var(--pad);">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">이대로 저장할까요?</div>
-      <div style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">각 항목을 탭하면 그 단계로 돌아가 수정할 수 있어요</div>
-      <div style="background:#fff;border:1.5px solid var(--hair);border-radius:14px;padding:2px 14px;margin-bottom:16px;">
-        ${_confRow('종류', st.tab, 1)}
-        ${_confRow('현장', st.site||'-', 1)}
-        ${_confRow(midK, midV, 2)}
-        ${_confRow('상세내용', (st.memo||'').trim()||'없음', 2)}
-        ${_confRow('금액', `<span style="font-size:18px;font-weight:800;">${amt.toLocaleString('ko-KR')}원</span>`, 2)}
-        ${_confRow('결제 방법', st.payMethod||'-', 3)}
-        ${_confRow('입력자', st.inputter||'-', 4)}
-        ${_confRow('영수증', nPhoto?nPhoto+'장':'없음', 5, true)}
+    <div style="display:flex;flex-direction:column;min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));">
+      <div style="display:flex;align-items:center;padding:12px var(--pad) 8px;">
+        <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:0;background:none;cursor:pointer;font-size:24px;color:var(--ink);padding:0;">‹</button>
       </div>
-      <div class="field">
-        <label class="field-label">날짜</label>
-        <input class="input" type="date" id="iflow-date" value="${st.date}">
+      <div style="padding:0 var(--pad);">
+        <div><span style="font-size:21px;font-weight:700;color:var(--ink);">입력 내용</span><span style="font-size:21px;font-weight:400;color:var(--muted);">을 확인해주세요</span></div>
       </div>
-      ${st.tab==='매출'?`
-      <div class="invoice-toggle ${st.invoice?'':'off'}" id="invoice-toggle" data-iact="invoice">
-        <div class="checkbox"><svg viewBox="0 0 12 9" fill="none"><path d="M1 4.5L4 7.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div>
-          <div class="it-title">📄 세금계산서 발행</div>
-          <div class="it-meta">${st.invoice?`부가세 ₩${vat.toLocaleString('ko-KR')} 자동 계산`:'체크하면 부가세(10%) 자동 계산됩니다'}</div>
-        </div>
-      </div>`:''}
-      <div class="form-submit" style="margin-top:10px;">
-        <button class="btn btn-primary btn-block" data-iact="submit">✅ 저장하기</button>
+      <div style="padding:26px var(--pad) 0;">
+        <div style="font-size:18px;font-weight:400;">${siteHtml}</div>
+        <div style="margin-top:18px;">${fieldLine(midLabel, midVal)}</div>
+        <div style="margin-top:16px;">${fieldLine('상세내용', memo)}</div>
+        <div style="margin-top:30px;font-size:15px;font-weight:400;color:var(--muted);">${ctxWord}</div>
+        <div style="margin-top:2px;font-size:32px;font-weight:800;letter-spacing:-0.03em;color:var(--ink);">${amt.toLocaleString('ko-KR')}<span style="font-size:20px;font-weight:700;">원</span></div>
+      </div>
+      <div style="flex:1;min-height:16px;"></div>
+      <div style="padding:0 var(--pad) 6px;">
+        <div style="text-align:center;font-size:13px;color:var(--faint);margin-bottom:14px;">작성자 · ${writer||'-'}</div>
+        <button data-iact="to-receipt" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">인증하기</button>
       </div>
     </div>`;
 }
@@ -976,16 +901,16 @@ function handleInputFlow(act, el) {
     const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
     if (!amt) { alert('금액을 입력해주세요'); return; }
     st.step=4; navigate('input');
+  } else if (act==='to-receipt') {
+    st.step=4; navigate('input');
   } else if (act==='back') {
     if (st.step===2) {
       if (st.sub==='amount') { st.sub='detail'; navigate('input'); setTimeout(()=>document.getElementById('iflow-detail')?.focus(),60); }
       else if (st.sub==='detail') { st.sub='proc'; navigate('input'); }
       else { st.step=1; navigate('input'); }
-    } else if (st.step>1) { st.step--; navigate('input'); }
-  } else if (act==='pay') {
-    st.payMethod = el.dataset.val; st.step=4; navigate('input');
-  } else if (act==='inputter') {
-    st.inputter = el.dataset.val; st.step=5; navigate('input');
+    } else if (st.step===3) { st.step=2; st.sub='amount'; navigate('input'); }
+    else if (st.step===4) { st.step=3; navigate('input'); }
+    else if (st.step>1) { st.step--; navigate('input'); }
   } else if (act==='next') {
     st.step++; navigate('input');
   } else if (act==='goto') {
@@ -1030,10 +955,12 @@ function entryRenderPhotos() {
         style="position:absolute;top:-6px;right:-6px;background:#191F28;color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
     </div>`).join('');
   }
-  const rb=document.getElementById('iflow-receipt-next');
+  const rb=document.getElementById('iflow-receipt-submit');
   if (rb) {
     const n=window._entryPhotos.length;
-    rb.textContent = n ? `다음 · 영수증 ${n}장` : '영수증 없이 계속';
+    rb.textContent = n ? `인증 완료 · 영수증 ${n}장` : '영수증 없이 저장';
+    rb.style.background = n ? 'var(--ink)' : 'var(--surface-2)';
+    rb.style.color = n ? '#fff' : 'var(--faint)';
   }
 }
 function entryRemovePhoto(idx) { window._entryPhotos.splice(idx,1); entryRenderPhotos(); }
