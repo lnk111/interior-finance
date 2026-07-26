@@ -598,6 +598,7 @@ input, textarea, select { font-family: inherit; }
 .cal-day.empty { cursor: default; }
 .cal-num { width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px; font-weight: 500; color: var(--ink-2); }
 .cal-day.sun .cal-num { color: #C4514B; }
+.cal-day.cal-selected .cal-num { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
 .cal-day.today .cal-num { background: var(--accent); color: #fff; font-weight: 700; }
 .cal-dots { display: flex; gap: 3px; height: 5px; align-items: center; }
 .cal-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }

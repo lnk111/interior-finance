@@ -21,12 +21,13 @@ function ymSelect(year = 2026, month = 5) {
 // ===== Calendar =====
 let _calYear = new Date().getFullYear();
 let _calMonth = new Date().getMonth() + 1;
+let _calSelected = null;   // 선택한 날짜 (null이면 오늘)
 let _calCache = null;
 let _calCacheKey = '';
 
 function renderCalendar() {
   if (window.ensureProcAll) window.ensureProcAll();
-  const cacheKey = `${_calYear}-${_calMonth}-${Object.keys(window.FB?.scheduleData||{}).length}-${Object.keys(window.FB?._procAll||{}).length}`;
+  const cacheKey = `${_calYear}-${_calMonth}-${_calSelected||''}-${Object.keys(window.FB?.scheduleData||{}).length}-${Object.keys(window.FB?._procAll||{}).length}`;
   if (_calCache && _calCacheKey === cacheKey) return _calCache;
   const html = _buildCalendarHtml();
   _calCache = html;
@@ -131,20 +132,14 @@ function _buildCalendarHtml() {
     const dateStr = _calYear + '-' + String(_calMonth).padStart(2, '0') + '-' + String(d).padStart(2, '0');
     const isToday = dateStr === todayStr;
     const ev = evMap[d] || [];
-    // 이벤트는 현장색 점으로 (최대 4개) — 상세는 날짜 탭 → 팝업
+    // 이벤트는 현장색 점으로 (최대 4개) — 탭하면 아래 "선택한 날"이 갱신됨
     const dots = ev.slice(0, 4).map(e => `<span class="cal-dot" style="background:${e.color || 'var(--faint)'};"></span>`).join('');
-    cells.push(`<div class="cal-day ${isToday?'today':''} ${col===0?'sun':col===6?'sat':''}" onclick="openCalDayPopup('${dateStr}')">
+    const isSel = dateStr === (_calSelected || todayStr);
+    cells.push(`<div class="cal-day ${isToday?'today':''} ${isSel?'cal-selected':''} ${col===0?'sun':col===6?'sat':''}" data-date="${dateStr}" onclick="calSelectDay('${dateStr}')">
       <span class="cal-num">${d}</span>
       <span class="cal-dots">${dots}</span>
     </div>`);
   }
-
-  const today = new Date(); today.setHours(0,0,0,0);
-  const upcoming = Object.entries(schedules)
-    .filter(([, sc]) => sc.date && new Date(sc.date) >= today)
-    .sort((a, b) => a[1].date.localeCompare(b[1].date))
-    .slice(0, 5)
-    .map(([key, sc]) => ({ key, d: sc.date.slice(5).replace('-', '.'), t: (sc.time ? sc.time + ' ' : '') + sc.title }));
 
   return `
     <div class="page-header">
@@ -167,17 +162,121 @@ function _buildCalendarHtml() {
         }).join('')}
       </div>` : ''}
       <div style="height:6px;background:#F1F1F5;margin:22px calc(-1 * var(--pad));"></div>
-      <div class="section-label" style="margin-bottom:6px;">다가오는 일정</div>
-      ${upcoming.length > 0 ? upcoming.map((u, i) => `
-        <div onclick="modalSchedule('${u.key}')" style="display:flex;align-items:center;gap:14px;padding:13px 2px;cursor:pointer;${i>0?'border-top:1px solid var(--hair-soft);':''}">
-          <span class="num" style="font-size:13px;color:var(--muted);font-weight:500;min-width:44px;">${u.d}</span>
-          <span style="flex:1;min-width:0;font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.t}</span>
-          <span style="flex-shrink:0;color:var(--faint);font-size:22px;">›</span>
-        </div>`).join('') : '<div class="empty" style="padding:28px 0;">다가오는 일정이 없어요</div>'}
+      <div id="cal-upcoming">${_calUpcomingSection()}</div>
       <div style="height:40px;"></div>
     </div>
     <button data-modal="schedule" class="site-fab">일정 추가</button>`;
 }
+
+// ── 달력: 선택한 날 + 다음날 7일 ──
+const CAL_SITE_PALETTE = ['#2563EB','#DC2626','#16A34A','#EA580C','#9333EA','#CA8A04','#0891B2','#DB2777','#65A30D','#7C3AED','#D97706','#059669'];
+const CAL_WD = ['일','월','화','수','목','금','토'];
+
+function _calSiteColorMap() {
+  const sites = window.FB?.sites || {};
+  const map = new Map();
+  Object.values(sites).slice()
+    .sort((a, b) => (a.createdAt || a._createdAt || 0) - (b.createdAt || b._createdAt || 0))
+    .forEach(s => { if (!map.has(s.name)) map.set(s.name, CAL_SITE_PALETTE[map.size % CAL_SITE_PALETTE.length]); });
+  return map;
+}
+
+// 특정 날짜의 공정·일정
+function _calDayEvents(dateStr) {
+  const schedules = window.FB?.scheduleData || {};
+  const scheds = Object.entries(schedules)
+    .filter(([, sc]) => sc.date === dateStr)
+    .sort((a, b) => (a[1].time || '').localeCompare(b[1].time || ''))
+    .map(([key, sc]) => ({ key, title: sc.title || '', time: sc.time || '' }));
+  const sites = window.FB?.sites || {};
+  const colors = _calSiteColorMap();
+  const todayStr = toToday();
+  const procs = [];
+  Object.values(sites).forEach(site => {
+    if (site.status === 'as' || site.status === 'AS관리') return;
+    const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
+    const pd = window.FB?._procAll?.[procKey] || {};
+    Object.values(pd).forEach(ph => {
+      const start = ph.startDate || ph.doneDate, end = ph.doneDate || ph.startDate;
+      if (!start) return;
+      if (dateStr >= start && dateStr <= end) {
+        let status = 'wait';
+        if (todayStr >= start && todayStr <= end) status = 'active';
+        if (todayStr > end) status = 'done';
+        procs.push({ siteName: site.name, phName: ph.name, status, color: colors.get(site.name) || 'var(--faint)' });
+      }
+    });
+  });
+  return { procs, scheds };
+}
+
+// 하루 일정 행들 (없으면 (일정없음))
+function _calDayRows(dateStr) {
+  const { procs, scheds } = _calDayEvents(dateStr);
+  if (!procs.length && !scheds.length) return `<div style="font-size:13px;color:var(--faint);padding:5px 0 0;">(일정없음)</div>`;
+  let html = '', i = 0;
+  procs.forEach(p => {
+    const top = i > 0 ? 'border-top:1px solid var(--hair-soft);' : '';
+    const stColor = p.status === 'active' ? 'var(--accent)' : 'var(--faint)';
+    const stLabel = p.status === 'done' ? '완료' : p.status === 'active' ? '진행중' : '예정';
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:11px 0;${top}">
+        <span style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0;"></span>
+        <div style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="font-size:14px;font-weight:600;color:var(--ink);">${p.phName}</span> <span style="font-size:14px;color:var(--muted);">${p.siteName}</span></div>
+        <span style="flex-shrink:0;font-size:12px;font-weight:600;color:${stColor};">${stLabel}</span>
+      </div>`;
+    i++;
+  });
+  scheds.forEach(s => {
+    const top = i > 0 ? 'border-top:1px solid var(--hair-soft);' : '';
+    html += `<div onclick="modalSchedule('${s.key}')" style="display:flex;align-items:center;gap:10px;padding:11px 0;cursor:pointer;${top}">
+        <span style="font-size:13px;font-weight:700;color:var(--accent);min-width:40px;">${s.time || '—'}</span>
+        <span style="flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.title}</span>
+      </div>`;
+    i++;
+  });
+  return html;
+}
+
+// 선택한 날 + 다음날 7일 섹션
+function _calUpcomingSection() {
+  const todayStr = toToday();
+  const sel = _calSelected || todayStr;
+  const selD = new Date(sel + 'T00:00:00');
+  const selLabel = `${selD.getMonth()+1}월 ${selD.getDate()}일 (${CAL_WD[selD.getDay()]})`;
+  const isToday = sel === todayStr;
+  const selHead = `<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;">
+      <span style="font-size:13px;font-weight:700;color:var(--ink);">${selLabel}</span>
+      ${isToday ? '<span style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:9px;">오늘</span>' : ''}
+    </div>`;
+  const week = [];
+  for (let j = 1; j <= 7; j++) { const d = new Date(selD); d.setDate(d.getDate() + j); week.push(d); }
+  const f = d => `${d.getMonth()+1}.${d.getDate()}`;
+  const range = `${f(week[0])} – ${f(week[6])}`;
+  const weekBody = week.map(d => {
+    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const isT = ds === todayStr;
+    return `<div style="margin-top:14px;"><span style="font-size:13px;font-weight:700;color:${isT?'var(--accent)':'var(--ink)'};">${f(d)} (${CAL_WD[d.getDay()]})</span></div>${_calDayRows(ds)}`;
+  }).join('');
+  return `
+    <div style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:4px;">선택한 날</div>
+    ${selHead}
+    ${_calDayRows(sel)}
+    <div style="height:6px;background:#F1F1F5;margin:18px calc(-1 * var(--pad));"></div>
+    <div style="font-size:13px;font-weight:500;color:var(--muted);">다음날 <span style="color:var(--faint);">· ${range}</span></div>
+    ${weekBody}`;
+}
+
+// 날짜 선택 — 전체 리렌더 없이 섹션·하이라이트만 갱신 (스크롤 유지)
+function calSelectDay(ds) {
+  _calSelected = ds;
+  _calCache = null;
+  const box = document.getElementById('cal-upcoming');
+  if (box) box.innerHTML = _calUpcomingSection();
+  document.querySelectorAll('.cal-day.cal-selected').forEach(el => el.classList.remove('cal-selected'));
+  const cell = document.querySelector('.cal-day[data-date="' + ds + '"]');
+  if (cell) cell.classList.add('cal-selected');
+}
+window.calSelectDay = calSelectDay;
 
 document.addEventListener('click', (e) => {
   if (e.target.closest('#cal-prev')) {
