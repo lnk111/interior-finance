@@ -1169,7 +1169,7 @@ async function seedDefaultPhasesUI(btn) {
     if (window.navigate) window.navigate('siteDetail');
   } catch (e) {
     alert('추가 실패. 다시 시도해주세요.');
-    if (btn) { btn.disabled = false; btn.textContent = '⚡ 기본 공정 23개 일괄 추가'; }
+    if (btn) { btn.disabled = false; btn.textContent = '기본 공정 23개 일괄 추가'; }
   }
 }
 
