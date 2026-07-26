@@ -806,31 +806,39 @@ function inputStepReceipt() {
     </div>`;
 }
 
-// 5단계 — 저장중 → 저장 완료 (Medium 500)
+// 5단계 — 저장중 → 저장 완료
 function inputStepSaving() {
   const st = inputState;
   const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
   const amtStr = amt.toLocaleString('ko-KR');
   const site = st.site || '';
   const done = !!st._saveDone;
-  const T = 'font-size:22px;font-weight:500;line-height:1.4;color:var(--ink);';
   const full = 'min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));';
   const center = inner => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;">${inner}</div>`;
   const coin = `<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="34" fill="var(--surface-2)" stroke="var(--hair)" stroke-width="1.5"/><text x="36" y="49" text-anchor="middle" font-size="34" font-weight="800" fill="var(--accent)" font-family="Pretendard,sans-serif">₩</text></svg>`;
   const check = `<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="36" fill="var(--accent)"/><path d="M22 37l10 10 18-20" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  // 현장명: 아파트명 700/ink + 동·호수 400/muted
+  const dm = site.match(/\d+동/);
+  const siteHtml = dm
+    ? `<span style="font-weight:700;color:var(--ink);">${site.slice(0,site.indexOf(dm[0])).trim()}</span> <span style="font-weight:400;color:var(--muted);">${site.slice(site.indexOf(dm[0])).trim()}</span>`
+    : `<span style="font-weight:700;color:var(--ink);">${site}</span>`;
+  // [입력값] 500/ink + 원을 500/muted
+  const amtLine = `<span style="font-weight:500;color:var(--ink);">${amtStr}</span><span style="font-weight:500;color:var(--muted);">원을</span>`;
+  // 현장명 + 금액 (22px 한 블록, 줄바꿈)
+  const block = `<div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}</div>`;
   if (!done) {
     return `<div style="display:flex;flex-direction:column;${full}">${center(`
       <div>${coin}</div>
-      <div style="${T}margin-top:22px;">${site}에<br>${amtStr}원을</div>
+      ${block}
       <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
         <span style="width:16px;height:16px;border:2px solid var(--hair);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span>
-        <span style="${T}color:var(--faint);">저장하고 있어요</span>
+        <span style="font-size:22px;font-weight:500;color:var(--faint);">저장하고 있어요</span>
       </div>`)}</div>`;
   }
   return `<div style="display:flex;flex-direction:column;${full}">
       ${center(`
         <div>${check}</div>
-        <div style="${T}margin-top:22px;">${site}에<br>${amtStr}원을<br>저장 완료!</div>`)}
+        <div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}<br><span style="font-weight:500;color:var(--ink);">저장 완료!</span></div>`)}
       <div style="padding:0 var(--pad) 12px;">
         <button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button>
       </div>
