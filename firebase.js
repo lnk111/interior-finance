@@ -607,12 +607,13 @@ window.runFullPhotoMigration = async function(btn) {
     return;
   }
 
-  const ok = confirm(
-    `사진 ${totalTargets}건을 Cloudinary로 이전합니다.\n` +
-    `(미정리 ${pendingTargets}건, 거래 ${entriesTargets}건)\n\n` +
-    `약 1~2분 걸릴 수 있어요. 중간에 멈춰도 안전하고,\n` +
-    `버튼을 다시 눌러 이어서 진행할 수 있습니다.\n\n` +
-    `진행할까요?`
+  const ok = await window.uiConfirm(
+    `사진 ${totalTargets}건을 Cloudinary로 이전합니다.<br>` +
+    `(미정리 ${pendingTargets}건, 거래 ${entriesTargets}건)<br><br>` +
+    `약 1~2분 걸릴 수 있어요. 중간에 멈춰도 안전하고,<br>` +
+    `버튼을 다시 눌러 이어서 진행할 수 있습니다.<br><br>` +
+    `진행할까요?`,
+    '진행', false
   );
   if (!ok) return;
 
@@ -682,7 +683,7 @@ window.runPhotoMigration = async function(btn) {
   const all = FB.entries || {};
   const pending = Object.keys(all).filter(k => { const e = all[k] || {}; return e.imageBase64 || (Array.isArray(e.extraPhotos) && e.extraPhotos.length); }).length;
   if (pending === 0) { alert('이미 최적화되어 있어요. 옮길 사진이 없습니다.'); return; }
-  if (!confirm(pending + '건의 거래 사진을 분리합니다. 잠시 걸릴 수 있어요. 진행할까요?')) return;
+  if (!(await window.uiConfirm(pending + '건의 거래 사진을 분리합니다. 잠시 걸릴 수 있어요. 진행할까요?', '진행', false))) return;
   if (btn) btn.disabled = true;
   try {
     const r = await window.migrateEntryPhotos((d, t) => { if (btn) btn.textContent = '이전 중… ' + d + '/' + t; });
