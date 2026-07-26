@@ -541,24 +541,24 @@ function inputStepDetail() {
   const dm = name.match(/\d+동/);
   const siteHtml = dm ? `<span style="color:var(--ink);">${name.slice(0,name.indexOf(dm[0])).trim()}</span> <span style="color:var(--muted);">${name.slice(name.indexOf(dm[0])).trim()}</span>` : `<span style="color:var(--ink);">${name}</span>`;
   const PENCIL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
-  const LAB = 'font-size:15px;font-weight:400;color:var(--ink);';
-  const VAL = 'font-size:15px;font-weight:600;color:var(--ink);';
+  const LAB = 'font-size:18px;font-weight:400;color:var(--ink);';
+  const VAL = 'font-size:18px;font-weight:600;color:var(--ink);';
   const fieldLine = (l, v) => `<span style="${LAB}">${l}</span> <span style="${VAL}">${v}</span>`;
   const esc = v => String(v || '').replace(/"/g, '&quot;');
 
   const head = `
     <div style="display:flex;align-items:center;padding:12px var(--pad) 8px;">
-      <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:0;background:none;cursor:pointer;font-size:22px;color:var(--ink);padding:0;">‹</button>
+      <button data-iact="back" style="width:32px;height:32px;border-radius:50%;border:0;background:none;cursor:pointer;font-size:24px;color:var(--ink);padding:0;">‹</button>
     </div>
     <div style="padding:0 var(--pad);">
-      <div><span style="font-size:18px;font-weight:700;color:var(--ink);">${ctxWord}</span><span style="font-size:18px;font-weight:400;color:var(--muted);">을 입력중입니다</span></div>
-      <div style="font-size:15px;font-weight:400;margin-top:8px;">${siteHtml}</div>
+      <div><span style="font-size:21px;font-weight:700;color:var(--ink);">${ctxWord}</span><span style="font-size:21px;font-weight:400;color:var(--muted);">을 입력중입니다</span></div>
+      <div style="font-size:18px;font-weight:400;margin-top:8px;">${siteHtml}</div>
     </div>`;
 
   let content = '', bottom = '';
   if (st.sub === 'proc') {
-    const btns = items.map(p => `<button data-iact="${pickAct}" data-val="${esc(p)}" style="display:flex;align-items:center;justify-content:center;margin:4px 0;background:none;border:0;padding:16px 0;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${p}</button>`).join('');
-    const direct = `<button data-iact="proc2-direct" style="display:flex;align-items:center;justify-content:center;gap:5px;margin:4px 0;background:none;border:0;padding:16px 0;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL}</button>`;
+    const btns = items.map(p => `<button data-iact="${pickAct}" data-val="${esc(p)}" style="display:flex;align-items:center;justify-content:center;margin:4px 0;background:none;border:0;padding:16px 0;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${p}</button>`).join('');
+    const direct = `<button data-iact="proc2-direct" style="display:flex;align-items:center;justify-content:center;gap:5px;margin:4px 0;background:none;border:0;padding:16px 0;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL}</button>`;
     content = `<div style="padding:22px var(--pad) 0;">
         <div style="${LAB}margin-bottom:20px;">${midLabel} 선택</div>
         <div style="border:1px solid var(--hair);border-radius:10px;overflow:hidden;"><div style="display:grid;grid-template-columns:repeat(3,1fr);">${btns}${direct}</div></div>
@@ -569,23 +569,23 @@ function inputStepDetail() {
         <div style="${LAB}margin-top:26px;">상세내용</div>
         <div style="position:relative;margin:12px 0;">
           <input id="iflow-detail" placeholder="예) 걸레받이 교체, 자재비" value="${esc(st.memo)}" onkeydown="if(event.key==='Enter'){event.preventDefault();handleInputFlow('detail-ok',this);}"
-            style="width:100%;box-sizing:border-box;border:1.5px solid var(--hair);border-radius:12px;padding:14px 66px 14px 14px;font-size:16px;font-family:inherit;outline:none;">
-          <button data-iact="detail-ok" id="iflow-detail-ok" style="display:${(st.memo||'').trim()?'block':'none'};position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--ink);color:#fff;border:0;border-radius:9px;padding:8px 12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button>
+            style="width:100%;box-sizing:border-box;border:1.5px solid var(--hair);border-radius:12px;padding:14px 72px 14px 14px;font-size:19px;font-family:inherit;outline:none;">
+          <button data-iact="detail-ok" id="iflow-detail-ok" style="display:${(st.memo||'').trim()?'block':'none'};position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--ink);color:#fff;border:0;border-radius:9px;padding:8px 12px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button>
         </div>
       </div>`;
   } else {
     const keys = ['1','2','3','4','5','6','7','8','9','00','0','del'];
-    const pad = `<div style="display:grid;grid-template-columns:repeat(3,1fr);">${keys.map(k => `<button data-iact="key2" data-val="${k}" style="background:none;border:0;padding:16px 0;font-size:24px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${k==='del'?'⌫':k}</button>`).join('')}</div>`;
-    const nextBtn = amt ? `<button data-iact="detail-next" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;">다음</button>` : '';
+    const pad = `<div style="display:grid;grid-template-columns:repeat(3,1fr);">${keys.map(k => `<button data-iact="key2" data-val="${k}" style="background:none;border:0;padding:13px 0;font-size:27px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${k==='del'?'⌫':k}</button>`).join('')}</div>`;
+    const nextBtn = amt ? `<button data-iact="detail-next" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:15px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;">다음</button>` : '';
     content = `<div style="padding:22px var(--pad) 0;">
         <div>${fieldLine(midLabel, midVal)}</div>
         <div style="margin-top:20px;">${fieldLine('상세내용', (st.memo||'').trim()||'(없음)')}</div>
-        <div style="margin-top:28px;font-size:24px;font-weight:${amt?'700':'500'};color:${amt?'var(--ink)':'#8B95A1'};">${amt ? amt.toLocaleString('ko-KR')+'원' : '금액을 입력해주세요'}</div>
+        <div style="margin-top:28px;font-size:27px;font-weight:${amt?'700':'500'};color:${amt?'var(--ink)':'#8B95A1'};">${amt ? amt.toLocaleString('ko-KR')+'원' : '금액을 입력해주세요'}</div>
       </div>`;
-    bottom = `<div style="padding:0 var(--pad);">${nextBtn}${pad}</div>`;
+    bottom = `<div style="padding:0 var(--pad) 6px;">${nextBtn}${pad}</div>`;
   }
 
-  return `<div style="display:flex;flex-direction:column;min-height:calc(100dvh - var(--tabbar-h));">${head}${content}<div style="flex:1;"></div>${bottom}</div>`;
+  return `<div style="display:flex;flex-direction:column;min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));">${head}${content}<div style="flex:1;min-height:12px;"></div>${bottom}</div>`;
 }
 
 // 1단계 통합 화면 — 상단 매입/매출/AS 탭 + 현장 검색/목록
