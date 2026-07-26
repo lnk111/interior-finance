@@ -225,51 +225,48 @@ function openCalDayPopup(dateStr) {
   });
 
   const procHtml = dayProcs.length > 0 ? `
-    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:10px;">🔨 공정 일정</div>
-    ${dayProcs.map(p => {
-      const stColor = p.status==='done'?'var(--accent)':p.status==='active'?'var(--warn)':'var(--faint)';
-      const stLabel = p.status==='done'?'완료':p.status==='active'?'진행중':'대기';
-      const dateRange = p.start===p.end ? p.start.slice(5).replace('-','.') : p.start.slice(5).replace('-','.')+' – '+p.end.slice(5).replace('-','.');
-      return `<div style="background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:13px 14px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <div style="font-size:14px;font-weight:700;">${p.siteName}</div>
-          <span style="font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;background:${stColor}20;color:${stColor};">${stLabel}</span>
+    <div style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:2px;">공정</div>
+    ${dayProcs.map((p, i) => {
+      const active = p.status==='active';
+      const stColor = active ? 'var(--accent)' : 'var(--faint)';
+      const stLabel = p.status==='done' ? '완료' : active ? '진행중' : '예정';
+      const dateRange = p.start===p.end ? p.start.slice(5).replace('-','.') : p.start.slice(5).replace('-','.')+' ~ '+p.end.slice(5).replace('-','.');
+      return `<div style="display:flex;align-items:center;gap:12px;padding:13px 0;${i>0?'border-top:1px solid var(--hair-soft);':''}">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.siteName}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;">${p.phName} · ${dateRange}</div>
         </div>
-        <div style="font-size:13px;color:var(--ink-2);">🔨 ${p.phName}</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:3px;">📅 ${dateRange}</div>
+        <span style="flex-shrink:0;font-size:13px;font-weight:600;color:${stColor};">${stLabel}</span>
       </div>`;
     }).join('')}` : '';
 
   const scheduleHtml = daySchedules.length > 0 ? `
-    <div style="font-size:13px;font-weight:700;color:var(--muted);margin:${dayProcs.length>0?'16px':'0'} 0 10px;">📌 추가 일정</div>
-    ${daySchedules.map(([key, sc]) => `
-      <div style="background:var(--surface);border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:12px;padding:13px 14px;margin-bottom:8px;cursor:pointer;"
-        onclick="closeCalDayPopup();modalSchedule('${key}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <div style="font-size:14px;font-weight:700;">${sc.title||''}</div>
-          ${sc.time ? `<span style="font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:20px;">${sc.time}</span>` : ''}
+    <div style="font-size:13px;font-weight:500;color:var(--muted);margin:${dayProcs.length>0?'20px':'0'} 0 2px;">추가 일정</div>
+    ${daySchedules.map(([key, sc], i) => `
+      <div onclick="closeCalDayPopup();modalSchedule('${key}')" style="display:flex;align-items:center;gap:12px;padding:13px 0;cursor:pointer;${i>0?'border-top:1px solid var(--hair-soft);':''}">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--ink);">${sc.title||''}</div>
+          ${sc.memo ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">${sc.memo}</div>` : ''}
+          ${sc.attendees&&sc.attendees.length ? `<div style="font-size:13px;color:var(--faint);margin-top:3px;">${sc.attendees.join(', ')}</div>` : ''}
         </div>
-        ${sc.memo ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">${sc.memo}</div>` : ''}
-        ${sc.attendees&&sc.attendees.length ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">👥 ${sc.attendees.join(', ')}</div>` : ''}
+        ${sc.time ? `<span style="flex-shrink:0;font-size:14px;font-weight:700;color:var(--accent);">${sc.time}</span>` : `<span style="flex-shrink:0;color:var(--faint);font-size:20px;">›</span>`}
       </div>`).join('')}` : '';
 
   const emptyHtml = (!dayProcs.length && !daySchedules.length) ?
-    '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px;">이 날은 일정이 없어요</div>' : '';
+    '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:14px;">이 날은 일정이 없어요</div>' : '';
 
   const root = document.getElementById('modal-root');
   root.innerHTML = `
-    <div style="position:fixed;inset:0;z-index:300;background:rgba(27,24,20,0.5);display:flex;align-items:flex-end;" onclick="closeCalDayPopup()">
-      <div style="width:100%;max-height:85vh;background:var(--bg);border-radius:18px 18px 0 0;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 12px;border-bottom:1px solid var(--hair);">
-          <div style="font-size:18px;font-weight:800;">${title}</div>
-          <button onclick="closeCalDayPopup()" style="width:32px;height:32px;border-radius:50%;background:var(--hair-soft);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);">✕</button>
+    <div style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;" onclick="closeCalDayPopup()">
+      <div style="width:100%;max-height:85vh;background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:18px var(--pad) 12px;">
+          <div style="font-size:20px;font-weight:700;color:var(--ink);">${title}</div>
+          <button onclick="closeCalDayPopup()" aria-label="닫기" style="width:32px;height:32px;border-radius:50%;border:0;background:var(--surface-2);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;">✕</button>
         </div>
-        <div style="overflow-y:auto;flex:1;padding:16px 18px;">${procHtml}${scheduleHtml}${emptyHtml}</div>
-        <div style="padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--hair);">
+        <div style="overflow-y:auto;flex:1;padding:6px var(--pad) 8px;">${procHtml}${scheduleHtml}${emptyHtml}</div>
+        <div style="padding:10px var(--pad) calc(14px + env(safe-area-inset-bottom));">
           <button onclick="closeCalDayPopup();modalSchedule(null,'${dateStr}')"
-            style="width:100%;padding:14px;background:var(--ink);color:var(--bg);border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
-            + 이 날 일정 추가
-          </button>
+            style="width:100%;padding:16px;background:var(--ink);color:#fff;border:0;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">이 날 일정 추가</button>
         </div>
       </div>
     </div>`;
