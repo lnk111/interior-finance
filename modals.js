@@ -825,13 +825,39 @@ async function txEditSave() {
   }
 }
 
+// 네이티브 confirm 대체 — iOS 홈화면 앱/일부 웹뷰에서 confirm이 막혀도 동작하는 커스텀 확인창
+function uiConfirm(message, okText = '삭제', danger = true) {
+  return new Promise(resolve => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:32px;';
+    wrap.innerHTML = `
+      <div style="width:100%;max-width:300px;background:#fff;border-radius:16px;padding:24px 20px 16px;text-align:center;font-family:inherit;">
+        <div style="font-size:16px;font-weight:600;color:var(--ink);line-height:1.5;">${message}</div>
+        <div style="display:flex;gap:8px;margin-top:22px;">
+          <button data-c="0" style="flex:1;background:var(--surface-2);color:var(--ink);border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;">취소</button>
+          <button data-c="1" style="flex:1;background:${danger ? '#D64545' : 'var(--ink)'};color:#fff;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;">${okText}</button>
+        </div>
+      </div>`;
+    const done = v => { wrap.remove(); resolve(v); };
+    wrap.addEventListener('click', e => {
+      if (e.target === wrap) return done(false);
+      const b = e.target.closest('[data-c]');
+      if (b) done(b.dataset.c === '1');
+    });
+    document.body.appendChild(wrap);
+  });
+}
+window.uiConfirm = uiConfirm;
+
 async function txEditDelete() {
-  if (!confirm('이 거래를 삭제할까요?')) return;
+  const key = window._txEditKey;
+  if (!key) { alert('삭제할 거래를 찾지 못했어요'); return; }
+  if (!(await uiConfirm('이 거래를 삭제할까요?'))) return;
   try {
-    await db.ref('entries/' + window._txEditKey).remove();
-    db.ref('entryPhotos/' + window._txEditKey).remove();
+    await db.ref('entries/' + key).remove();
+    db.ref('entryPhotos/' + key).remove();
     closeModal();
-  } catch(e) { alert('삭제 실패'); }
+  } catch(e) { alert('삭제 실패: ' + (e && e.message || e)); }
 }
 
 // 8. Quick tip / quick record modal — 토스식 단계 입력
