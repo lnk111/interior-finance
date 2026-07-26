@@ -963,7 +963,7 @@ async function saveProcEdit(procKey, phaseId) {
 }
 
 async function deleteProcEdit(procKey, phaseId) {
-  if (!confirm('이 공정을 삭제할까요?')) return;
+  if (!(await uiConfirm('이 공정을 삭제할까요?'))) return;
   const btn = document.querySelector('.modal-foot .btn-ghost.danger');
   if (btn) { btn.disabled=true; btn.textContent='삭제 중...'; }
   try {

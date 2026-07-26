@@ -219,7 +219,7 @@ async function schedSave(editKey) {
 }
 
 async function schedDelete(editKey) {
-  if (!confirm('이 일정을 삭제할까요?')) return;
+  if (!(await uiConfirm('이 일정을 삭제할까요?'))) return;
   try {
     await db.ref('scheduleData/' + editKey).remove();
     closeModal();
@@ -582,7 +582,7 @@ async function asSave(editKey) {
 }
 
 async function asDelete(editKey) {
-  if (!confirm('이 AS 항목을 삭제할까요?')) return;
+  if (!(await uiConfirm('이 AS 항목을 삭제할까요?'))) return;
   try {
     await db.ref('asData/' + editKey).remove();
     closeModal();
@@ -1724,7 +1724,7 @@ window.openTipDetail = function(tipKey) {
 
 // 노하우 삭제
 window.deleteTip = async function(tipKey) {
-  if (!confirm('이 노하우를 삭제할까요?')) return;
+  if (!(await uiConfirm('이 노하우를 삭제할까요?'))) return;
   try {
     await db.ref('knowhow/' + tipKey).remove();
     closeModal();

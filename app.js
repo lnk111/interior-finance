@@ -1186,7 +1186,7 @@ document.addEventListener('click',e=>{
   if (tipCardEl) { e.preventDefault(); openTipDetail(tipCardEl.dataset.tipKey); return; }
   const iact=e.target.closest('[data-iact]');
   if (iact) { e.preventDefault(); handleInputFlow(iact.dataset.iact, iact); return; }
-  if (e.target.closest('#logout-btn')) { if(confirm('로그아웃 하시겠어요?')) { AUTH.logout(); location.reload(); } return; }
+  if (e.target.closest('#logout-btn')) { uiConfirm('로그아웃 하시겠어요?', '로그아웃', false).then(ok=>{ if(ok){ AUTH.logout(); location.reload(); } }); return; }
 });
 
 document.addEventListener('input',e=>{
@@ -1260,7 +1260,7 @@ function openPendingList() {
   document.body.style.overflow='hidden';
 }
 async function deletePending(key) {
-  if (!confirm('이 미정리 내역을 삭제할까요?')) return;
+  if (!(await uiConfirm('이 미정리 내역을 삭제할까요?'))) return;
   try { await db.ref('pending/'+key).remove(); openPendingList(); }
   catch(e) { alert('삭제 실패'); }
 }
