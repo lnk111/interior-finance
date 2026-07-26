@@ -711,7 +711,7 @@ function renderSiteDetail() {
     const st = calcStatus(ph.startDate, ph.doneDate);
     const isCur = role === 'cur';
     let dot;
-    if (st === 'active') dot = 'width:15px;height:15px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px rgba(154,75,46,.18);flex-shrink:0;';
+    if (st === 'active') dot = 'width:15px;height:15px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(47,107,71,.18);flex-shrink:0;';
     else if (st === 'done') dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--accent);flex-shrink:0;`;
     else dot = `width:${isCur ? 14 : 11}px;height:${isCur ? 14 : 11}px;border-radius:50%;background:var(--faint);flex-shrink:0;`;
     const nameColor = isCur ? 'var(--ink)' : 'var(--muted)';
@@ -739,13 +739,13 @@ function renderSiteDetail() {
   return `
     <div class="breadcrumb">
       <button class="back-btn" data-goto="sites">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M10 4l-4 4 4 4"/></svg> 현장
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M10 4l-4 4 4 4"/></svg> 현장 상세내용
       </button>
     </div>
     <div class="page-header">
       <div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <h1 class="h-title">${s.name}</h1>
+          <h1 class="h-title" style="font-weight:600;">${s.name}</h1>
           <span class="pill status-${s.status}">${s.status}</span>
         </div>
         <div class="h-sub">${s.client} · ${s.start} – ${s.end}</div>
@@ -760,10 +760,11 @@ function renderSiteDetail() {
         <div class="stat"><div class="stat-label">순이익</div><div class="stat-value num" style="color:${s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'};">${fmtSlim2(s.profit)}</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${s.margin}%</div></div>
       </div>
+      <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label">공정 진행 <span class="more">${pct}% 완료</span></div>
       ${phases.length > 0 ? `
         ${subwayBar}
-        <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;background:#fff;border:1.5px solid var(--hair);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;background:var(--surface-2);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
           <span id="proc-toggle-label">${keepOpen ? '전체 공정 접기' : `전체 공정 ${phases.length}개 펼치기`}</span>
           <span id="proc-toggle-arrow" style="font-size:12px;">${keepOpen ? '▴' : '▾'}</span>
         </button>
@@ -772,14 +773,15 @@ function renderSiteDetail() {
         </div>
       ` : `<div class="timeline">${tlHtml}</div>`}
       ${phases.length === 0 ? `
-        <button onclick="seedDefaultPhasesUI(this)" style="width:100%;margin-top:10px;background:var(--accent);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">
-          ⚡ 기본 공정 23개 일괄 추가
+        <button onclick="seedDefaultPhasesUI(this)" style="width:100%;margin-top:10px;background:var(--accent);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">
+          기본 공정 23개 일괄 추가
         </button>
       ` : ''}
-      <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:1.5px dashed var(--accent);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--accent);cursor:pointer;font-family:inherit;">
+      <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;">
         + 공정 추가
       </button>
-      <div class="section-label" style="margin-top:36px;">거래 내역
+      <div style="height:6px;background:#F1F1F5;margin:32px calc(-1 * var(--pad)) 18px;"></div>
+      <div class="section-label">거래 내역
         <span style="display:flex;gap:6px;align-items:center;">
           <button onclick="toggleEntryGrouping()" id="group-toggle-btn"
             style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
@@ -789,7 +791,7 @@ function renderSiteDetail() {
         </span>
       </div>
       <div id="entry-list-wrap">${renderEntryList(s.name, true)}</div>
-      <button class="btn btn-ghost btn-block" onclick="modalAS(null)" style="margin-top:14px;">🔧 AS 등록</button>
+      <button class="btn btn-ghost btn-block" onclick="modalAS(null)" style="margin-top:14px;">AS 등록</button>
     </div>`;
 }
 
