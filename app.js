@@ -363,6 +363,10 @@ function tapSite(el, siteName) {
 }
 function openSiteDetail(siteName) {
   window._siteDetailName = siteName;
+  window._sdTab = 'sch';   // 진입 시 기본 = 일정관리
+  window._sdSelDay = null;
+  window._sdCalY = new Date().getFullYear();
+  window._sdCalM = new Date().getMonth() + 1;
   const found = (window.MOCK?.sites||[]).find(s=>s.name===siteName);
   if (found) window.MOCK.sites = [found, ...(window.MOCK.sites.filter(s=>s.name!==siteName))];
   const key = siteName.replace(/[.#$/ \[\]]/g,'_');

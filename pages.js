@@ -736,6 +736,9 @@ function renderSiteDetail() {
       ${subwayStation(nextP, 'next', _segR, 'transparent')}
     </div>`;
 
+  if (!window._sdTab) window._sdTab = 'sch';
+  if (!window._sdCalY) { window._sdCalY = new Date().getFullYear(); window._sdCalM = new Date().getMonth() + 1; }
+  const tab = window._sdTab;
   return `
     <div class="breadcrumb">
       <button class="back-btn" data-goto="sites">
@@ -751,7 +754,142 @@ function renderSiteDetail() {
         <div class="h-sub">${s.client} · ${s.start} – ${s.end}</div>
       </div>
     </div>
-    <div class="page-body">
+    <div style="display:flex;margin-top:8px;">${_sdTabBtn('sch','일정관리')}${_sdTabBtn('exe','실행가')}</div>
+    <div class="page-body" style="padding-top:0;">
+      ${tab === 'sch' ? _sdScheduleTab() : _sdExecTab()}
+    </div>`;
+}
+
+// ── 현장 상세 탭 (일정관리 / 실행가) ──
+function _sdSiteObj() { return (PMS.sites.find(x => x && x.name === window._siteDetailName)) || PMS.sites[0]; }
+function _sdPhasesList() {
+  const raw = window._procCache || {};
+  return Object.entries(raw).map(([id, p]) => ({ ...p, id })).sort((a, b) => {
+    const aHas = !!a.startDate, bHas = !!b.startDate;
+    if (aHas && bHas) { if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1; return (a.order||0)-(b.order||0); }
+    if (aHas) return -1; if (bHas) return 1; return (a.order||0)-(b.order||0);
+  });
+}
+function _sdTabBtn(k, t) {
+  const on = window._sdTab === k;
+  return `<button onclick="sdSetTab('${k}')" style="flex:1;padding:14px 0;font-size:15px;font-weight:${on?700:500};background:${on?'var(--ink)':'#fff'};color:${on?'#fff':'var(--ink)'};border:0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);cursor:pointer;font-family:inherit;">${t}</button>`;
+}
+function sdSetTab(t) { window._sdTab = t; if (window.navigate) navigate('siteDetail'); }
+window.sdSetTab = sdSetTab;
+
+// 공사일정관리 달력 (형광펜 공사기간)
+function _sdCalGrid() {
+  const y = window._sdCalY, m = window._sdCalM;
+  const phases = _sdPhasesList();
+  const first = new Date(y, m-1, 1).getDay();
+  const total = new Date(y, m, 0).getDate();
+  const dayPhase = {};
+  phases.forEach(p => {
+    const start = p.startDate || p.doneDate, end = p.doneDate || p.startDate;
+    if (!start) return;
+    let cur = new Date(start+'T00:00:00'); const endD = new Date(end+'T00:00:00');
+    while (cur <= endD) { if (cur.getFullYear()===y && cur.getMonth()+1===m) { const cd=cur.getDate(); if (!dayPhase[cd]) dayPhase[cd]={start,end}; } cur.setDate(cur.getDate()+1); }
+  });
+  const dn = ['일','월','화','수','목','금','토'];
+  const wh = dn.map((x,i)=>`<div style="text-align:center;font-size:11px;color:${i===0?'#C4514B':'var(--muted)'};padding:3px 0;">${x}</div>`).join('');
+  let cells = '';
+  for (let i=0;i<first;i++) cells += '<div></div>';
+  for (let d=1;d<=total;d++) {
+    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dp = dayPhase[d], sel = window._sdSelDay===ds;
+    let bar = '';
+    if (dp) {
+      const rl = (ds===dp.start||d===1) ? 'border-top-left-radius:11px;border-bottom-left-radius:11px;' : '';
+      const rr = (ds===dp.end||d===total) ? 'border-top-right-radius:11px;border-bottom-right-radius:11px;' : '';
+      bar = `<div style="position:absolute;left:0;right:0;top:7px;bottom:7px;background:rgba(47,107,71,0.16);${rl}${rr}"></div>`;
+    }
+    const ring = sel ? 'box-shadow:0 0 0 1.5px var(--ink) inset;border-radius:50%;' : '';
+    cells += `<div onclick="sdCalSelect('${ds}')" style="position:relative;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;">${bar}<span style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:${dp?600:500};color:var(--ink);${ring}">${d}</span></div>`;
+  }
+  return `<div style="display:grid;grid-template-columns:repeat(7,1fr);">${wh}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);">${cells}</div>`;
+}
+function _sdCalPanel() {
+  const ds = window._sdSelDay;
+  if (!ds) return `<div style="margin-top:12px;background:var(--surface-2);border-radius:12px;padding:14px;text-align:center;font-size:13px;color:var(--muted);">날짜를 눌러 공사 일정을 확인하세요</div>`;
+  const phases = _sdPhasesList(), s = _sdSiteObj();
+  const wd = ['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()];
+  const md = `${parseInt(ds.slice(5,7))}월 ${parseInt(ds.slice(8,10))}일 (${wd})`;
+  let hit = null;
+  phases.forEach(p => { const st=p.startDate||p.doneDate, en=p.doneDate||p.startDate; if (st && ds>=st && ds<=en && !hit) hit=p; });
+  if (hit) {
+    const f = x => x ? `${parseInt(x.slice(5,7))}.${parseInt(x.slice(8,10))}` : '';
+    const range = hit.startDate&&hit.doneDate ? `${f(hit.startDate)} – ${f(hit.doneDate)}` : f(hit.startDate||hit.doneDate);
+    return `<div style="margin-top:12px;background:var(--surface-2);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="min-width:0;"><div style="font-size:12px;color:var(--muted);">${md}</div><div style="font-size:15px;font-weight:700;margin-top:2px;">${hit.name}</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">${range}</div></div>
+        <button onclick="openProcEditModal('${hit.id}','${(s.name||'').replace(/'/g,"\\'")}')" style="background:#fff;border:1px solid var(--hair);border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">수정</button>
+      </div>`;
+  }
+  return `<div style="margin-top:12px;background:var(--surface-2);border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">${md} · 공사 일정이 없어요</div>
+      <button onclick="openProcAddModal()" style="background:var(--ink);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">+ 이 날 공사 추가</button>
+    </div>`;
+}
+function _sdCalSection() {
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:18px;padding:2px 0 8px;">
+      <button onclick="sdCalShift(-1)" style="background:none;border:0;color:var(--faint);font-size:24px;cursor:pointer;line-height:1;font-family:inherit;">‹</button>
+      <span style="font-size:16px;font-weight:700;">${window._sdCalY}년 ${window._sdCalM}월</span>
+      <button onclick="sdCalShift(1)" style="background:none;border:0;color:var(--faint);font-size:24px;cursor:pointer;line-height:1;font-family:inherit;">›</button>
+    </div>${_sdCalGrid()}${_sdCalPanel()}`;
+}
+function sdCalSelect(ds) { window._sdSelDay = ds; const w = document.getElementById('sd-cal-wrap'); if (w) w.innerHTML = _sdCalSection(); }
+function sdCalShift(delta) { let m = window._sdCalM + delta, y = window._sdCalY; if (m<1){m=12;y--;} else if (m>12){m=1;y++;} window._sdCalM=m; window._sdCalY=y; window._sdSelDay=null; const w = document.getElementById('sd-cal-wrap'); if (w) w.innerHTML = _sdCalSection(); }
+window.sdCalSelect = sdCalSelect; window.sdCalShift = sdCalShift;
+
+function _sdProcListHtml() {
+  const phases = _sdPhasesList(), s = _sdSiteObj(), today = toToday();
+  const cs = (st,en) => (!st&&!en)?'wait':(st&&today<st)?'wait':(en&&today>en)?'done':'active';
+  const lbl = {done:'완료',active:'진행중',wait:'대기'}, col = {done:'var(--accent)',active:'var(--accent)',wait:'var(--faint)'};
+  if (!phases.length) return '<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">등록된 공정이 없어요</div>';
+  return phases.map((p,i) => {
+    const st = cs(p.startDate,p.doneDate), f = x => x?x.slice(5).replace('-','.'):'';
+    const range = p.startDate&&p.doneDate ? `${f(p.startDate)} – ${f(p.doneDate)}` : (f(p.startDate||p.doneDate)||'날짜 미정');
+    return `<div onclick="openProcEditModal('${p.id}','${(s.name||'').replace(/'/g,"\\'")}')" style="display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer;${i>0?'border-top:1px solid var(--hair-soft);':''}"><span style="width:7px;height:7px;border-radius:50%;background:${col[st]};flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${p.name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px;">${range} · ${lbl[st]}</div></div><span style="color:var(--faint);font-size:18px;">›</span></div>`;
+  }).join('');
+}
+function _sdUpcoming() {
+  const s = _sdSiteObj(), schedules = window.FB?.scheduleData || {}, today = toToday();
+  const rows = Object.entries(schedules).filter(([,sc]) => sc.site===s.name && sc.date && sc.date>=today).sort((a,b)=>a[1].date.localeCompare(b[1].date)).slice(0,6);
+  const list = rows.length ? rows.map(([key,sc],i) => `<div onclick="modalSchedule('${key}')" style="display:flex;align-items:center;gap:12px;padding:12px 0;cursor:pointer;${i>0?'border-top:1px solid var(--hair-soft);':''}"><span style="font-size:13px;color:var(--muted);font-weight:500;min-width:44px;">${sc.date.slice(5).replace('-','.')}</span><span style="flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(sc.time?sc.time+' ':'')+(sc.title||'')}</span><span style="color:var(--faint);font-size:20px;">›</span></div>`).join('') : `<div style="font-size:13px;color:var(--faint);padding:6px 0;">예정된 일정이 없어요</div>`;
+  return `${list}
+    <button onclick="sdAddSchedule('${(s.name||'').replace(/'/g,"\\'")}')" style="width:100%;margin-top:10px;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">+ 일정 추가</button>
+    <div style="font-size:12px;color:var(--faint);margin-top:8px;text-align:center;">여기 추가하면 [달력] 탭에도 자동 저장돼요</div>`;
+}
+function sdAddSchedule(siteName) { modalSchedule(null, toToday()); const inp = document.getElementById('sched-site'); if (inp) inp.value = siteName; }
+window.sdAddSchedule = sdAddSchedule;
+
+function _sdScheduleTab() {
+  const phases = _sdPhasesList(), today = toToday();
+  const done = phases.filter(p => p.doneDate && today > p.doneDate).length;
+  const pct = phases.length ? Math.round(done / phases.length * 100) : 0;
+  return `
+      <div style="height:6px;background:#F1F1F5;margin:16px calc(-1 * var(--pad)) 18px;"></div>
+      <div class="section-label" style="margin-bottom:10px;">렌더링</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div style="width:66px;height:66px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;">＋</div>
+        <div style="font-size:13px;color:var(--faint);line-height:1.5;">고객이 고른 항목·이미지·PDF 업로드<br>곧 지원돼요</div>
+      </div>
+      <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
+      <div class="section-label" style="margin-bottom:8px;">공사일정관리 <span class="more">${pct}% 완료</span></div>
+      <div id="sd-cal-wrap">${_sdCalSection()}</div>
+      <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;margin-top:12px;background:var(--surface-2);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <span id="proc-toggle-label">전체 공정 ${phases.length}개 펼치기</span><span id="proc-toggle-arrow" style="font-size:12px;">▾</span>
+      </button>
+      <div id="proc-full-list" style="display:none;margin-top:8px;">${_sdProcListHtml()}</div>
+      <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;">+ 공정 추가</button>
+      <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
+      <div class="section-label" style="margin-bottom:8px;">다가오는 일정</div>
+      ${_sdUpcoming()}`;
+}
+function _sdExecTab() {
+  const s = _sdSiteObj();
+  return `
+      <div style="height:6px;background:#F1F1F5;margin:16px calc(-1 * var(--pad)) 18px;"></div>
+      <div class="section-label" style="margin-bottom:10px;">실행가</div>
       <div class="stat-row">
         <div class="stat"><div class="stat-label">매출</div><div class="stat-value num">${fmtSlim2(s.revenue)}</div></div>
         <div class="stat"><div class="stat-label">매입</div><div class="stat-value num">${fmtSlim2(s.cost)}</div></div>
@@ -761,38 +899,14 @@ function renderSiteDetail() {
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${s.margin}%</div></div>
       </div>
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
-      <div class="section-label">공정 진행 <span class="more">${pct}% 완료</span></div>
-      ${phases.length > 0 ? `
-        ${subwayBar}
-        <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;background:var(--surface-2);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-          <span id="proc-toggle-label">${keepOpen ? '전체 공정 접기' : `전체 공정 ${phases.length}개 펼치기`}</span>
-          <span id="proc-toggle-arrow" style="font-size:12px;">${keepOpen ? '▴' : '▾'}</span>
-        </button>
-        <div id="proc-full-list" style="display:${keepOpen ? 'block' : 'none'};margin-top:8px;">
-          <div class="timeline">${tlHtml}</div>
-        </div>
-      ` : `<div class="timeline">${tlHtml}</div>`}
-      ${phases.length === 0 ? `
-        <button onclick="seedDefaultPhasesUI(this)" style="width:100%;margin-top:10px;background:var(--accent);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">
-          기본 공정 23개 일괄 추가
-        </button>
-      ` : ''}
-      <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;">
-        + 공정 추가
-      </button>
-      <div style="height:6px;background:#F1F1F5;margin:32px calc(-1 * var(--pad)) 18px;"></div>
-      <div class="section-label">거래 내역
+      <div class="section-label">거래내역
         <span style="display:flex;gap:6px;align-items:center;">
-          <button onclick="toggleEntryGrouping()" id="group-toggle-btn"
-            style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
-            공정별 묶기 ON
-          </button>
+          <button onclick="toggleEntryGrouping()" id="group-toggle-btn" style="background:${_entryGrouped?'var(--accent)':'var(--surface-2)'};color:${_entryGrouped?'#fff':'var(--ink)'};border:none;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">공정별 묶기 ${_entryGrouped?'ON':'OFF'}</button>
           <span class="more" onclick="navigate('input')" style="cursor:pointer;">+ 입력</span>
         </span>
       </div>
-      <div id="entry-list-wrap">${renderEntryList(s.name, true)}</div>
-      <button class="btn btn-ghost btn-block" onclick="modalAS(null)" style="margin-top:14px;">AS 등록</button>
-    </div>`;
+      <div id="entry-list-wrap">${renderEntryList(s.name, _entryGrouped)}</div>
+      <button class="btn btn-ghost btn-block" onclick="modalAS(null)" style="margin-top:14px;">AS 등록</button>`;
 }
 
 // ===== Photos =====
