@@ -1430,7 +1430,10 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   let startY=0, pulling=false, threshold=80;
   const indicator=document.getElementById('pull-indicator');
+  // 모달/시트/팝업이 열려있으면(=body 스크롤 잠금) 당겨서 새로고침 비활성 — 모달 안 당김이 새로고침되어 랜딩이 뜨는 문제 방지
+  const overlayOpen = () => document.body.style.overflow === 'hidden' || (document.getElementById('modal-root')?.children.length > 0);
   document.addEventListener('touchstart',e=>{
+    if (overlayOpen()) { pulling=false; return; }
     if (window.scrollY===0) { startY=e.touches[0].clientY; pulling=true; }
   },{passive:true});
   document.addEventListener('touchmove',e=>{
@@ -1446,6 +1449,6 @@ document.addEventListener('DOMContentLoaded', function() {
     pulling=false;
     const dy=e.changedTouches[0].clientY-startY;
     if (indicator) indicator.style.height='0';
-    if (dy>threshold&&window.scrollY===0) location.reload();
+    if (dy>threshold&&window.scrollY===0&&!overlayOpen()) location.reload();
   },{passive:true});
 })();
