@@ -1385,10 +1385,14 @@ async function savePending(key) {
   }
 }
 
-// 랜딩(로딩) 화면 숨김 — 페이지 로드 후 최소 1초 노출 뒤 페이드아웃. 여러 번 호출해도 1회만 실행.
-function hideLanding() {
+// 랜딩(로딩) 화면 숨김 — 최소 1초 노출 + '오늘의 브리핑' 데이터(공정) 로드 완료 후 페이드아웃.
+// force=true(안전장치·비로그인)면 데이터 대기 없이 강제 종료. 여러 번 호출해도 1회만 실행.
+function hideLanding(force) {
   const ls = document.getElementById('loading-screen');
   if (!ls || ls.__hidden) return;
+  const fb = window.FB || {};
+  // 오늘의 브리핑 = 현장 목록(siteInfo) + 공정 데이터(procData) 필요. 둘 다 오기 전엔 유지.
+  if (!force && !(fb._sitesReady && fb._procAllReady)) return;
   ls.__hidden = true;
   const wait = Math.max(0, 1000 - performance.now());
   setTimeout(function() {
@@ -1407,16 +1411,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const loggedIn = bootAuth();
 
   if (!loggedIn) {
-    // 로그인 안된 경우 랜딩 화면 숨기기 (최소 1초 보장)
-    hideLanding();
+    // 로그인 안된 경우 랜딩 화면 숨기기 (데이터 대기 없이 강제, 최소 1초는 유지)
+    hideLanding(true);
   } else {
-    // 로그인된 경우 Firebase 데이터 로드 후 navigate 호출됨
-    // 최대 5초 후 강제로 랜딩 화면 숨기기 (안전장치)
+    // 로그인된 경우: 오늘의 브리핑(공정) 데이터가 오면 navigate→hideLanding에서 자동 종료
+    // 최대 5초 후엔 데이터가 안 와도 강제로 랜딩 종료 (안전장치)
     setTimeout(() => {
       const ls = document.getElementById('loading-screen');
       if (ls && !ls.__hidden) {
         if (!document.querySelector('.page.is-active')) navigate('home');
-        hideLanding();
+        hideLanding(true);
       }
     }, 5000);
   }

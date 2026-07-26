@@ -720,7 +720,7 @@ function initFirebase() {
 
   // 핵심 데이터 — 실시간 리스너로 한 번만 로드 + 변경 감지
   // (.once() 중복 다운로드 제거: 무거운 entries 노드를 두 번 받지 않음)
-  db.ref('siteInfo').on('value', snap => { FB.sites = snap.val() || {}; onDataChange(); });
+  db.ref('siteInfo').on('value', snap => { FB.sites = snap.val() || {}; FB._sitesReady = true; onDataChange(); });
   db.ref('entries').on('value', snap => { FB.entries = snap.val() || {}; onDataChange(); });
   db.ref('pending').on('value', snap => { FB.pending = snap.val() || {}; onDataChange(); });
   db.ref('staffData').on('value', snap => { FB.staffData = snap.val() || {}; onDataChange(); });
@@ -737,6 +737,7 @@ function initFirebase() {
     FB._procAllLoaded = true;
     db.ref('procData').once('value').then(snap => {
       FB._procAll = snap.val() || {};
+      FB._procAllReady = true;   // 오늘의 브리핑 데이터 로드 완료 신호
       onDataChange();
     });
   };
