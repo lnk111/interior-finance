@@ -1025,7 +1025,7 @@ function renderSites() {
   const PIN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.686-6-10a6 6 0 0112 0c0 4.314-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>';
   const SORT = '<svg width="15" height="15" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5V12M3.5 12L1.5 10M3.5 12L5.5 10"/><path d="M8.5 9V2M8.5 2L6.5 4M8.5 2L10.5 4"/></svg>';
   const FILTER = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>';
-  const PENCIL = '<span style="font-size:15px;line-height:1;flex-shrink:0;">✏️</span>';
+  const PENCIL = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
   const fmtD = ds => `${parseInt(ds.slice(5, 7), 10)}월 ${parseInt(ds.slice(8, 10), 10)}일`;
 
   // 1) 직접 입력한 일정 (현장 지정된 것만)
