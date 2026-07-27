@@ -542,11 +542,10 @@ function renderEntryList(siteName, grouped) {
       : '';
     const work = e.memo || e.process || e.payStage || '내용 없음';
     return `
-      <button onclick="modalTxEdit('${key}')" style="width:100%;display:flex;gap:9px;align-items:flex-start;padding:9px 2px;background:none;border:none;border-top:1px solid var(--hair-soft);text-align:left;font-family:inherit;cursor:pointer;">
+      <button onclick="modalTxEdit('${key}')" style="width:100%;display:flex;gap:9px;align-items:flex-start;padding:9px 2px;background:none;border:none;text-align:left;font-family:inherit;cursor:pointer;">
         <span style="font-size:12px;color:var(--faint);flex-shrink:0;width:36px;padding-top:1px;">${date}</span>
         <span style="flex:1;min-width:0;">
           <span style="font-size:13px;color:var(--ink);line-height:1.45;">${tag}${work}</span>
-          ${e.writer ? `<span style="display:block;font-size:11.5px;color:var(--faint);margin-top:2px;">${e.writer}</span>` : ''}
         </span>
         <span class="num" style="font-size:13.5px;font-weight:700;flex-shrink:0;padding-top:1px;${amtStyle}">${sign}${(e.amount||0).toLocaleString('ko-KR')}</span>
       </button>`;
@@ -599,12 +598,17 @@ function renderEntryList(siteName, grouped) {
           </span>
           <span style="font-size:15px;font-weight:800;color:${totalColor};">${totalSign}${Math.abs(g.total).toLocaleString('ko-KR')}</span>
         </div>
-        <div style="font-size:11.5px;font-weight:700;color:var(--muted);margin:12px 0 1px;border-top:1px solid var(--hair-soft);padding-top:11px;">작업 내역</div>
-        ${g.entries.map(logRow).join('')}
+        <div style="margin-top:6px;">${g.entries.map(logRow).join('')}</div>
       </div>`;
   }).join('');
 }
 
+function onRenderPick(input) {
+  const n = input && input.files ? input.files.length : 0;
+  const hint = document.getElementById('render-hint');
+  if (hint && n) hint.innerHTML = `${n}개 선택됨<br>업로드는 곧 지원돼요`;
+  if (input) input.value = '';
+}
 function toggleProcList() {
   const list = document.getElementById('proc-full-list');
   if (!list) return;
@@ -879,8 +883,8 @@ function _sdScheduleTab() {
   return `
       <div class="section-label" style="margin:18px 0 10px;">렌더링</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <div style="width:66px;height:66px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;">＋</div>
-        <div style="font-size:13px;color:var(--faint);line-height:1.5;">고객이 고른 항목·이미지·PDF 업로드<br>곧 지원돼요</div>
+        <label style="width:66px;height:66px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;cursor:pointer;">＋<input id="render-file" type="file" accept="image/*,application/pdf" multiple style="display:none;" onchange="onRenderPick(this)"></label>
+        <div id="render-hint" style="font-size:13px;color:var(--faint);line-height:1.5;">고객이 고른 항목·이미지·PDF 업로드<br>곧 지원돼요</div>
       </div>
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label" style="margin-bottom:8px;">공사일정관리 <span class="more">${pct}% 완료</span></div>
