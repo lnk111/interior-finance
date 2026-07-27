@@ -831,7 +831,7 @@ function _sdCalPanel() {
     const range = hit.startDate&&hit.doneDate ? `${f(hit.startDate)} – ${f(hit.doneDate)}` : f(hit.startDate||hit.doneDate);
     return `<div style="margin-top:12px;background:none;border:1px solid var(--hair);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="min-width:0;"><div style="font-size:15px;font-weight:700;">${hit.name}</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">${range}</div></div>
-        <button onclick="openProcEditModal('${hit.id}','${(s.name||'').replace(/'/g,"\\'")}')" aria-label="수정" style="background:var(--surface-2);border:0;border-radius:9px;padding:8px 12px;cursor:pointer;font-family:inherit;flex-shrink:0;display:flex;align-items:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
+        <button onclick="openProcEditModal('${hit.id}','${(s.name||'').replace(/'/g,"\\'")}')" aria-label="수정" style="background:#fff;border:0;border-radius:9px;padding:8px 12px;cursor:pointer;font-family:inherit;flex-shrink:0;display:flex;align-items:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
       </div>`;
   }
   return `<div style="margin-top:12px;background:none;border:1px solid var(--hair);border-radius:12px;padding:14px;text-align:center;">
