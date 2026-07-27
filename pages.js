@@ -516,7 +516,7 @@ function renderEntryList(siteName, grouped) {
     const proc = e.process || e.payStage || '기타';
     const ava = proc.replace(/\s/g,'').slice(0,2) || '—';             // 공정 앞 2글자 아바타 (현장 상세라 현장명은 공통)
     const date = e.date ? e.date.slice(5).replace('-', '/') : '';
-    const meta = [e.writer, date].filter(Boolean).join(' · ');
+    const meta = date;   // 작성자 숨김
     return `
       <button class="list-row list-row--tx" onclick="modalTxEdit('${key}')" style="width:100%;text-align:left;">
         <div class="tx-ava">${ava}</div>
