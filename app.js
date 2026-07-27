@@ -1050,7 +1050,18 @@ function renderSites() {
     return { kind: 'const', key: s.name, site: s.name, title: '공사중', active: true, start: starts[0], end: ends[ends.length - 1] };
   }).filter(Boolean);
 
-  const filtered = [...constRows, ...schedRows].filter(r => {
+  // 3) 계약완료 현장 — 등록한 연도·월(=착공 예정 월)에 '착공예정' 마커로 미리 표시
+  const constSiteNames = new Set(constRows.map(r => r.site));
+  const planRows = (M.sites || []).map(s => {
+    if (!s || s.status !== '계약완료') return null;
+    if (constSiteNames.has(s.name)) return null;          // 이미 실제 공사 일정이 있으면 제외
+    const mm = (s.start || '').match(/^(\d{4})\.(\d{2})$/); // s.start = "YYYY.MM"
+    if (!mm) return null;
+    const start = `${mm[1]}-${mm[2]}-01`;
+    return { kind: 'plan', key: s.name, site: s.name, title: '계약완료 · 착공예정', active: false, start, end: start };
+  }).filter(Boolean);
+
+  const filtered = [...constRows, ...schedRows, ...planRows].filter(r => {
     if (!r.start) return false;
     const sYM = parseInt(r.start.slice(0, 4), 10) * 100 + parseInt(r.start.slice(5, 7), 10);
     const eYM = r.end ? parseInt(r.end.slice(0, 4), 10) * 100 + parseInt(r.end.slice(5, 7), 10) : sYM;
@@ -1073,7 +1084,7 @@ function renderSites() {
   });
 
   // 일정(공사기간·스케줄)이 하나도 없는 현장 — 어느 달에도 안 잡혀 목록에서 사라지므로 별도 섹션으로 항상 노출
-  const scheduledNames = new Set([...constRows, ...schedRows].map(r => r.site));
+  const scheduledNames = new Set([...constRows, ...schedRows, ...planRows].map(r => r.site));
   const unscheduled = (M.sites || []).filter(s => s && s.name && !scheduledNames.has(s.name));
   const unschedHtml = unscheduled.length ? `
       <div style="height:1px;background:var(--hair);margin:20px 0 12px;"></div>
@@ -1087,6 +1098,16 @@ function renderSites() {
 
   const listHtml = groups.length ? groups.map((g, gi) => {
     const evHtml = g.items.map(r => {
+      if (r.kind === 'plan') {
+        const pm = parseInt(r.start.slice(5, 7), 10);
+        return `<div onclick="openSiteDetail('${r.site.replace(/'/g, "\\'")}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;cursor:pointer;">
+            <span style="font-size:13px;color:var(--muted);white-space:nowrap;">${pm}월 착공 예정</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;">
+              <span style="font-size:11px;font-weight:700;color:#B4802A;background:#FBF3E2;border:1px solid #EAD9AE;padding:2px 8px;border-radius:20px;white-space:nowrap;">🤝 계약완료</span>
+              <span style="font-size:12.5px;font-weight:700;color:#B4802A;white-space:nowrap;">착공예정</span>
+            </span>
+          </div>`;
+      }
       const crossY = r.end && r.start.slice(0, 4) !== r.end.slice(0, 4);
       const fD = ds => crossY ? `${ds.slice(2, 4)}.${parseInt(ds.slice(5, 7), 10)}.${parseInt(ds.slice(8, 10), 10)}` : fmtD(ds);
       const period = (!r.end || r.end === r.start) ? fmtD(r.start) : `${fD(r.start)} ~ ${fD(r.end)}`;
