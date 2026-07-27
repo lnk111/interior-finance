@@ -1194,6 +1194,11 @@ async function deleteProcEdit(procKey, phaseId) {
 function openProcAddModal() {
   const siteName = window._siteDetailName || '';
   const procKey = siteName.replace(/[.#$/ \[\]]/g, '_');
+  const PROC_PHASES = (window.MOCK && Array.isArray(window.MOCK.phases) && window.MOCK.phases.length)
+    ? window.MOCK.phases
+    : ['철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
+  const PENCIL_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+  const procGrid = PROC_PHASES.map(p=>`<button type="button" data-v="${p}" onclick="procAddPick(this)" style="display:flex;align-items:center;justify-content:center;padding:14px 0;background:none;border:0;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${p}</button>`).join('');
   const root = document.getElementById('modal-root');
   root.innerHTML = `
     <div class="modal-backdrop" onclick="closeModal()">
@@ -1203,7 +1208,14 @@ function openProcAddModal() {
           <button class="btn-icon" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
-          <div class="field"><label class="field-label">공정명</label><input class="input" id="proc-add-name" placeholder="예: 상판시공"></div>
+          <div class="field">
+            <label class="field-label">공정 선택 <span id="proc-add-selected" style="color:var(--accent);font-weight:700;"></span></label>
+            <div style="border:1px solid var(--hair);border-radius:10px;overflow:hidden;">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);">${procGrid}</div>
+              <div style="width:300px;max-width:calc(100% - 24px);height:1px;background:var(--hair);margin:4px auto;"></div>
+              <button type="button" id="proc-add-direct" onclick="procAddPickDirect()" style="display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:14px 0;background:none;border:0;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL_SVG}</button>
+            </div>
+          </div>
           <div class="field"><label class="field-label">상태</label>
             <div class="chip-group">
               <button type="button" class="chip is-active" onclick="procAddChip(this,'wait')">⏳ 대기</button>
@@ -1224,7 +1236,7 @@ function openProcAddModal() {
     </div>`;
   document.body.style.overflow = 'hidden';
   window._procAddStatus = 'wait';
-  setTimeout(()=>{ const el=document.getElementById('proc-add-name'); if (el) el.focus(); }, 50);
+  window._procAddName = '';
 }
 
 function procAddChip(el, status) {
@@ -1233,9 +1245,28 @@ function procAddChip(el, status) {
   window._procAddStatus = status;
 }
 
+function procAddPick(el) {
+  const field = el.closest('.field');
+  if (field) field.querySelectorAll('button').forEach(b=>{ b.style.background='none'; b.style.color='var(--ink)'; });
+  el.style.background = 'var(--accent-soft)'; el.style.color = 'var(--accent)';
+  window._procAddName = el.dataset.v || el.textContent.trim();
+  const s = document.getElementById('proc-add-selected'); if (s) s.textContent = '· ' + window._procAddName;
+}
+
+function procAddPickDirect() {
+  const v = (prompt('공정명을 직접 입력하세요') || '').trim();
+  if (!v) return;
+  const btn = document.getElementById('proc-add-direct');
+  const field = btn ? btn.closest('.field') : null;
+  if (field) field.querySelectorAll('button').forEach(b=>{ b.style.background='none'; b.style.color='var(--ink)'; });
+  if (btn) { btn.style.background = 'var(--accent-soft)'; btn.style.color = 'var(--accent)'; }
+  window._procAddName = v;
+  const s = document.getElementById('proc-add-selected'); if (s) s.textContent = '· ' + v;
+}
+
 async function saveProcAdd(procKey) {
-  const name = document.getElementById('proc-add-name')?.value?.trim();
-  if (!name) { alert('공정명을 입력하세요'); return; }
+  const name = (window._procAddName || '').trim();
+  if (!name) { alert('공정을 선택하세요'); return; }
   const startDate = document.getElementById('proc-add-start')?.value || null;
   const doneDate  = document.getElementById('proc-add-end')?.value   || null;
   const status    = window._procAddStatus || 'wait';
