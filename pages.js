@@ -599,12 +599,7 @@ function renderEntryList(siteName, grouped) {
           </span>
           <span style="font-size:15px;font-weight:800;color:${totalColor};">${totalSign}${Math.abs(g.total).toLocaleString('ko-KR')}</span>
         </div>
-        <div style="display:flex;gap:8px;border-top:1px solid var(--hair-soft);border-bottom:1px solid var(--hair-soft);margin:11px 0;padding:10px 0;">
-          ${fact('작업 기간', periodStr, daysStr)}
-          ${fact('거래', g.entries.length + '건', '')}
-          ${fact('담당', writerStr, '')}
-        </div>
-        <div style="font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:1px;">작업 내역</div>
+        <div style="font-size:11.5px;font-weight:700;color:var(--muted);margin:12px 0 1px;border-top:1px solid var(--hair-soft);padding-top:11px;">작업 내역</div>
         ${g.entries.map(logRow).join('')}
       </div>`;
   }).join('');
@@ -751,7 +746,7 @@ function renderSiteDetail() {
           <h1 class="h-title" style="font-weight:600;">${s.name}</h1>
           <span class="pill status-${s.status}">${s.status}</span>
         </div>
-        <div class="h-sub">${s.client} · ${s.start} – ${s.end}</div>
+        <div class="h-sub">${s.start}</div>
       </div>
     </div>
     <div style="display:flex;margin-top:8px;">${_sdTabBtn('sch','일정관리')}${_sdTabBtn('exe','실행가')}</div>
@@ -867,8 +862,7 @@ function _sdScheduleTab() {
   const done = phases.filter(p => p.doneDate && today > p.doneDate).length;
   const pct = phases.length ? Math.round(done / phases.length * 100) : 0;
   return `
-      <div style="height:6px;background:#F1F1F5;margin:16px calc(-1 * var(--pad)) 18px;"></div>
-      <div class="section-label" style="margin-bottom:10px;">렌더링</div>
+      <div class="section-label" style="margin:18px 0 10px;">렌더링</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <div style="width:66px;height:66px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;">＋</div>
         <div style="font-size:13px;color:var(--faint);line-height:1.5;">고객이 고른 항목·이미지·PDF 업로드<br>곧 지원돼요</div>
@@ -887,16 +881,16 @@ function _sdScheduleTab() {
 }
 function _sdExecTab() {
   const s = _sdSiteObj();
+  const unit = t => `<span style="font-weight:400;font-size:15px;color:var(--muted);">${t}</span>`;
+  const won = (v, c) => `<span${c?` style="color:${c};"`:''}>${(v||0).toLocaleString('ko-KR')}</span>${unit('원')}`;
+  const card = (label, valHtml) => `<div style="background:var(--surface-2);border-radius:14px;padding:16px;"><div style="font-size:13px;color:var(--muted);font-weight:500;">${label}</div><div class="num" style="font-size:22px;font-weight:800;letter-spacing:-0.03em;margin-top:6px;">${valHtml}</div></div>`;
   return `
-      <div style="height:6px;background:#F1F1F5;margin:16px calc(-1 * var(--pad)) 18px;"></div>
-      <div class="section-label" style="margin-bottom:10px;">실행가</div>
-      <div class="stat-row">
-        <div class="stat"><div class="stat-label">매출</div><div class="stat-value num">${fmtSlim2(s.revenue)}</div></div>
-        <div class="stat"><div class="stat-label">매입</div><div class="stat-value num">${fmtSlim2(s.cost)}</div></div>
-      </div>
-      <div class="stat-row">
-        <div class="stat"><div class="stat-label">순이익</div><div class="stat-value num" style="color:${s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'};">${fmtSlim2(s.profit)}</div></div>
-        <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${s.margin}%</div></div>
+      <div class="section-label" style="margin:18px 0 10px;">실행가</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${card('매출', won(s.revenue))}
+        ${card('매입', won(s.cost))}
+        ${card('순이익', won(s.profit, s.profit>0?'#DC2626':s.profit<0?'#2563EB':'var(--ink)'))}
+        ${card('이익률', `${s.margin}${unit('%')}`)}
       </div>
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label">거래내역
