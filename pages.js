@@ -814,7 +814,7 @@ function _sdCalGrid() {
       bar = `<div style="position:absolute;left:0;right:0;top:4px;bottom:4px;background:rgba(47,107,71,0.16);${rl}${rr}"></div>`;
     }
     const ring = sel ? 'box-shadow:0 0 0 1.5px var(--ink) inset;border-radius:50%;' : '';
-    cells += `<div onclick="sdCalSelect('${ds}')" style="position:relative;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;">${bar}<span style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:${info?600:500};color:var(--ink);${ring}">${d}</span>${labelRow(d, info)}</div>`;
+    cells += `<div onclick="sdCalSelect('${ds}')" style="position:relative;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;">${bar}<span style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:${info?600:500};color:var(--ink);${ring}">${d}</span>${labelRow(d, info)}</div>`;
   }
   return `<div style="display:grid;grid-template-columns:repeat(7,1fr);">${wh}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);">${cells}</div>`;
 }
@@ -830,12 +830,12 @@ function _sdCalPanel() {
     const f = x => x ? `${parseInt(x.slice(5,7))}.${parseInt(x.slice(8,10))}` : '';
     const range = hit.startDate&&hit.doneDate ? `${f(hit.startDate)} – ${f(hit.doneDate)}` : f(hit.startDate||hit.doneDate);
     return `<div style="margin-top:12px;background:none;border:1px solid var(--hair);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="min-width:0;"><div style="font-size:12px;color:var(--muted);">${md}</div><div style="font-size:15px;font-weight:700;margin-top:2px;">${hit.name}</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">${range}</div></div>
-        <button onclick="openProcEditModal('${hit.id}','${(s.name||'').replace(/'/g,"\\'")}')" style="background:var(--surface-2);border:0;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">수정</button>
+        <div style="min-width:0;"><div style="font-size:15px;font-weight:700;">${hit.name}</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">${range}</div></div>
+        <button onclick="openProcEditModal('${hit.id}','${(s.name||'').replace(/'/g,"\\'")}')" aria-label="수정" style="background:var(--surface-2);border:0;border-radius:9px;padding:8px 13px;font-size:15px;cursor:pointer;font-family:inherit;flex-shrink:0;">✏️</button>
       </div>`;
   }
   return `<div style="margin-top:12px;background:none;border:1px solid var(--hair);border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">${md} · 공사 일정이 없어요</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">이 날은 공사 일정이 없어요</div>
       <button onclick="openProcAddModal()" style="background:var(--ink);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">+ 이 날 공사 추가</button>
     </div>`;
 }
