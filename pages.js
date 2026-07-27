@@ -778,34 +778,54 @@ function _sdCalGrid() {
   const phases = _sdPhasesList();
   const first = new Date(y, m-1, 1).getDay();
   const total = new Date(y, m, 0).getDate();
-  const dayPhase = {};
+  const pad = n => String(n).padStart(2,'0');
+  const monthStart = `${y}-${pad(m)}-01`, monthEnd = `${y}-${pad(m)}-${pad(total)}`;
+  // 공정별 이번 달 표시 구간 계산 (달 경계 넘어가면 화살표 없이 이어짐)
+  const dayInfo = {};
   phases.forEach(p => {
     const start = p.startDate || p.doneDate, end = p.doneDate || p.startDate;
     if (!start) return;
-    let cur = new Date(start+'T00:00:00'); const endD = new Date(end+'T00:00:00');
-    while (cur <= endD) { if (cur.getFullYear()===y && cur.getMonth()+1===m) { const cd=cur.getDate(); if (!dayPhase[cd]) dayPhase[cd]={start,end}; } cur.setDate(cur.getDate()+1); }
+    if (end < monthStart || start > monthEnd) return;
+    const startIn = start >= monthStart && start <= monthEnd;
+    const endIn = end >= monthStart && end <= monthEnd;
+    const vs = startIn ? parseInt(start.slice(8,10)) : 1;
+    const ve = endIn ? parseInt(end.slice(8,10)) : total;
+    const info = { name: p.name, vs, ve, startIn, endIn, nameDay: Math.round((vs+ve)/2) };
+    for (let d=vs; d<=ve; d++) { if (!dayInfo[d]) dayInfo[d]=info; }
   });
+  const capL = `<span style="width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-right:6px solid var(--accent);flex-shrink:0;"></span>`;
+  const capR = `<span style="width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid var(--accent);flex-shrink:0;"></span>`;
+  const seg = `<div style="flex:1;height:2px;background:var(--accent);"></div>`;
+  const labelRow = (d, info) => {
+    if (!info) return '';
+    const nameTag = `<span style="font-size:10px;font-weight:700;color:var(--accent);padding:0 3px;white-space:nowrap;line-height:1;">${info.name}</span>`;
+    let inner = '';
+    if (d===info.vs && info.startIn) inner += capL;
+    inner += (d===info.nameDay) ? (seg + nameTag + seg) : seg;
+    if (d===info.ve && info.endIn) inner += capR;
+    return `<div style="position:relative;width:100%;display:flex;align-items:center;gap:2px;height:12px;padding:0 3px;box-sizing:border-box;">${inner}</div>`;
+  };
   const dn = ['일','월','화','수','목','금','토'];
   const wh = dn.map((x,i)=>`<div style="text-align:center;font-size:11px;color:${i===0?'#C4514B':'var(--muted)'};padding:3px 0;">${x}</div>`).join('');
   let cells = '';
   for (let i=0;i<first;i++) cells += '<div></div>';
   for (let d=1;d<=total;d++) {
-    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dp = dayPhase[d], sel = window._sdSelDay===ds;
+    const ds = `${y}-${pad(m)}-${pad(d)}`;
+    const info = dayInfo[d], sel = window._sdSelDay===ds;
     let bar = '';
-    if (dp) {
-      const rl = (ds===dp.start||d===1) ? 'border-top-left-radius:11px;border-bottom-left-radius:11px;' : '';
-      const rr = (ds===dp.end||d===total) ? 'border-top-right-radius:11px;border-bottom-right-radius:11px;' : '';
-      bar = `<div style="position:absolute;left:0;right:0;top:7px;bottom:7px;background:rgba(47,107,71,0.16);${rl}${rr}"></div>`;
+    if (info) {
+      const rl = (d===info.vs && info.startIn) ? 'border-top-left-radius:13px;border-bottom-left-radius:13px;' : '';
+      const rr = (d===info.ve && info.endIn) ? 'border-top-right-radius:13px;border-bottom-right-radius:13px;' : '';
+      bar = `<div style="position:absolute;left:0;right:0;top:4px;bottom:4px;background:rgba(47,107,71,0.16);${rl}${rr}"></div>`;
     }
     const ring = sel ? 'box-shadow:0 0 0 1.5px var(--ink) inset;border-radius:50%;' : '';
-    cells += `<div onclick="sdCalSelect('${ds}')" style="position:relative;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;">${bar}<span style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:${dp?600:500};color:var(--ink);${ring}">${d}</span></div>`;
+    cells += `<div onclick="sdCalSelect('${ds}')" style="position:relative;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;">${bar}<span style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:${info?600:500};color:var(--ink);${ring}">${d}</span>${labelRow(d, info)}</div>`;
   }
   return `<div style="display:grid;grid-template-columns:repeat(7,1fr);">${wh}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);">${cells}</div>`;
 }
 function _sdCalPanel() {
   const ds = window._sdSelDay;
-  if (!ds) return `<div style="margin-top:12px;background:var(--surface-2);border-radius:12px;padding:14px;text-align:center;font-size:13px;color:var(--muted);">날짜를 눌러 공사 일정을 확인하세요</div>`;
+  if (!ds) return '';   // 선택 없을 땐 패널 없음 (같은 날 재클릭 시 닫힘)
   const phases = _sdPhasesList(), s = _sdSiteObj();
   const wd = ['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()];
   const md = `${parseInt(ds.slice(5,7))}월 ${parseInt(ds.slice(8,10))}일 (${wd})`;
@@ -814,12 +834,12 @@ function _sdCalPanel() {
   if (hit) {
     const f = x => x ? `${parseInt(x.slice(5,7))}.${parseInt(x.slice(8,10))}` : '';
     const range = hit.startDate&&hit.doneDate ? `${f(hit.startDate)} – ${f(hit.doneDate)}` : f(hit.startDate||hit.doneDate);
-    return `<div style="margin-top:12px;background:var(--surface-2);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    return `<div style="margin-top:12px;background:none;border:1px solid var(--hair);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="min-width:0;"><div style="font-size:12px;color:var(--muted);">${md}</div><div style="font-size:15px;font-weight:700;margin-top:2px;">${hit.name}</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">${range}</div></div>
-        <button onclick="openProcEditModal('${hit.id}','${(s.name||'').replace(/'/g,"\\'")}')" style="background:#fff;border:1px solid var(--hair);border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">수정</button>
+        <button onclick="openProcEditModal('${hit.id}','${(s.name||'').replace(/'/g,"\\'")}')" style="background:var(--surface-2);border:0;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">수정</button>
       </div>`;
   }
-  return `<div style="margin-top:12px;background:var(--surface-2);border-radius:12px;padding:14px;text-align:center;">
+  return `<div style="margin-top:12px;background:none;border:1px solid var(--hair);border-radius:12px;padding:14px;text-align:center;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">${md} · 공사 일정이 없어요</div>
       <button onclick="openProcAddModal()" style="background:var(--ink);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">+ 이 날 공사 추가</button>
     </div>`;
@@ -831,7 +851,7 @@ function _sdCalSection() {
       <button onclick="sdCalShift(1)" style="background:none;border:0;color:var(--faint);font-size:24px;cursor:pointer;line-height:1;font-family:inherit;">›</button>
     </div>${_sdCalGrid()}${_sdCalPanel()}`;
 }
-function sdCalSelect(ds) { window._sdSelDay = ds; const w = document.getElementById('sd-cal-wrap'); if (w) w.innerHTML = _sdCalSection(); }
+function sdCalSelect(ds) { window._sdSelDay = (window._sdSelDay === ds ? null : ds); const w = document.getElementById('sd-cal-wrap'); if (w) w.innerHTML = _sdCalSection(); }
 function sdCalShift(delta) { let m = window._sdCalM + delta, y = window._sdCalY; if (m<1){m=12;y--;} else if (m>12){m=1;y++;} window._sdCalM=m; window._sdCalY=y; window._sdSelDay=null; const w = document.getElementById('sd-cal-wrap'); if (w) w.innerHTML = _sdCalSection(); }
 window.sdCalSelect = sdCalSelect; window.sdCalShift = sdCalShift;
 
@@ -874,7 +894,7 @@ function _sdScheduleTab() {
         <span id="proc-toggle-label">전체 공정 ${phases.length}개 펼치기</span><span id="proc-toggle-arrow" style="font-size:12px;">▾</span>
       </button>
       <div id="proc-full-list" style="display:none;margin-top:8px;">${_sdProcListHtml()}</div>
-      <button onclick="openProcAddModal()" style="width:100%;margin-top:10px;background:var(--accent-soft);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;">+ 공정 추가</button>
+      <button onclick="openProcAddModal()" style="width:100%;margin-top:14px;background:none;border:1px solid var(--hair);border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;">+ 공정 추가</button>
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label" style="margin-bottom:8px;">다가오는 일정</div>
       ${_sdUpcoming()}`;
