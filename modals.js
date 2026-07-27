@@ -649,9 +649,16 @@ function modalTxEdit(entryKey) {
     `<option value="${n}" ${entry.writer === n ? 'selected' : ''}>${n}</option>`
   ).join('');
   const phases = ['철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
-  // 표준 공정에 없는 값(커스텀 공정/과거에 메모처럼 입력한 값)도 칩으로 보여서 유지되게 함
+  const esc = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // 표준 공정에 없는 값 = 커스텀 공정 또는 과거에 메모처럼 입력한 값
   const customProc = (entry.process && !phases.includes(entry.process)) ? entry.process : '';
-  const escP = String(customProc).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const hasMemo = !!(entry.memo && entry.memo.trim());
+  // 메모가 비어있고 공정이 커스텀 값이면 → 그 값을 '메모'로 간주해 메모칸에 표시(공정 칩·필드에서는 비움)
+  const procIsMemo = !!customProc && !hasMemo;
+  const memoInit = hasMemo ? entry.memo : (procIsMemo ? customProc : '');
+  const showCustomChip = !!customProc && !procIsMemo;   // 별도 메모가 있는 진짜 커스텀 공정만 칩 유지
+  const escP = esc(customProc);
+  const escMemo = esc(memoInit);
   const stages = ['계약금','착수금','중도금','잔금'];
   const pays = ['현금','계좌이체','신용카드'];
   const stageIcons = {'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
@@ -724,13 +731,13 @@ function modalTxEdit(entryKey) {
               <label class="field-label">공정</label>
               <div class="chip-group" style="flex-wrap:wrap;">
                 ${phases.map(p=>`<button type="button" class="chip ${entry.process===p?'is-active':''}" onclick="txEditChip(this,'phase','${p}')">${p}</button>`).join('')}
-                ${customProc ? `<button type="button" class="chip is-active" data-v="${escP}" onclick="txEditChip(this,'phase',this.dataset.v)">${escP}</button>` : ''}
+                ${showCustomChip ? `<button type="button" class="chip is-active" data-v="${escP}" onclick="txEditChip(this,'phase',this.dataset.v)">${escP}</button>` : ''}
               </div>
             </div>
           </div>
           <div class="field">
             <label class="field-label">메모</label>
-            <textarea class="input" id="txe-memo" rows="2">${entry.memo||''}</textarea>
+            <textarea class="input" id="txe-memo" rows="2">${escMemo}</textarea>
           </div>
           ${txePhotoSection}
           <div class="field">
@@ -750,7 +757,7 @@ function modalTxEdit(entryKey) {
   document.body.style.overflow = 'hidden';
   window._txStage = entry.payStage || '';
   window._txPay = entry.payMethod || '';
-  window._txPhase = entry.process || '';
+  window._txPhase = procIsMemo ? '' : (entry.process || '');   // 메모로 옮긴 경우 공정은 비움
   txeFillPhotos(entryKey, entry);   // 사진 노드를 항상 조회 → 있으면 무조건 표시
 }
 
