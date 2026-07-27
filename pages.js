@@ -793,16 +793,11 @@ function _sdCalGrid() {
     const info = { name: p.name, vs, ve, startIn, endIn, nameDay: Math.round((vs+ve)/2) };
     for (let d=vs; d<=ve; d++) { if (!dayInfo[d]) dayInfo[d]=info; }
   });
-  const capL = `<span style="width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-right:6px solid var(--accent);flex-shrink:0;"></span>`;
-  const capR = `<span style="width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid var(--accent);flex-shrink:0;"></span>`;
   const seg = `<div style="flex:1;height:2px;background:var(--accent);"></div>`;
   const labelRow = (d, info) => {
     if (!info) return '';
     const nameTag = `<span style="font-size:10px;font-weight:700;color:var(--accent);padding:0 3px;white-space:nowrap;line-height:1;">${info.name}</span>`;
-    let inner = '';
-    if (d===info.vs && info.startIn) inner += capL;
-    inner += (d===info.nameDay) ? (seg + nameTag + seg) : seg;
-    if (d===info.ve && info.endIn) inner += capR;
+    const inner = (d===info.nameDay) ? (seg + nameTag + seg) : seg;
     return `<div style="position:relative;width:100%;display:flex;align-items:center;gap:2px;height:12px;padding:0 3px;box-sizing:border-box;">${inner}</div>`;
   };
   const dn = ['일','월','화','수','목','금','토'];
@@ -890,10 +885,6 @@ function _sdScheduleTab() {
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label" style="margin-bottom:8px;">공사일정관리 <span class="more">${pct}% 완료</span></div>
       <div id="sd-cal-wrap">${_sdCalSection()}</div>
-      <button onclick="toggleProcList()" id="proc-toggle-btn" data-count="${phases.length}" style="width:100%;margin-top:12px;background:var(--surface-2);border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">
-        <span id="proc-toggle-label">전체 공정 ${phases.length}개 펼치기</span><span id="proc-toggle-arrow" style="font-size:12px;">▾</span>
-      </button>
-      <div id="proc-full-list" style="display:none;margin-top:8px;">${_sdProcListHtml()}</div>
       <button onclick="openProcAddModal()" style="width:100%;margin-top:14px;background:none;border:1px solid var(--hair);border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;">+ 공정 추가</button>
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label" style="margin-bottom:8px;">다가오는 일정</div>
