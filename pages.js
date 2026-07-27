@@ -793,12 +793,12 @@ function _sdCalGrid() {
     const info = { name: p.name, vs, ve, startIn, endIn, nameDay: Math.round((vs+ve)/2) };
     for (let d=vs; d<=ve; d++) { if (!dayInfo[d]) dayInfo[d]=info; }
   });
-  const seg = `<div style="flex:1;height:2px;background:var(--accent);"></div>`;
+  // 공정명은 기간 가운데 한 번만 (선·화살표 없음). 모든 칸에 라벨 행을 둬 날짜 세로정렬 유지
   const labelRow = (d, info) => {
-    if (!info) return '';
-    const nameTag = `<span style="font-size:10px;font-weight:700;color:var(--accent);padding:0 3px;white-space:nowrap;line-height:1;">${info.name}</span>`;
-    const inner = (d===info.nameDay) ? (seg + nameTag + seg) : seg;
-    return `<div style="position:relative;width:100%;display:flex;align-items:center;gap:2px;height:12px;padding:0 3px;box-sizing:border-box;">${inner}</div>`;
+    const nameTag = (info && d===info.nameDay)
+      ? `<span style="font-size:10.5px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1;">${info.name}</span>`
+      : '';
+    return `<div style="position:relative;width:100%;height:12px;display:flex;align-items:center;justify-content:center;padding:0 2px;box-sizing:border-box;">${nameTag}</div>`;
   };
   const dn = ['일','월','화','수','목','금','토'];
   const wh = dn.map((x,i)=>`<div style="text-align:center;font-size:11px;color:${i===0?'#C4514B':'var(--muted)'};padding:3px 0;">${x}</div>`).join('');
