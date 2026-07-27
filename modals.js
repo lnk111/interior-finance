@@ -143,10 +143,9 @@ function modalSchedule(editKey = null, prefillDate = null) {
         <div class="modal-body">
           <div class="field">
             <label class="field-label">현장</label>
-            <input class="input" id="sched-site" list="sched-site-list" placeholder="현장명 입력 또는 선택" value="${(existing.site || '').replace(/"/g, '&quot;')}">
-            <datalist id="sched-site-list">
-              ${(window.MOCK?.sites || []).map(s => `<option value="${(s.name || '').replace(/"/g, '&quot;')}"></option>`).join('')}
-            </datalist>
+            <input class="input" id="sched-site" autocomplete="off" placeholder="현장명 입력" value="${(existing.site || '').replace(/"/g, '&quot;')}"
+              onfocus="schedSiteOpen()" oninput="schedSiteFilter(this.value)" onblur="setTimeout(schedSiteClose,180)">
+            <div id="sched-site-list" style="display:none;margin-top:6px;border:1px solid var(--hair);border-radius:12px;max-height:280px;overflow-y:auto;padding:4px;"></div>
           </div>
           <div class="field">
             <label class="field-label">일정 <span class="req">*</span></label>
@@ -186,6 +185,54 @@ function modalSchedule(editKey = null, prefillDate = null) {
     </div>
   `;
   document.body.style.overflow = 'hidden';
+}
+
+// 일정 현장 입력 — 거래내용입력 탭과 동일한 검색 + 직접입력 방식 (공사중 / 다가오는 그룹, 최신순 없음)
+function schedSiteOpen() {
+  const inp = document.getElementById('sched-site');
+  schedSiteFilter(inp ? inp.value : '');
+}
+function schedSiteClose() {
+  const box = document.getElementById('sched-site-list');
+  if (box) box.style.display = 'none';
+}
+function schedSitePick(name) {
+  const inp = document.getElementById('sched-site');
+  if (inp) inp.value = name;
+  schedSiteClose();
+}
+function schedSiteFilter(q) {
+  const box = document.getElementById('sched-site-list');
+  if (!box) return;
+  box.style.display = 'block';
+  const sites = (window.MOCK?.sites || []);
+  const esc = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const PIN = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.686-6-10a6 6 0 0112 0c0 4.314-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>';
+  const ava = `<div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;">${PIN}</div>`;
+  const row = s => `<button type="button" data-v="${esc(s.name)}" onclick="schedSitePick(this.dataset.v)" style="display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;padding:9px 8px;cursor:pointer;font-family:inherit;text-align:left;border-radius:9px;">
+      ${ava}
+      <span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.name)}</span><span style="display:block;font-size:12px;color:var(--muted);margin-top:2px;">${esc(s.status || '')}</span></span>
+    </button>`;
+  const header = (t, col, cnt) => `<div style="display:flex;align-items:center;gap:5px;padding:8px 8px 3px;"><span style="font-size:11.5px;font-weight:800;color:${col};">${t}</span><span style="font-size:11px;color:var(--faint);font-weight:600;">${cnt}</span><span style="flex:1;height:1px;background:var(--hair);margin-left:4px;"></span></div>`;
+  const query = (q || '').trim().replace(/\s/g, '');
+  if (query) {
+    const hits = sites.filter(s => String(s.name).replace(/\s/g, '').indexOf(query) > -1);
+    let html = hits.length ? header('검색 결과', 'var(--muted)', hits.length) + hits.map(row).join('') : '';
+    const qt = (q || '').trim();
+    html += `<button type="button" data-v="${esc(qt)}" onclick="schedSitePick(this.dataset.v)" style="display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;padding:11px 8px;cursor:pointer;font-family:inherit;text-align:left;border-radius:9px;margin-top:2px;">
+        <span style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:19px;">＋</span>
+        <span style="font-size:14px;font-weight:700;color:var(--accent);">'${esc(qt)}'(으)로 새 현장 입력</span>
+      </button>`;
+    box.innerHTML = html;
+    return;
+  }
+  const gong = sites.filter(s => s.status === '공사중');
+  const soon = sites.filter(s => s.status === '계약완료');
+  let html = '';
+  if (gong.length) html += header('공사중', 'var(--accent)', gong.length) + gong.map(row).join('');
+  if (soon.length) html += (gong.length ? '<div style="height:1px;background:var(--hair-soft);margin:4px 12px;"></div>' : '') + header('다가오는 (계약완료·착공예정)', '#B4802A', soon.length) + soon.map(row).join('');
+  if (!html) html = '<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">현장명을 입력해 검색하세요</div>';
+  box.innerHTML = html;
 }
 
 async function schedSave(editKey) {
