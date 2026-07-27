@@ -1072,6 +1072,19 @@ function renderSites() {
     return _siteSortDesc ? -d : d;
   });
 
+  // 일정(공사기간·스케줄)이 하나도 없는 현장 — 어느 달에도 안 잡혀 목록에서 사라지므로 별도 섹션으로 항상 노출
+  const scheduledNames = new Set([...constRows, ...schedRows].map(r => r.site));
+  const unscheduled = (M.sites || []).filter(s => s && s.name && !scheduledNames.has(s.name));
+  const unschedHtml = unscheduled.length ? `
+      <div style="height:1px;background:var(--hair);margin:20px 0 12px;"></div>
+      <div style="font-size:13px;color:var(--muted);font-weight:600;margin:0 2px 4px;">아직 일정이 없는 현장</div>
+      ${unscheduled.map(s => `
+        <div onclick="openSiteDetail('${(s.name || '').replace(/'/g, "\\'")}')" style="display:flex;align-items:center;gap:12px;padding:10px 2px;cursor:pointer;">
+          <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;">${PIN}</div>
+          <div style="flex:1;min-width:0;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
+          <span style="flex-shrink:0;font-size:12px;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:20px;">일정 입력 ›</span>
+        </div>`).join('')}` : '';
+
   const listHtml = groups.length ? groups.map((g, gi) => {
     const evHtml = g.items.map(r => {
       const crossY = r.end && r.start.slice(0, 4) !== r.end.slice(0, 4);
@@ -1114,6 +1127,7 @@ function renderSites() {
       </div>
       <div style="height:1px;background:var(--hair);margin:10px 0;"></div>
       ${listHtml}
+      ${unschedHtml}
     </div>
     <button data-modal="site" class="site-fab">현장추가</button>`;
 }

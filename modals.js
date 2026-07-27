@@ -102,8 +102,14 @@ async function saveSiteRegister() {
   try {
     await window.FB_API.saveSite({ name, client, status, year, month, memo });
     if (window.seedDefaultPhases) { try { await window.seedDefaultPhases(name); } catch (e) {} }
+    // 리스너 갱신 전이라도 상세 화면이 올바른 현장을 찾도록 로컬 목록에 즉시 반영
+    if (window.MOCK && Array.isArray(window.MOCK.sites) && !window.MOCK.sites.some(s => s && s.name === name)) {
+      window.MOCK.sites = [{ name, client, status, year, month, memo }, ...window.MOCK.sites];
+    }
     closeModal();
-    if (window.navigate) window.navigate(window.currentPage || 'sites');
+    // 추가 직후 그 현장 상세(일정관리 탭)로 바로 이동 → 공사 일정을 바로 입력할 수 있게
+    if (window.openSiteDetail) window.openSiteDetail(name);
+    else if (window.navigate) window.navigate(window.currentPage || 'sites');
   } catch (e) {
     alert('저장 실패. 다시 시도해주세요.');
     if (btn) { btn.disabled = false; btn.textContent = '저장'; }
