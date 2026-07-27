@@ -649,6 +649,9 @@ function modalTxEdit(entryKey) {
     `<option value="${n}" ${entry.writer === n ? 'selected' : ''}>${n}</option>`
   ).join('');
   const phases = ['철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
+  // 표준 공정에 없는 값(커스텀 공정/과거에 메모처럼 입력한 값)도 칩으로 보여서 유지되게 함
+  const customProc = (entry.process && !phases.includes(entry.process)) ? entry.process : '';
+  const escP = String(customProc).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const stages = ['계약금','착수금','중도금','잔금'];
   const pays = ['현금','계좌이체','신용카드'];
   const stageIcons = {'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
@@ -659,9 +662,8 @@ function modalTxEdit(entryKey) {
 
   // 사진은 entryPhotos 노드에서 지연 로드 (목록·홈 속도 위해 entries에서 분리)
   window._txeViewPhotos = [];
-  const _expectPhoto = entry.hasPhoto || entry.photoCount || entry.imageBase64 || (Array.isArray(entry.extraPhotos) && entry.extraPhotos.length);
   const txePhotoSection = `
-          <div class="field" id="txe-photo-field" style="${_expectPhoto ? '' : 'display:none;'}">
+          <div class="field" id="txe-photo-field" style="display:none;">
             <label class="field-label">사진 <span class="muted" id="txe-photo-cap">불러오는 중…</span></label>
             <div id="txe-photo-strip" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
           </div>`;
@@ -722,6 +724,7 @@ function modalTxEdit(entryKey) {
               <label class="field-label">공정</label>
               <div class="chip-group" style="flex-wrap:wrap;">
                 ${phases.map(p=>`<button type="button" class="chip ${entry.process===p?'is-active':''}" onclick="txEditChip(this,'phase','${p}')">${p}</button>`).join('')}
+                ${customProc ? `<button type="button" class="chip is-active" data-v="${escP}" onclick="txEditChip(this,'phase',this.dataset.v)">${escP}</button>` : ''}
               </div>
             </div>
           </div>
@@ -748,7 +751,7 @@ function modalTxEdit(entryKey) {
   window._txStage = entry.payStage || '';
   window._txPay = entry.payMethod || '';
   window._txPhase = entry.process || '';
-  if (_expectPhoto) txeFillPhotos(entryKey, entry);
+  txeFillPhotos(entryKey, entry);   // 사진 노드를 항상 조회 → 있으면 무조건 표시
 }
 
 async function txeFillPhotos(key, entry) {
