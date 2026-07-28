@@ -136,9 +136,14 @@ function renderHomeProgressHtml() {
     if (curIdx === -1) curIdx = phases.findIndex(ph => calcSt(ph.startDate, ph.doneDate) === 'wait');
     if (curIdx === -1) curIdx = phases.length - 1;
     const curP  = phases[curIdx] || null;                                  // 오늘 공정 (진행 중)
-    const nextP = curIdx < phases.length - 1 ? phases[curIdx + 1] : null;  // 내일 공정 (다음)
+    // 내일 공정 = 목록상 '다음 공정'이 아니라 '내일 날짜에 실제 진행되는 공정' (연속 공정이면 오늘과 같음)
+    const _td = new Date(todayStr + 'T00:00:00'); _td.setDate(_td.getDate() + 1);
+    const tomorrowStr = `${_td.getFullYear()}-${String(_td.getMonth() + 1).padStart(2, '0')}-${String(_td.getDate()).padStart(2, '0')}`;
+    const activeOn = d => phases.find(ph => { const s = ph.startDate; if (!s) return false; const e = ph.doneDate || ph.startDate; return d >= s && d <= e; }) || null;
+    let tomP = activeOn(tomorrowStr);
+    if (!tomP) tomP = phases.find(ph => ph.startDate && ph.startDate > todayStr) || null;  // 내일 공사 없으면 다음 착수 예정 공정
     const todayName    = curP  ? curP.name  : '공정 정보 없음';
-    const tomorrowName = nextP ? nextP.name : '—';
+    const tomorrowName = tomP ? tomP.name : '—';
     const nameEsc = (s.name || '').replace(/'/g, "\\'");
     return `
       <div style="scroll-snap-align:center;flex:0 0 ${cardBasis};box-sizing:border-box;background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};cursor:pointer;" onclick="openSiteDetail('${nameEsc}')">
