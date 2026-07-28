@@ -804,7 +804,7 @@ function _sdCalGrid() {
   const labelRow = (d) => {
     const names = dayNames[d] || [];
     if (!names.length) return '';
-    return `<div style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:1px;padding:0 2px;margin-top:2px;box-sizing:border-box;">${names.map(n=>`<span style="font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.15;">${n}</span>`).join('')}</div>`;
+    return `<div style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:1px;padding:0 2px;box-sizing:border-box;">${names.map(n=>`<span style="font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.15;">${n}</span>`).join('')}</div>`;
   };
   const dn = ['일','월','화','수','목','금','토'];
   const wh = dn.map((x,i)=>`<div style="text-align:center;font-size:11px;color:${i===0?'#C4514B':'var(--muted)'};padding:3px 0;">${x}</div>`).join('');
