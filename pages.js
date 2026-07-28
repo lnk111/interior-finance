@@ -1199,6 +1199,7 @@ function openProcAddModal() {
     : ['철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
   const PENCIL_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
   const procGrid = PROC_PHASES.map(p=>`<button type="button" data-v="${p}" onclick="procAddPick(this)" style="display:flex;align-items:center;justify-content:center;padding:14px 0;background:none;border:0;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${p}</button>`).join('');
+  const selDate = window._sdSelDay || '';   // 달력에서 누른 날짜 → 시작·완료일 기본값 (다시 누르면 변경 가능)
   const root = document.getElementById('modal-root');
   root.innerHTML = `
     <div class="modal-backdrop" onclick="closeModal()">
@@ -1224,8 +1225,8 @@ function openProcAddModal() {
             </div>
           </div>
           <div class="grid-2">
-            <div class="field"><label class="field-label">🟢 시작일</label><input class="input" type="date" id="proc-add-start"></div>
-            <div class="field"><label class="field-label">🔴 완료일</label><input class="input" type="date" id="proc-add-end"></div>
+            <div class="field"><label class="field-label">🟢 시작일</label><input class="input" type="date" id="proc-add-start" value="${selDate}"></div>
+            <div class="field"><label class="field-label">🔴 완료일</label><input class="input" type="date" id="proc-add-end" value="${selDate}"></div>
           </div>
         </div>
         <div class="modal-foot">
