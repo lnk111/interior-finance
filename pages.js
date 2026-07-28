@@ -785,7 +785,8 @@ function _sdCalGrid() {
   const pad = n => String(n).padStart(2,'0');
   const monthStart = `${y}-${pad(m)}-01`, monthEnd = `${y}-${pad(m)}-${pad(total)}`;
   // 공정별 이번 달 표시 구간 계산 (달 경계 넘어가면 화살표 없이 이어짐)
-  const dayInfo = {};
+  const dayInfo = {};    // 형광펜(막대)용 — 그 날을 덮는 첫 공정
+  const dayNames = {};   // 그 날에 표시할 공정명들 (같은 날 여러 공정이면 모두)
   phases.forEach(p => {
     const start = p.startDate || p.doneDate, end = p.doneDate || p.startDate;
     if (!start) return;
@@ -794,15 +795,16 @@ function _sdCalGrid() {
     const endIn = end >= monthStart && end <= monthEnd;
     const vs = startIn ? parseInt(start.slice(8,10)) : 1;
     const ve = endIn ? parseInt(end.slice(8,10)) : total;
-    const info = { name: p.name, vs, ve, startIn, endIn, nameDay: Math.round((vs+ve)/2) };
+    const info = { vs, ve, startIn, endIn };
     for (let d=vs; d<=ve; d++) { if (!dayInfo[d]) dayInfo[d]=info; }
+    const nameDay = Math.round((vs+ve)/2);
+    (dayNames[nameDay] = dayNames[nameDay] || []).push(p.name);
   });
-  // 공정명은 기간 가운데 한 번만 (선·화살표 없음). 모든 칸에 라벨 행을 둬 날짜 세로정렬 유지
-  const labelRow = (d, info) => {
-    const nameTag = (info && d===info.nameDay)
-      ? `<span style="font-size:10.5px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1;">${info.name}</span>`
-      : '';
-    return `<div style="position:relative;width:100%;height:12px;display:flex;align-items:center;justify-content:center;padding:0 2px;box-sizing:border-box;">${nameTag}</div>`;
+  // 공정명은 기간 가운데 표시 — 같은 날 여러 공정이면 세로로 모두 표기
+  const labelRow = (d) => {
+    const names = dayNames[d] || [];
+    if (!names.length) return '';
+    return `<div style="position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:1px;padding:0 2px;margin-top:2px;box-sizing:border-box;">${names.map(n=>`<span style="font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.15;">${n}</span>`).join('')}</div>`;
   };
   const dn = ['일','월','화','수','목','금','토'];
   const wh = dn.map((x,i)=>`<div style="text-align:center;font-size:11px;color:${i===0?'#C4514B':'var(--muted)'};padding:3px 0;">${x}</div>`).join('');
@@ -818,7 +820,7 @@ function _sdCalGrid() {
       bar = `<div style="position:absolute;left:0;right:0;top:4px;bottom:4px;background:rgba(47,107,71,0.16);${rl}${rr}"></div>`;
     }
     const ring = sel ? 'box-shadow:0 0 0 1.5px var(--ink) inset;border-radius:50%;' : '';
-    cells += `<div onclick="sdCalSelect('${ds}')" style="position:relative;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;">${bar}<span style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:${info?600:500};color:var(--ink);${ring}">${d}</span>${labelRow(d, info)}</div>`;
+    cells += `<div onclick="sdCalSelect('${ds}')" style="position:relative;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:7px;gap:2px;cursor:pointer;">${bar}<span style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:${info?600:500};color:var(--ink);${ring}">${d}</span>${labelRow(d)}</div>`;
   }
   return `<div style="display:grid;grid-template-columns:repeat(7,1fr);">${wh}</div><div style="display:grid;grid-template-columns:repeat(7,1fr);">${cells}</div>`;
 }
@@ -848,9 +850,17 @@ function _sdCalSection() {
       <button onclick="sdCalShift(-1)" style="background:none;border:0;color:var(--faint);font-size:24px;cursor:pointer;line-height:1;font-family:inherit;">‹</button>
       <span style="font-size:16px;font-weight:700;">${window._sdCalY}년 ${window._sdCalM}월</span>
       <button onclick="sdCalShift(1)" style="background:none;border:0;color:var(--faint);font-size:24px;cursor:pointer;line-height:1;font-family:inherit;">›</button>
-    </div>${_sdCalGrid()}${_sdCalPanel()}`;
+    </div>${_sdCalGrid()}<div id="sd-cal-panel">${_sdCalPanel()}</div>`;
 }
-function sdCalSelect(ds) { window._sdSelDay = (window._sdSelDay === ds ? null : ds); const w = document.getElementById('sd-cal-wrap'); if (w) w.innerHTML = _sdCalSection(); }
+function sdCalSelect(ds) {
+  window._sdSelDay = (window._sdSelDay === ds ? null : ds);
+  const w = document.getElementById('sd-cal-wrap');
+  if (w) w.innerHTML = _sdCalSection();
+  // 날짜 선택 시 하단 패널([이 날 공사 추가]/[해당 공정])이 보이도록 자동 스크롤
+  if (window._sdSelDay) {
+    setTimeout(() => { const p = document.getElementById('sd-cal-panel'); if (p && p.scrollIntoView) p.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
+  }
+}
 function sdCalShift(delta) { let m = window._sdCalM + delta, y = window._sdCalY; if (m<1){m=12;y--;} else if (m>12){m=1;y++;} window._sdCalM=m; window._sdCalY=y; window._sdSelDay=null; const w = document.getElementById('sd-cal-wrap'); if (w) w.innerHTML = _sdCalSection(); }
 window.sdCalSelect = sdCalSelect; window.sdCalShift = sdCalShift;
 
