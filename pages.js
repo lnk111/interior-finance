@@ -187,7 +187,7 @@ function _calDayEvents(dateStr) {
   const scheds = Object.entries(schedules)
     .filter(([, sc]) => sc.date === dateStr)
     .sort((a, b) => (a[1].time || '').localeCompare(b[1].time || ''))
-    .map(([key, sc]) => ({ key, title: sc.title || '', time: sc.time || '' }));
+    .map(([key, sc]) => ({ key, title: sc.title || '', time: sc.time || '', site: sc.site || '' }));
   const sites = window.FB?.sites || {};
   const colors = _calSiteColorMap();
   const todayStr = toToday();
@@ -228,9 +228,10 @@ function _calDayRows(dateStr) {
   });
   scheds.forEach(s => {
     const top = i > 0 ? 'border-top:1px solid var(--hair-soft);' : '';
+    const schedSite = s.site ? ` <span style="font-size:14px;font-weight:400;color:var(--muted);">${s.site}</span>` : '';
     html += `<div onclick="modalSchedule('${s.key}')" style="display:flex;align-items:center;gap:10px;padding:11px 0;cursor:pointer;${top}">
         <span style="font-size:13px;font-weight:700;color:var(--accent);min-width:40px;">${s.time || '—'}</span>
-        <span style="flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.title}</span>
+        <span style="flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="font-weight:600;color:var(--ink);">${s.title}</span>${schedSite}</span>
       </div>`;
     i++;
   });
