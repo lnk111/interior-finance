@@ -1,6 +1,6 @@
 // 디자인포 머니플로우 — 캐시 우선 전략 (빠른 로딩)
 // 파일이 바뀔 때마다 CACHE_NAME의 버전을 올리면 사용자 기기에서 새 파일을 받음
-const CACHE_NAME = 'designfor-v4';
+const CACHE_NAME = 'designfor-v5';
 
 // 앱 셸 — 설치 시 미리 캐싱 (다음 접속부터 즉시 로딩)
 const ASSETS = [
@@ -59,8 +59,10 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
+  // 브라우저 HTTP 캐시까지 우회해서 항상 서버에 실제로 물어봄 (GitHub Pages의 max-age=600 때문에
+  // fetch(e.request) 그대로 쓰면 배포 후 최대 10분간 예전 파일이 캐시에서 반환될 수 있음)
   e.respondWith(
-    fetch(e.request).then(function(res) {
+    fetch(e.request.url, { cache: 'no-store' }).then(function(res) {
       // 정상 응답이면 캐시 갱신 후 반환
       if (res && res.status === 200 && res.type === 'basic') {
         var copy = res.clone();
