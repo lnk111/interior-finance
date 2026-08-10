@@ -25,6 +25,7 @@ window.FB = {
   knowhow: {},
   scheduleData: {},
   photoData: {},
+  renderData: {},
   connected: false,
 };
 
@@ -751,6 +752,17 @@ function initFirebase() {
     FB._photoLoaded = true;
     db.ref('photoData').once('value').then(snap => {
       FB.photoData = snap.val() || {};
+      onDataChange();
+    });
+  };
+
+  // renderData(고객 렌더링 이미지/PDF) — 현장 상세 페이지를 열 때만 로드
+  FB._renderLoaded = false;
+  window.ensureRenderData = function() {
+    if (FB._renderLoaded) return;
+    FB._renderLoaded = true;
+    db.ref('renderData').once('value').then(snap => {
+      FB.renderData = snap.val() || {};
       onDataChange();
     });
   };

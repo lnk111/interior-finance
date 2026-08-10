@@ -606,11 +606,97 @@ function renderEntryList(siteName, grouped) {
   }).join('');
 }
 
-function onRenderPick(input) {
-  const n = input && input.files ? input.files.length : 0;
-  const hint = document.getElementById('render-hint');
-  if (hint && n) hint.innerHTML = `${n}개 선택됨<br>업로드는 곧 지원돼요`;
+async function onRenderPick(input) {
+  const files = input && input.files ? Array.from(input.files) : [];
   if (input) input.value = '';
+  if (!files.length) return;
+
+  const s = _sdSiteObj();
+  if (!s || !s.name) return;
+  const siteKey = encKey(s.name);
+  const folder = `designfor/${siteKey}/render`;
+
+  const hint = document.getElementById('render-hint');
+  const total = files.length;
+  let done = 0, failed = 0;
+  if (hint) { hint.style.display = ''; hint.innerHTML = `⏫ 0/${total} 업로드 중...`; }
+
+  const writer = window.AUTH?.current()?.name || '';
+  if (!window.FB.renderData) window.FB.renderData = {};
+  if (!window.FB.renderData[siteKey]) window.FB.renderData[siteKey] = {};
+
+  // 동시 업로드 개수 제한 (모바일 안정성) — 6개씩 슬롯 굴림, 실패한 파일은 건너뛰고 계속 진행
+  const CONCURRENCY = 6;
+  let nextIdx = 0;
+  async function worker() {
+    while (true) {
+      const i = nextIdx++;
+      if (i >= total) return;
+      try {
+        const { url, type, name } = await uploadRenderFile(files[i], folder);
+        const key = siteKey + '_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 7);
+        const record = { url, type, name, createdAt: Date.now(), writer };
+        await db.ref('renderData/' + siteKey + '/' + key).set(record);
+        window.FB.renderData[siteKey][key] = record;
+      } catch (e) {
+        console.error(e);
+        failed++;
+      }
+      done++;
+      if (hint) hint.innerHTML = `⏫ ${done}/${total} 업로드 중...`;
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
+
+  if (failed) alert(`${failed}개 업로드 실패`);
+  const wrap = document.getElementById('sd-render-wrap');
+  if (wrap) wrap.outerHTML = _sdRenderSection();
+}
+
+async function sdRenderRemove(siteKey, key) {
+  if (!confirm('삭제할까요?')) return;
+  try {
+    await db.ref('renderData/' + siteKey + '/' + key).remove();
+    if (window.FB?.renderData?.[siteKey]) delete window.FB.renderData[siteKey][key];
+  } catch (e) {
+    console.error(e);
+    alert('삭제 실패: ' + e.message);
+    return;
+  }
+  const wrap = document.getElementById('sd-render-wrap');
+  if (wrap) wrap.outerHTML = _sdRenderSection();
+}
+
+function _sdRenderSection() {
+  const s = _sdSiteObj();
+  const siteKey = encKey(s.name || '');
+  const records = Object.entries(window.FB?.renderData?.[siteKey] || {})
+    .map(([key, r]) => ({ ...r, key }))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const thumbUrl = url => (url && url.includes('cloudinary.com'))
+    ? url.replace('/upload/', '/upload/w_200,h_200,c_fill,q_auto,f_auto/')
+    : url;
+
+  const itemsHtml = records.map(r => {
+    const isImage = r.type === 'image';
+    const face = isImage
+      ? `background-image:url('${thumbUrl(r.url)}');background-size:cover;background-position:center;`
+      : `background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:22px;`;
+    return `<div style="position:relative;width:66px;height:66px;flex-shrink:0;">
+      <a href="${r.url}" target="_blank" rel="noopener" style="display:block;width:66px;height:66px;border-radius:10px;overflow:hidden;border:1.5px solid var(--hair);${face}">${isImage ? '' : '📄'}</a>
+      <button onclick="sdRenderRemove('${siteKey}','${r.key}')" style="position:absolute;top:-6px;right:-6px;background:#191F28;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;">✕</button>
+    </div>`;
+  }).join('');
+
+  return `<div id="sd-render-wrap">
+      <div class="section-label" style="margin:18px 0 10px;">렌더링</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <label style="width:66px;height:66px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;cursor:pointer;flex-shrink:0;">＋<input id="render-file" type="file" accept="image/*,application/pdf" multiple style="display:none;" onchange="onRenderPick(this)"></label>
+        ${itemsHtml}
+        <div id="render-hint" style="font-size:13px;color:var(--faint);line-height:1.5;${records.length ? 'display:none;' : ''}">고객이 고른 항목·이미지·PDF 업로드</div>
+      </div>
+    </div>`;
 }
 function toggleProcList() {
   const list = document.getElementById('proc-full-list');
@@ -629,6 +715,7 @@ function toggleProcList() {
 }
 
 function renderSiteDetail() {
+  if (window.ensureRenderData) window.ensureRenderData();
   const s = PMS.sites.find(x => x && x.name === window._siteDetailName) || PMS.sites[0];
   const procRaw = window._procCache || {};
   // 시작일 시간순 정렬 — 시작일 없는 공정은 기존 order 순으로 뒤에 배치, 같은 날짜는 order로 2차 정렬
@@ -894,11 +981,7 @@ function _sdScheduleTab() {
   const done = phases.filter(p => p.doneDate && today > p.doneDate).length;
   const pct = phases.length ? Math.round(done / phases.length * 100) : 0;
   return `
-      <div class="section-label" style="margin:18px 0 10px;">렌더링</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <label style="width:66px;height:66px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;cursor:pointer;">＋<input id="render-file" type="file" accept="image/*,application/pdf" multiple style="display:none;" onchange="onRenderPick(this)"></label>
-        <div id="render-hint" style="font-size:13px;color:var(--faint);line-height:1.5;">고객이 고른 항목·이미지·PDF 업로드<br>곧 지원돼요</div>
-      </div>
+      ${_sdRenderSection()}
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label" style="margin-bottom:8px;">공사일정관리 <span class="more">${pct}% 완료</span></div>
       <div id="sd-cal-wrap">${_sdCalSection()}</div>

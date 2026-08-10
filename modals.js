@@ -1467,6 +1467,21 @@ async function uploadToCloudinary(file, folder, tags = []) {
   return data.secure_url;
 }
 
+// 렌더링(이미지/PDF 등 자유 형식) 업로드 — 이미지는 압축, 그 외는 원본 그대로 auto 엔드포인트로 전송
+async function uploadRenderFile(file, folder) {
+  const isImage = file.type.startsWith('image/');
+  const body = isImage ? await compressImage(file) : file;
+  const fd = new FormData();
+  fd.append('file', body, file.name);
+  fd.append('upload_preset', CLOUDINARY.uploadPreset);
+  fd.append('folder', folder);
+  const uploadUrl = isImage ? CLOUDINARY.uploadUrl : CLOUDINARY.uploadUrl.replace('/image/upload', '/auto/upload');
+  const res = await fetch(uploadUrl, { method: 'POST', body: fd });
+  if (!res.ok) throw new Error('업로드 실패');
+  const data = await res.json();
+  return { url: data.secure_url, type: isImage ? 'image' : 'file', name: file.name };
+}
+
 async function photoSave() {
   const { site, phase, files } = window._photoUploadState;
   if (!site || !phase) { alert('현장과 공정을 선택해주세요'); return; }
