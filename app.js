@@ -1482,3 +1482,26 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dy>threshold&&window.scrollY===0&&!overlayOpen()) location.reload();
   },{passive:true});
 })();
+
+// ===== PIN 입력칸: 숫자만 허용 =====
+// 로그인·대표계정·직원 PIN 등 4자리 PIN 입력을 숫자로만 제한한다.
+// 정적 입력(index.html) + 모달에서 동적으로 생성되는 입력 모두 커버 (이벤트 위임).
+(function(){
+  const isPinInput = el =>
+    el instanceof HTMLInputElement &&
+    el.getAttribute('inputmode') === 'numeric' &&
+    el.getAttribute('maxlength') === '4';
+  const sanitize = raw => (raw || '').replace(/\D/g, '').slice(0, 4);
+  document.addEventListener('input', e => {
+    if (!isPinInput(e.target)) return;
+    const clean = sanitize(e.target.value);
+    if (clean !== e.target.value) e.target.value = clean;
+  });
+  document.addEventListener('paste', e => {
+    if (!isPinInput(e.target)) return;
+    e.preventDefault();
+    const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    e.target.value = sanitize(txt);
+    e.target.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+})();

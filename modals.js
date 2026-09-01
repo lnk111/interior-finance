@@ -1,5 +1,5 @@
 // 머니플로우 — Modals
-// 8 modals: site, schedule, tip, staff, as, phase, txEdit, quickTip
+// 9 modals: site, schedule, tip, staff, as, phase, txEdit, quickTip, bossAccount
 
 const MODAL_BACK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" width="14" height="14"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
 
@@ -454,42 +454,137 @@ async function saveTip(editKey) {
 }
 
 // 4. Staff add modal
-function modalStaff() {
+function modalStaff(key = null) {
+  const s = key ? (window.FB?.staffData?.[key] || {}) : {};
+  const isEdit = !!key;
+  const roleOpts = [
+    { v: 'manager', label: '🧢 팀장' },
+    { v: 'staff', label: '👤 대리' },
+  ];
   return openModal(`
-    ${modalHeader('👤 직원 추가', '재직 정보를 등록합니다')}
+    ${modalHeader(isEdit ? '👤 직원 정보 수정' : '👤 직원 추가', '로그인 계정과 재직 정보를 등록합니다')}
     <div class="modal-body">
       <div class="field">
         <label class="field-label">이름 <span class="req">*</span></label>
-        <input class="input" placeholder="홍길동">
+        <input class="input" id="staff-name" placeholder="홍길동" value="${s.name || ''}">
+      </div>
+      <div class="field">
+        <label class="field-label">권한 <span class="req">*</span></label>
+        <div class="role-pick">
+          ${roleOpts.map(r => `<label><input type="radio" name="staff-role" value="${r.v}" ${(s.role || 'staff') === r.v ? 'checked' : ''}><span>${r.label}</span></label>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">로그인 PIN <span class="req">*</span> <span class="muted">4자리 숫자</span></label>
+        <input class="input" id="staff-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" value="${s.pin || ''}">
       </div>
       <div class="grid-2">
         <div class="field">
           <label class="field-label">직책</label>
-          <input class="input" placeholder="현장반장">
+          <input class="input" id="staff-position" placeholder="현장반장" value="${s.position || ''}">
         </div>
         <div class="field">
           <label class="field-label">입사일</label>
-          <input class="input" type="date" value="2026-05-01">
+          <input class="input" id="staff-joindate" type="date" value="${s.joinDate || toToday()}">
         </div>
       </div>
       <div class="field">
         <label class="field-label">월급 (원)</label>
-        <input class="input num" placeholder="3,500,000">
+        <input class="input num" id="staff-salary" placeholder="3,500,000" value="${s.salary ? s.salary.toLocaleString('ko-KR') : ''}">
       </div>
       <div class="field">
         <label class="field-label">메모</label>
-        <textarea class="input" rows="2" placeholder="담당 공정, 연락처 등"></textarea>
-      </div>
-      <div class="field">
-        <label class="field-label">퇴사일 <span class="muted">선택사항</span></label>
-        <input class="input" type="date">
+        <textarea class="input" id="staff-memo" rows="2" placeholder="담당 공정, 연락처 등">${s.memo || ''}</textarea>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-ghost danger" data-modal-close>🚪 퇴사 처리</button>
-      <button class="btn btn-primary" data-modal-close>저장</button>
+      ${isEdit ? `<button class="btn btn-ghost danger" onclick="staffResign('${key}')">🚪 퇴사 처리</button>` : `<button class="btn btn-ghost" onclick="closeModal()">취소</button>`}
+      <button class="btn btn-primary" onclick="staffSave('${key || ''}')">저장</button>
     </div>
   `);
+}
+
+async function staffSave(key) {
+  const name = document.getElementById('staff-name').value.trim();
+  const roleEl = document.querySelector('input[name="staff-role"]:checked');
+  const role = roleEl ? roleEl.value : 'staff';
+  const pin = document.getElementById('staff-pin').value.trim();
+  const position = document.getElementById('staff-position').value.trim();
+  const joinDate = document.getElementById('staff-joindate').value;
+  const salary = Number(document.getElementById('staff-salary').value.replace(/[^0-9]/g, '')) || 0;
+  const memo = document.getElementById('staff-memo').value.trim();
+
+  if (!name) { alert('이름을 입력해주세요.'); return; }
+  if (!/^\d{4}$/.test(pin)) { alert('PIN은 숫자 4자리로 입력해주세요.'); return; }
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  try {
+    await FB_API.saveStaff({ name, role, pin, position, joinDate, salary, memo }, key || null);
+    closeModal();
+  } catch (e) {
+    console.error(e);
+    alert('저장 실패: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
+}
+
+async function staffResign(key) {
+  if (!confirm('퇴사 처리할까요? 이후 이 계정으로 로그인할 수 없어요.')) return;
+  try {
+    await FB_API.saveStaff({ resignDate: toToday() }, key);
+    closeModal();
+  } catch (e) {
+    console.error(e);
+    alert('처리 실패: ' + e.message);
+  }
+}
+
+// 대표 로그인 계정 (이름 + PIN) 생성·변경
+function modalBossAccount() {
+  const b = window.FB?.bossAccount || {};
+  return openModal(`
+    ${modalHeader('👑 대표 로그인 계정', b.pin ? '기존 정보를 바꾸면 즉시 적용돼요' : '아직 설정되지 않았어요')}
+    <div class="modal-body">
+      <div class="field">
+        <label class="field-label">이름 <span class="req">*</span></label>
+        <input class="input" id="boss-name" placeholder="김영애" value="${b.name || ''}">
+      </div>
+      <div class="field">
+        <label class="field-label">로그인 PIN <span class="req">*</span> <span class="muted">4자리 숫자</span></label>
+        <input class="input" id="boss-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+      </div>
+      <div class="field">
+        <label class="field-label">PIN 확인 <span class="req">*</span></label>
+        <input class="input" id="boss-pin2" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="bossAccountSave()">저장</button>
+    </div>
+  `);
+}
+
+async function bossAccountSave() {
+  const name = document.getElementById('boss-name').value.trim();
+  const pin = document.getElementById('boss-pin').value.trim();
+  const pin2 = document.getElementById('boss-pin2').value.trim();
+  if (!name) { alert('이름을 입력해주세요.'); return; }
+  if (!/^\d{4}$/.test(pin)) { alert('PIN은 숫자 4자리로 입력해주세요.'); return; }
+  if (pin !== pin2) { alert('PIN이 서로 달라요. 다시 확인해주세요.'); return; }
+
+  const btn = document.querySelector('.modal-foot .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  try {
+    await FB_API.saveBossAccount({ name, pin });
+    closeModal();
+    alert('저장했어요. 다음 로그인부터 이 정보로 로그인하세요.');
+  } catch (e) {
+    console.error(e);
+    alert('저장 실패: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
+  }
 }
 
 // 5. AS register modal
@@ -1821,6 +1916,7 @@ window.MODALS = {
   phase: modalPhase,
   txEdit: modalTxEdit,
   quickTip: modalQuickTip,
+  bossAccount: modalBossAccount,
 };
 
 // Close handlers

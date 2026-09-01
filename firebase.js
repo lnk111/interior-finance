@@ -26,6 +26,7 @@ window.FB = {
   scheduleData: {},
   photoData: {},
   renderData: {},
+  bossAccount: null,
   connected: false,
 };
 
@@ -241,6 +242,7 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   const staffArr = Object.entries(FB.staffData)
     .filter(([, s]) => !s.resignDate)
     .map(([key, s]) => ({
+      _key: key,
       name: s.name || '',
       role: s.role || '',
       joined: s.joinDate ? s.joinDate.replace(/-/g, '.') : '',
@@ -732,6 +734,7 @@ function initFirebase() {
   db.ref('fixedCosts').on('value', snap => { FB.fixedCosts = snap.val() || {}; onDataChange(); });
   db.ref('knowhow').on('value', snap => { FB.knowhow = snap.val() || {}; onDataChange(); });
   db.ref('scheduleData').on('value', snap => { FB.scheduleData = snap.val() || {}; onDataChange(); });
+  db.ref('bossAccount').on('value', snap => { FB.bossAccount = snap.val() || null; onDataChange(); });
 
   // procData 대량 캐시(_procAll) — 다른 데이터와 병렬로 즉시 로드
   // 공사진행률, 달력 등에서 사용되므로 첫 화면에 바로 필요함
@@ -883,6 +886,11 @@ window.FB_API = {
     await db.ref('fixedCosts/' + encKey(ym)).set(data);
   },
 
+  // 대표 로그인 계정 저장 (신규 생성 · 이름/PIN 변경 공용)
+  async saveBossAccount(data) {
+    await db.ref('bossAccount').set(data);
+  },
+
   // 직원 저장
   async saveStaff(data, key = null) {
     if (key) {
@@ -950,18 +958,18 @@ window.FB_API = {
     await db.ref('procData/' + encKey(siteName) + '/' + phaseKey).remove();
   },
 
-  // 보스 계정 확인 (PIN 검증)
+  // 보스 계정 확인 (PIN 검증) — 예전 데이터에 PIN이 숫자로 저장된 경우가 있어 문자열로 맞춰 비교
   async checkBossPin(name, pin) {
     const snap = await db.ref('bossAccount').once('value');
     const boss = snap.val();
-    return boss && boss.pin === pin && boss.name === name;
+    return boss && String(boss.pin) === String(pin) && boss.name === name;
   },
 
   // 직원 PIN 검증
   async checkStaffPin(name, pin) {
     const snap = await db.ref('staffData').once('value');
     const staffData = snap.val() || {};
-    return Object.values(staffData).find(s => s.name === name && s.pin === pin && !s.resignDate);
+    return Object.values(staffData).find(s => s.name === name && String(s.pin) === String(pin) && !s.resignDate);
   },
 };
 
@@ -969,7 +977,39 @@ window.FB_API = {
 window._originalBootAuth = window.bootAuth;
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('login-form');
+  const setupForm = document.getElementById('login-setup-form');
   if (!form) return;
+
+  // 대표 계정이 아직 없으면(최초 실행) 일반 로그인 대신 대표 계정 만들기 화면을 보여줌
+  db.ref('bossAccount').once('value').then(snap => {
+    if (!snap.exists() && setupForm) {
+      form.style.display = 'none';
+      setupForm.style.display = 'flex';
+    }
+  }).catch(() => {});
+
+  if (setupForm) {
+    setupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('setup-name').value.trim();
+      const pin = document.getElementById('setup-pin').value;
+      const pin2 = document.getElementById('setup-pin2').value;
+      if (!name || !/^\d{4}$/.test(pin)) { alert('이름과 4자리 PIN을 입력해주세요.'); return; }
+      if (pin !== pin2) { alert('PIN이 서로 달라요. 다시 확인해주세요.'); return; }
+
+      const setupBtn = setupForm.querySelector('button[type=submit]');
+      if (setupBtn) { setupBtn.disabled = true; setupBtn.textContent = '만드는 중...'; }
+      try {
+        await FB_API.saveBossAccount({ name, pin });
+        AUTH.login(name, pin, 'boss');
+        bootAuth();
+        if (window.navigate) window.navigate('home');
+      } catch (err) {
+        alert('연결 오류. 잠시 후 다시 시도해주세요.');
+        if (setupBtn) { setupBtn.disabled = false; setupBtn.textContent = '대표 계정 만들기'; }
+      }
+    });
+  }
 
   // 기존 이벤트 제거 후 새로 등록
   const newForm = form.cloneNode(true);
@@ -979,8 +1019,6 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const name = document.getElementById('login-name').value.trim();
     const pin = document.getElementById('login-pin').value;
-    const roleEl = document.querySelector('input[name="login-role"]:checked');
-    const selectedRole = roleEl ? roleEl.value : 'staff';
 
     if (!name || pin.length < 4) {
       alert('이름과 PIN 4자리를 입력해주세요.');

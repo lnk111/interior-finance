@@ -422,26 +422,35 @@ function renderSettings() {
       <button class="btn btn-primary btn-block" style="margin-top:12px;">저장</button>
       ` : `<div class="locked-card"><div class="lc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><div><div class="lc-title">월 고정비 (대표 전용)</div><div class="lc-meta">임대료·급여·마케팅 등 고정 지출은 대표 권한으로만 확인할 수 있어요.</div></div></div>`}
       ${canCsv ? `<div class="settings-group-label">데이터 내보내기</div><button class="btn btn-ghost btn-block">현장별 손익 CSV 다운로드</button>` : ''}
-      <div class="settings-group-label">직원 관리</div>
+      <div class="settings-group-label">로그인 계정</div>
       ${canStaffMgmt ? `
-      <div class="tabs" style="margin-bottom:12px;">
-        <button class="tab is-active">재직중 (${PMS.staff.length})</button>
-        <button class="tab">퇴사자 (0)</button>
+      <div class="settings-group">
+        <button class="settings-row" style="width:100%;text-align:left;" onclick="modalBossAccount()">
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">👑</div>
+            <div>
+              <div class="sr-key">대표 계정${window.FB?.bossAccount?.name ? ` · ${window.FB.bossAccount.name}` : ''}</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px;">${window.FB?.bossAccount?.pin ? 'PIN 설정됨 · 눌러서 변경' : '아직 설정 안 됨 · 눌러서 만들기'}</div>
+            </div>
+          </div>
+          <span class="chev">›</span>
+        </button>
       </div>
+      <div class="settings-group-label" style="margin-top:14px;">직원 관리</div>
       <div class="settings-group">
         ${PMS.staff.map(s => `
-          <button class="settings-row" style="width:100%;text-align:left;" data-modal="staff">
+          <button class="settings-row" style="width:100%;text-align:left;" onclick="modalStaff('${s._key}')">
             <div style="display:flex;gap:12px;align-items:center;">
               <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">${s.name[0]}</div>
               <div>
-                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${s.role}</span></div>
+                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${ROLE_LABEL[s.role] || s.role}</span></div>
                 <div style="font-size:13px;color:var(--muted);margin-top:2px;">입사 ${s.joined}${canStaffSalary ? ` · ${(s.salary||0).toLocaleString('ko-KR')}원` : ''}</div>
               </div>
             </div>
             <span class="pill pill-accent" style="font-size:12px;">${s.status}</span>
           </button>`).join('')}
       </div>
-      <button class="btn btn-ghost btn-block" data-modal="staff" style="margin-top:8px;">+ 직원 추가</button>
+      <button class="btn btn-ghost btn-block" onclick="modalStaff()" style="margin-top:8px;">+ 직원 추가</button>
       ` : `
       <div class="settings-group">
         ${PMS.staff.map(s => `
@@ -449,7 +458,7 @@ function renderSettings() {
             <div style="display:flex;gap:12px;align-items:center;">
               <div class="avatar" style="width:36px;height:36px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">${s.name[0]}</div>
               <div>
-                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${s.role}</span></div>
+                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${ROLE_LABEL[s.role] || s.role}</span></div>
                 <div style="font-size:13px;color:var(--muted);margin-top:2px;">입사 ${s.joined}</div>
               </div>
             </div>

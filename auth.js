@@ -22,10 +22,6 @@ window.AUTH = {
     localStorage.setItem(AUTH_KEY, JSON.stringify(session));
     return true;
   },
-  loginDemo(role = 'boss') {
-    const names = { boss: '김영애', manager: '이남경', staff: '김덕수' };
-    return this.login(names[role], '0000', role);
-  },
   logout() {
     localStorage.removeItem(AUTH_KEY);
   },
@@ -66,28 +62,4 @@ function bootAuth() {
   return false;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('login-form');
-  const demoBtn = document.getElementById('login-demo');
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = document.getElementById('login-name').value;
-      const pin = document.getElementById('login-pin').value;
-      const roleEl = document.querySelector('input[name="login-role"]:checked');
-      const role = roleEl ? roleEl.value : 'staff';
-      if (!name || pin.length < 4) return;
-      AUTH.login(name, pin, role);
-      bootAuth();
-      if (window.navigate) window.navigate('home');
-    });
-  }
-  document.addEventListener('click', (e) => {
-    const demo = e.target.closest('[data-demo-role]');
-    if (demo) {
-      AUTH.loginDemo(demo.dataset.demoRole);
-      bootAuth();
-      if (window.navigate) window.navigate('home');
-    }
-  });
-});
+// 로그인 폼 제출은 firebase.js에서 실제 계정(PIN) 검증과 함께 처리합니다.
