@@ -1,6 +1,6 @@
 // 디자인포 머니플로우 — 캐시 우선 전략 (빠른 로딩)
 // 파일이 바뀔 때마다 CACHE_NAME의 버전을 올리면 사용자 기기에서 새 파일을 받음
-const CACHE_NAME = 'designfor-v5';
+const CACHE_NAME = 'designfor-v6';
 
 // 앱 셸 — 설치 시 미리 캐싱 (다음 접속부터 즉시 로딩)
 const ASSETS = [
