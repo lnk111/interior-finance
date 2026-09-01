@@ -98,10 +98,13 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   // 모든 공정 완료된 공사중 현장을 AS관리로 자동 전환
   const _procAll = FB._procAll || {};
   const _todayStr = toToday();
+  // 공정 상태 자동 판정 — 완료일이 없으면 시작일을 종료 기준으로 삼는다
+  // (시작일이 지난 공정은 완료로 처리 → 모든 공정이 그렇게 되면 현장이 공사중→AS관리로 자동 전환)
   function _phSt(s, e) {
-    if (!s && !e) return 'wait';
+    const end = e || s;
+    if (!s && !end) return 'wait';
     if (s && _todayStr < s) return 'wait';
-    if (e && _todayStr > e) return 'done';
+    if (end && _todayStr > end) return 'done';
     return 'active';
   }
   siteArr.forEach(site => {

@@ -714,6 +714,22 @@ function toggleProcList() {
   window._procListOpenSite = window._siteDetailName || '';
 }
 
+// 공정 상태(대기/진행중/완료)는 저장값이 아니라 오늘 날짜 vs 공정 날짜로 자동 판정한다.
+// - 오늘 < 시작일           → wait  (대기)
+// - 시작일 ≤ 오늘 ≤ 종료일   → active(진행중)  · 시작일 당일 포함
+// - 오늘 > 종료일           → done  (완료)
+// 완료일이 비어 있으면 시작일을 종료 기준으로 삼는다 (시작일 지나면 자동 완료).
+function procStatusByDate(startDate, doneDate, todayStr) {
+  const today = todayStr || toToday();
+  const end = doneDate || startDate;
+  if (!startDate && !end) return 'wait';
+  if (startDate && today < startDate) return 'wait';
+  if (end && today > end) return 'done';
+  return 'active';
+}
+const PROC_ST_LABEL = { done: '완료', active: '진행중', wait: '대기' };
+window.procStatusByDate = procStatusByDate;
+
 function renderSiteDetail() {
   if (window.ensureRenderData) window.ensureRenderData();
   const s = PMS.sites.find(x => x && x.name === window._siteDetailName) || PMS.sites[0];
@@ -732,10 +748,7 @@ function renderSiteDetail() {
   const todayStr = toToday();
 
   function calcStatus(startDate, endDate) {
-    if (!startDate && !endDate) return 'wait';
-    if (startDate && todayStr < startDate) return 'wait';
-    if (endDate && todayStr > endDate) return 'done';
-    return 'active';
+    return procStatusByDate(startDate, endDate, todayStr);
   }
 
   const stLabel = { done:'완료', active:'진행중', wait:'대기' };
@@ -956,8 +969,8 @@ window.sdCalSelect = sdCalSelect; window.sdCalShift = sdCalShift;
 
 function _sdProcListHtml() {
   const phases = _sdPhasesList(), s = _sdSiteObj(), today = toToday();
-  const cs = (st,en) => (!st&&!en)?'wait':(st&&today<st)?'wait':(en&&today>en)?'done':'active';
-  const lbl = {done:'완료',active:'진행중',wait:'대기'}, col = {done:'var(--accent)',active:'var(--accent)',wait:'var(--faint)'};
+  const cs = (st,en) => procStatusByDate(st, en, today);
+  const lbl = PROC_ST_LABEL, col = {done:'var(--accent)',active:'var(--accent)',wait:'var(--faint)'};
   if (!phases.length) return '<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">등록된 공정이 없어요</div>';
   return phases.map((p,i) => {
     const st = cs(p.startDate,p.doneDate), f = x => x?x.slice(5).replace('-','.'):'';
@@ -978,7 +991,7 @@ window.sdAddSchedule = sdAddSchedule;
 
 function _sdScheduleTab() {
   const phases = _sdPhasesList(), today = toToday();
-  const done = phases.filter(p => p.doneDate && today > p.doneDate).length;
+  const done = phases.filter(p => procStatusByDate(p.startDate, p.doneDate, today) === 'done').length;
   const pct = phases.length ? Math.round(done / phases.length * 100) : 0;
   return `
       ${_sdRenderSection()}
@@ -986,6 +999,8 @@ function _sdScheduleTab() {
       <div class="section-label" style="margin-bottom:8px;">공사일정관리 <span class="more">${pct}% 완료</span></div>
       <div id="sd-cal-wrap">${_sdCalSection()}</div>
       <button onclick="openProcAddModal()" style="width:100%;margin-top:14px;background:none;border:1px solid var(--hair);border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;">+ 공정 추가</button>
+      <div class="section-label" style="margin:22px 0 4px;">공정 목록 <span class="more">탭하면 수정</span></div>
+      <div id="sd-proc-list">${_sdProcListHtml()}</div>
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label" style="margin-bottom:8px;">다가오는 일정</div>
       ${_sdUpcoming()}`;
@@ -1204,6 +1219,7 @@ function openProcEditModal(phaseId, siteName) {
   const procKey = siteName.replace(/[.#$/ \[\]]/g, '_');
   db.ref('procData/' + procKey + '/' + phaseId).once('value').then(snap => {
     const ph = snap.val() || {};
+    const _procAutoStatus = procStatusByDate(ph.startDate, ph.doneDate);
     const root = document.getElementById('modal-root');
     root.innerHTML = `
       <div class="modal-backdrop" onclick="closeModal()">
@@ -1214,17 +1230,18 @@ function openProcEditModal(phaseId, siteName) {
           </div>
           <div class="modal-body">
             <div class="field"><label class="field-label">공정명</label><input class="input" id="proc-name" value="${ph.name||''}"></div>
-            <div class="field"><label class="field-label">상태</label>
-              <div class="chip-group">
-                <button type="button" class="chip ${(ph.status||'wait')==='wait'?'is-active':''}" onclick="procEditChip(this,'wait')">⏳ 대기</button>
-                <button type="button" class="chip ${ph.status==='active'?'is-active':''}" onclick="procEditChip(this,'active')">🔨 진행중</button>
-                <button type="button" class="chip ${ph.status==='done'?'is-active':''}" onclick="procEditChip(this,'done')">✅ 완료</button>
+            <div class="field"><label class="field-label">상태 <span style="font-weight:400;color:var(--faint);">(날짜 기준 자동)</span></label>
+              <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--surface-2);border:1px solid var(--hair);border-radius:9px;font-size:14px;">
+                <span style="width:7px;height:7px;border-radius:50%;background:${_procAutoStatus === 'wait' ? 'var(--faint)' : 'var(--accent)'};flex-shrink:0;"></span>
+                <span style="font-weight:600;">현재 자동 판정: ${PROC_ST_LABEL[_procAutoStatus]}</span>
+                <span style="color:var(--faint);font-size:12px;">저장하면 갱신</span>
               </div>
             </div>
             <div class="grid-2">
               <div class="field"><label class="field-label">🟢 시작일</label><input class="input" type="date" id="proc-start" value="${ph.startDate||''}" onchange="autofillProcEndDate()"></div>
               <div class="field"><label class="field-label">🔴 완료일</label><input class="input" type="date" id="proc-end" value="${ph.doneDate||''}"></div>
             </div>
+            <div style="font-size:12px;color:var(--faint);line-height:1.6;">완료일을 비워두면 시작일이 지난 날부터 자동 완료됩니다.</div>
           </div>
           <div class="modal-foot">
             <button class="btn btn-ghost danger" onclick="deleteProcEdit('${procKey}','${phaseId}')">🗑️ 삭제</button>
@@ -1233,14 +1250,7 @@ function openProcEditModal(phaseId, siteName) {
         </div>
       </div>`;
     document.body.style.overflow = 'hidden';
-    window._procEditStatus = ph.status || 'wait';
   });
-}
-
-function procEditChip(el, status) {
-  el.closest('.chip-group').querySelectorAll('.chip').forEach(b=>b.classList.remove('is-active'));
-  el.classList.add('is-active');
-  window._procEditStatus = status;
 }
 
 // 시작일 입력 시 종료일이 비어있으면 같은 날짜로 자동 채움 (대부분 당일시공)
@@ -1258,7 +1268,7 @@ async function saveProcEdit(procKey, phaseId) {
   const name      = document.getElementById('proc-name')?.value?.trim();
   const startDate = document.getElementById('proc-start')?.value || null;
   const doneDate  = document.getElementById('proc-end')?.value   || null;
-  const status    = window._procEditStatus || 'wait';
+  const status    = procStatusByDate(startDate, doneDate);   // 날짜 기준 자동 판정
   const btn = document.querySelector('.modal-foot .btn-primary');
   if (btn) { btn.disabled=true; btn.textContent='저장 중...'; }
   try {
@@ -1313,17 +1323,11 @@ function openProcAddModal() {
               <button type="button" id="proc-add-direct" onclick="procAddPickDirect()" style="display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:14px 0;background:none;border:0;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL_SVG}</button>
             </div>
           </div>
-          <div class="field"><label class="field-label">상태</label>
-            <div class="chip-group">
-              <button type="button" class="chip is-active" onclick="procAddChip(this,'wait')">⏳ 대기</button>
-              <button type="button" class="chip" onclick="procAddChip(this,'active')">🔨 진행중</button>
-              <button type="button" class="chip" onclick="procAddChip(this,'done')">✅ 완료</button>
-            </div>
-          </div>
           <div class="grid-2">
             <div class="field"><label class="field-label">🟢 시작일</label><input class="input" type="date" id="proc-add-start" value="${selDate}"></div>
             <div class="field"><label class="field-label">🔴 완료일</label><input class="input" type="date" id="proc-add-end" value="${selDate}"></div>
           </div>
+          <div style="font-size:12px;color:var(--faint);line-height:1.6;">상태(대기·진행중·완료)는 날짜에 따라 자동으로 정해집니다. 완료일을 비워두면 시작일이 지난 날부터 자동 완료됩니다.</div>
         </div>
         <div class="modal-foot">
           <button class="btn btn-ghost" onclick="closeModal()">취소</button>
@@ -1332,14 +1336,7 @@ function openProcAddModal() {
       </div>
     </div>`;
   document.body.style.overflow = 'hidden';
-  window._procAddStatus = 'wait';
   window._procAddName = '';
-}
-
-function procAddChip(el, status) {
-  el.closest('.chip-group').querySelectorAll('.chip').forEach(b=>b.classList.remove('is-active'));
-  el.classList.add('is-active');
-  window._procAddStatus = status;
 }
 
 function procAddPick(el) {
@@ -1366,7 +1363,7 @@ async function saveProcAdd(procKey) {
   if (!name) { alert('공정을 선택하세요'); return; }
   const startDate = document.getElementById('proc-add-start')?.value || null;
   const doneDate  = document.getElementById('proc-add-end')?.value   || null;
-  const status    = window._procAddStatus || 'wait';
+  const status    = procStatusByDate(startDate, doneDate);   // 날짜 기준 자동 판정
   const procRaw = window._procCache || {};
   const maxOrder = Object.values(procRaw).reduce((m, p) => Math.max(m, p.order || 0), 0);
   const btn = document.querySelector('.modal-foot .btn-primary');
