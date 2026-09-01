@@ -981,12 +981,40 @@ function _sdProcListHtml() {
   const cs = (st,en) => procStatusByDate(st, en, today);
   const lbl = PROC_ST_LABEL, col = {done:'var(--accent)',active:'var(--accent)',wait:'var(--faint)'};
   if (!phases.length) return '<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">등록된 공정이 없어요</div>';
-  return phases.map((p,i) => {
-    const st = cs(p.startDate,p.doneDate), f = x => x?x.slice(5).replace('-','.'):'';
-    const range = p.startDate&&p.doneDate ? `${f(p.startDate)} – ${f(p.doneDate)}` : (f(p.startDate||p.doneDate)||'날짜 미정');
-    return `<div onclick="openProcEditModal('${p.id}','${(s.name||'').replace(/'/g,"\\'")}')" style="display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer;${i>0?'border-top:1px solid var(--hair-soft);':''}"><span style="width:7px;height:7px;border-radius:50%;background:${col[st]};flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${p.name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px;">${range} · ${lbl[st]}</div></div><span style="color:var(--faint);font-size:18px;">›</span></div>`;
-  }).join('');
+  const nameEsc = (s.name || '').replace(/'/g, "\\'");
+  const row = (p, withBorder) => {
+    const st = cs(p.startDate, p.doneDate), f = x => x ? x.slice(5).replace('-', '.') : '';
+    const range = p.startDate && p.doneDate ? `${f(p.startDate)} – ${f(p.doneDate)}` : (f(p.startDate || p.doneDate) || '날짜 미정');
+    return `<div onclick="openProcEditModal('${p.id}','${nameEsc}')" style="display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer;${withBorder ? 'border-top:1px solid var(--hair-soft);' : ''}"><span style="width:7px;height:7px;border-radius:50%;background:${col[st]};flex-shrink:0;"></span><div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;">${p.name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px;">${range} · ${lbl[st]}</div></div><span style="color:var(--faint);font-size:18px;">›</span></div>`;
+  };
+  // 날짜(시작일·완료일)가 있는 공정만 목록에 노출, '날짜 미정' 공정은 접어둔다 (완료율 계산에서도 제외)
+  const dated = phases.filter(p => p.startDate || p.doneDate);
+  const undated = phases.filter(p => !p.startDate && !p.doneDate);
+  let html = dated.length
+    ? dated.map((p, i) => row(p, i > 0)).join('')
+    : '<div style="padding:12px 0;color:var(--muted);font-size:13px;">날짜가 입력된 공정이 없어요</div>';
+  if (undated.length) {
+    const open = !!window._sdUndatedOpen;
+    html += `<button onclick="toggleSdUndated()" style="width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--hair-soft);padding:12px 0;cursor:pointer;font-family:inherit;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+        <span id="sd-undated-arrow">${open ? '▾' : '▸'}</span>
+        <span id="sd-undated-label" data-count="${undated.length}">날짜 미정 ${undated.length}개 ${open ? '접기' : '펼치기'}</span>
+      </button>
+      <div id="sd-undated-list" style="display:${open ? 'block' : 'none'};">${undated.map((p, i) => row(p, i > 0)).join('')}</div>`;
+  }
+  return html;
 }
+function toggleSdUndated() {
+  const list = document.getElementById('sd-undated-list');
+  if (!list) return;
+  const open = list.style.display === 'none';
+  list.style.display = open ? 'block' : 'none';
+  window._sdUndatedOpen = open;
+  const arrow = document.getElementById('sd-undated-arrow');
+  const label = document.getElementById('sd-undated-label');
+  if (arrow) arrow.textContent = open ? '▾' : '▸';
+  if (label) label.textContent = `날짜 미정 ${label.dataset.count || ''}개 ${open ? '접기' : '펼치기'}`;
+}
+window.toggleSdUndated = toggleSdUndated;
 function _sdUpcoming() {
   const s = _sdSiteObj(), schedules = window.FB?.scheduleData || {}, today = toToday();
   const rows = Object.entries(schedules).filter(([,sc]) => sc.site===s.name && sc.date && sc.date>=today).sort((a,b)=>a[1].date.localeCompare(b[1].date)).slice(0,6);
@@ -1000,8 +1028,10 @@ window.sdAddSchedule = sdAddSchedule;
 
 function _sdScheduleTab() {
   const phases = _sdPhasesList(), today = toToday();
-  const done = phases.filter(p => procStatusByDate(p.startDate, p.doneDate, today) === 'done').length;
-  const pct = phases.length ? Math.round(done / phases.length * 100) : 0;
+  // 완료율 분모 = 날짜(시작일·완료일)가 입력된 공정 수 ('날짜 미정' 공정은 제외)
+  const dated = phases.filter(p => p.startDate || p.doneDate);
+  const done = dated.filter(p => procStatusByDate(p.startDate, p.doneDate, today) === 'done').length;
+  const pct = dated.length ? Math.round(done / dated.length * 100) : 0;
   return `
       ${_sdRenderSection()}
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>

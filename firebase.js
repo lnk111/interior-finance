@@ -112,8 +112,11 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     if (site.status !== '공사중') return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const phases = Object.values(_procAll[procKey] || {});
-    if (!phases.length) return;
-    const allDone = phases.every(ph => _phSt(ph.startDate, ph.doneDate) === 'done');
+    // 날짜(시작일·완료일)가 입력된 공정만 완료 판정 대상 — '날짜 미정' 공정은 제외
+    // (안 한 공정에 억지로 날짜를 안 넣어도 실제 진행한 공정이 다 끝나면 완료로 인정)
+    const dated = phases.filter(ph => ph.startDate || ph.doneDate);
+    if (!dated.length) return;
+    const allDone = dated.every(ph => _phSt(ph.startDate, ph.doneDate) === 'done');
     if (allDone) {
       site.status = 'AS관리';
       db.ref('siteInfo/' + site._key).update({ status: 'AS관리' }).catch(() => {});
