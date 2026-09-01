@@ -10,7 +10,9 @@ const ROLE_PERMS = {
   staff:   { fixedCost: false, staffSalary: false, tax: false, top3: false, finalProfit: false, allSites: true,  staffMgmt: false, csvExport: false },
 };
 
-const ROLE_LABEL = { boss: '대표', manager: '팀장', staff: '대리' };
+// 표시용 호칭 — 권한(role) 자체는 boss/manager/staff 유지, 화면에 보이는 직함만 매핑
+// boss = 실장(대표 권한 그대로, 호칭만 '실장')
+const ROLE_LABEL = { boss: '실장', manager: '팀장', staff: '대리' };
 
 window.AUTH = {
   current() {

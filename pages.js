@@ -420,7 +420,7 @@ function renderSettings() {
       </div>
       <div class="total-bar"><span class="tb-k">합계</span><span class="tb-v num">${fmtFull2(total)}</span></div>
       <button class="btn btn-primary btn-block" style="margin-top:12px;">저장</button>
-      ` : `<div class="locked-card"><div class="lc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><div><div class="lc-title">월 고정비 (대표 전용)</div><div class="lc-meta">임대료·급여·마케팅 등 고정 지출은 대표 권한으로만 확인할 수 있어요.</div></div></div>`}
+      ` : `<div class="locked-card"><div class="lc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div><div><div class="lc-title">월 고정비 (실장 전용)</div><div class="lc-meta">임대료·급여·마케팅 등 고정 지출은 실장 권한으로만 확인할 수 있어요.</div></div></div>`}
       ${canCsv ? `<div class="settings-group-label">데이터 내보내기</div><button class="btn btn-ghost btn-block">현장별 손익 CSV 다운로드</button>` : ''}
       <div class="settings-group-label">로그인 계정</div>
       ${canStaffMgmt ? `
@@ -429,7 +429,7 @@ function renderSettings() {
           <div style="display:flex;gap:12px;align-items:center;">
             <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">👑</div>
             <div>
-              <div class="sr-key">대표 계정${window.FB?.bossAccount?.name ? ` · ${window.FB.bossAccount.name}` : ''}</div>
+              <div class="sr-key">실장 계정${window.FB?.bossAccount?.name ? ` · ${window.FB.bossAccount.name}` : ''}</div>
               <div style="font-size:13px;color:var(--muted);margin-top:2px;">${window.FB?.bossAccount?.pin ? 'PIN 설정됨 · 눌러서 변경' : '아직 설정 안 됨 · 눌러서 만들기'}</div>
             </div>
           </div>
@@ -464,7 +464,7 @@ function renderSettings() {
             </div>
           </div>`).join('')}
       </div>
-      ${!canStaffSalary ? '<div class="locked-inline">급여 정보는 대표만 볼 수 있어요</div>' : ''}`}
+      ${!canStaffSalary ? '<div class="locked-inline">급여 정보는 실장만 볼 수 있어요</div>' : ''}`}
       <div style="text-align:center;padding:32px 0 8px;color:var(--faint);font-size:13px;">머니플로우 v1.2 · ${PMS.company} · ${AUTH.roleLabel()}</div>
     </div>`;
 }

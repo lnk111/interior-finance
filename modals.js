@@ -544,7 +544,7 @@ async function staffResign(key) {
 function modalBossAccount() {
   const b = window.FB?.bossAccount || {};
   return openModal(`
-    ${modalHeader('👑 대표 로그인 계정', b.pin ? '기존 정보를 바꾸면 즉시 적용돼요' : '아직 설정되지 않았어요')}
+    ${modalHeader('👑 실장 로그인 계정', b.pin ? '기존 정보를 바꾸면 즉시 적용돼요' : '아직 설정되지 않았어요')}
     <div class="modal-body">
       <div class="field">
         <label class="field-label">이름 <span class="req">*</span></label>

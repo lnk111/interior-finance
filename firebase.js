@@ -251,8 +251,8 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     }));
   M.staff = staffArr;
   // 입력자 후보 — 직원 목록 + 현재 로그인한 사용자(사장은 staffData에 없을 수 있어서 안전망)
-  // 역할명을 한글로 통일 ('staff' → '대리', 'manager' → '팀장', 'boss' → '대표')
-  const ROLE_KR = { boss: '대표', manager: '팀장', staff: '대리' };
+  // 역할명을 한글 호칭으로 통일 ('staff' → '대리', 'manager' → '팀장', 'boss' → '실장')
+  const ROLE_KR = { boss: '실장', manager: '팀장', staff: '대리' };
   function roleToKr(r) {
     if (!r) return '';
     return ROLE_KR[r] || r; // 이미 한글이거나 알 수 없는 값이면 그대로
@@ -592,7 +592,7 @@ window.runFullPhotoMigration = async function(btn) {
   // 권한 확인 — 보스만 실행 가능
   const role = window.AUTH?.role?.();
   if (role !== 'boss') {
-    alert('이 작업은 대표만 실행할 수 있어요.');
+    alert('이 작업은 실장만 실행할 수 있어요.');
     return;
   }
   // 대상 건수 사전 점검
@@ -1006,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.navigate) window.navigate('home');
       } catch (err) {
         alert('연결 오류. 잠시 후 다시 시도해주세요.');
-        if (setupBtn) { setupBtn.disabled = false; setupBtn.textContent = '대표 계정 만들기'; }
+        if (setupBtn) { setupBtn.disabled = false; setupBtn.textContent = '실장 계정 만들기'; }
       }
     });
   }
