@@ -438,7 +438,7 @@ async function doSaveEntry() {
   const amount = parseInt(String(st.amount || '').replace(/[^0-9]/g,'')) || 0;
   const date = st.date || toToday();
   const memo = st.memo || '';
-  const writer = st.inputter || AUTH.current()?.name || '';
+  const writer = (window.AUTH?.inputterLabel?.()) || st.inputter || '';
   const entry = {
     type: st.tab==='매출'?'revenue':st.tab==='AS'?'as':'cost',
     site, amount, date,
@@ -854,8 +854,8 @@ function inputStepConfirm() {
   const midVal = isRev ? (st.stage||'-') : (st.phase||'-');
   const amt = parseInt(String(st.amount||'').replace(/[^0-9]/g,'')) || 0;
   const memo = (st.memo||'').trim() || '(없음)';
-  // 작성자(입력자) = 로그인한 사용자 아이디 자동 지정
-  const writer = (window.AUTH && AUTH.current && AUTH.current()?.name) || st.inputter || '';
+  // 작성자(입력자) = 로그인한 사용자로 자동 지정 (이름 호칭 포함)
+  const writer = (window.AUTH?.inputterLabel?.()) || st.inputter || '';
   st.inputter = writer;
   const name = st.site || '';
   const dm = name.match(/\d+동/);

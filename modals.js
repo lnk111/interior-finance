@@ -344,7 +344,7 @@ function modalTip(editKey) {
         <div class="field">
           <label class="field-label">작성자</label>
           <select class="input" id="tip-writer">
-            ${(window.MOCK?.inputters || []).map(n => `<option ${ex.writer === n ? 'selected' : ''}>${n}</option>`).join('')}
+            ${(() => { const cur = window.AUTH?.inputterLabel?.() || ''; return (window.MOCK?.inputters || []).map(n => `<option ${(ex.writer || cur) === n ? 'selected' : ''}>${n}</option>`).join(''); })()}
           </select>
         </div>
       </div>
@@ -793,8 +793,10 @@ function modalTxEdit(entryKey) {
   const sitesOpts = (window.MOCK?.sites || []).map(s =>
     `<option value="${s.name}" ${entry.site === s.name ? 'selected' : ''}>${s.name}</option>`
   ).join('');
+  // 기존 입력자는 유지, 비어 있으면 현재 로그인 사용자로 채움
+  const curInputter = window.AUTH?.inputterLabel?.() || '';
   const writersOpts = (window.MOCK?.inputters || []).map(n =>
-    `<option value="${n}" ${entry.writer === n ? 'selected' : ''}>${n}</option>`
+    `<option value="${n}" ${(entry.writer || curInputter) === n ? 'selected' : ''}>${n}</option>`
   ).join('');
   const phases = ['철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
   const esc = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1032,7 +1034,7 @@ function modalQuickTip() {
     step: 1,
     site: '',
     date: toToday(),
-    writer: (window.MOCK?.inputters || [])[0] || '',
+    writer: (window.AUTH?.inputterLabel?.()) || (window.MOCK?.inputters || [])[0] || '',
     memo: '',
   };
   qtRender();
@@ -1619,7 +1621,7 @@ async function photoSave() {
       site, phase,
       photos: urls,           // Cloudinary URL 배열
       createdAt: Date.now(),
-      writer: window.AUTH?.current()?.name || '',
+      writer: window.AUTH?.inputterLabel?.() || '',
     });
 
     // ObjectURL 메모리 해제

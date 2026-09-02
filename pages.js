@@ -630,7 +630,7 @@ async function onRenderPick(input) {
   let done = 0, failed = 0;
   if (hint) { hint.style.display = ''; hint.innerHTML = `⏫ 0/${total} 업로드 중...`; }
 
-  const writer = window.AUTH?.current()?.name || '';
+  const writer = window.AUTH?.inputterLabel?.() || '';
   if (!window.FB.renderData) window.FB.renderData = {};
   if (!window.FB.renderData[siteKey]) window.FB.renderData[siteKey] = {};
 

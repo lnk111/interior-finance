@@ -39,6 +39,14 @@ window.AUTH = {
   roleLabel() {
     return ROLE_LABEL[this.role()] || '대리';
   },
+  // 입력자 표기 = 로그인한 사용자의 "이름 호칭" (예: '김영애 실장', '이남경 팀장', '김덕수 대리')
+  // 입력/저장 시 이 값을 작성자(writer)로 자동 기록 → 로그인 사용자가 바뀌면 자동으로 반영됨
+  inputterLabel() {
+    const s = this.current();
+    if (!s || !s.name) return '';
+    const rl = this.roleLabel();
+    return rl ? `${s.name} ${rl}` : s.name;
+  },
 };
 
 function bootAuth() {
