@@ -1024,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pin = document.getElementById('login-pin').value;
 
     if (!name || pin.length < 4) {
-      alert('이름과 PIN 4자리를 입력해주세요.');
+      alert('이름과 전화번호 뒤 4자리를 입력해주세요.');
       return;
     }
 
@@ -1049,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.navigate) window.navigate('home');
         return;
       }
-      alert('이름 또는 PIN이 올바르지 않아요.');
+      alert('이름 또는 전화번호 뒤 4자리가 올바르지 않아요.');
     } catch (err) {
       // Firebase 연결 실패 시 기존 PIN(3073/1212)으로 fallback
       if (pin === '3073') { AUTH.login(name, pin, 'boss'); bootAuth(); if (window.navigate) window.navigate('home'); return; }
