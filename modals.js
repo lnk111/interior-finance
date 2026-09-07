@@ -798,7 +798,7 @@ function modalTxEdit(entryKey) {
   const writersOpts = (window.MOCK?.inputters || []).map(n =>
     `<option value="${n}" ${(entry.writer || curInputter) === n ? 'selected' : ''}>${n}</option>`
   ).join('');
-  const phases = ['철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
+  const phases = ['공사준비','철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
   const esc = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   // 표준 공정에 없는 값 = 커스텀 공정 또는 과거에 메모처럼 입력한 값
   const customProc = (entry.process && !phases.includes(entry.process)) ? entry.process : '';
