@@ -800,9 +800,11 @@ function modalTxEdit(entryKey) {
     `<option value="${n}" ${(entry.writer || curInputter) === n ? 'selected' : ''}>${n}</option>`
   ).join('');
   const phases = ['공사준비','철거','창호','전기','욕실방수','목공','타일','필름','욕실설비','바닥','도배','가구','조명마감','중문','실리콘','잔마감'];
+  // [만현마을 롯데캐슬] 현장의 매입 거래 수정에서만 '잔마감' 뒤에 '식대 + 음료' 칩 노출
+  const mealOpt = (entry.site === '만현마을 롯데캐슬' && curType === '매입') ? '식대 + 음료' : '';
   const esc = v => String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   // 표준 공정에 없는 값 = 커스텀 공정 또는 과거에 메모처럼 입력한 값
-  const customProc = (entry.process && !phases.includes(entry.process)) ? entry.process : '';
+  const customProc = (entry.process && !phases.includes(entry.process) && entry.process !== mealOpt) ? entry.process : '';
   const hasMemo = !!(entry.memo && entry.memo.trim());
   // 메모가 비어있고 공정이 커스텀 값이면 → 그 값을 '메모'로 간주해 메모칸에 표시(공정 칩·필드에서는 비움)
   const procIsMemo = !!customProc && !hasMemo;
@@ -874,6 +876,7 @@ function modalTxEdit(entryKey) {
               <label class="field-label">공정</label>
               <div class="chip-group" style="flex-wrap:wrap;">
                 ${phases.map(p=>`<button type="button" class="chip ${entry.process===p?'is-active':''}" onclick="txEditChip(this,'phase','${p}')">${p}</button>`).join('')}
+                ${mealOpt ? `<button type="button" class="chip ${entry.process===mealOpt?'is-active':''}" onclick="txEditChip(this,'phase','${mealOpt}')">${mealOpt}</button>` : ''}
                 ${showCustomChip ? `<button type="button" class="chip is-active" data-v="${escP}" onclick="txEditChip(this,'phase',this.dataset.v)">${escP}</button>` : ''}
               </div>
             </div>
