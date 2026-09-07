@@ -425,7 +425,11 @@ function resetInputFlow() {
   inputState.site = '';
   inputState.memo = '';
   inputState.date = '';
+  (window._entryPhotos || []).forEach(u => {
+    if (typeof u === 'string' && u.startsWith('blob:')) { try { URL.revokeObjectURL(u); } catch (_) {} }
+  });
   window._entryPhotos = [];
+  window._entryPhotoFiles = [];
 }
 
 const SITE_STATUS_ORDER = ['공사중','계약완료','AS관리','마감'];
@@ -439,6 +443,26 @@ async function doSaveEntry() {
   const date = st.date || toToday();
   const memo = st.memo || '';
   const writer = (window.AUTH?.inputterLabel?.()) || st.inputter || '';
+
+  // 영수증 사진 → 압축 후 Cloudinary 업로드, Firebase엔 URL만 저장 (base64를 entries에 넣지 않는다)
+  let photoUrl = null;
+  const files = window._entryPhotoFiles || [];
+  if (files.length && typeof uploadToCloudinary === 'function') {
+    try {
+      const enc = s => (s || '').replace(/[.#$/ \[\]]/g, '_');
+      const folder = `designfor/${enc(site || 'unknown')}/entries`;
+      const tags = [enc(site || ''), 'entry', date];
+      photoUrl = await uploadToCloudinary(files[0], folder, tags);
+    } catch (e) {
+      console.error('영수증 업로드 실패', e);
+      return false;   // 저장 중단 → 호출부(startSave)가 실패 처리
+    }
+  } else {
+    // File이 없고 예외적으로 base64/URL만 들어온 경우엔 그대로 사용 (호환)
+    const p0 = (window._entryPhotos || [])[0];
+    if (p0 && !String(p0).startsWith('blob:')) photoUrl = p0;
+  }
+
   const entry = {
     type: st.tab==='매출'?'revenue':st.tab==='AS'?'as':'cost',
     site, amount, date,
@@ -447,8 +471,8 @@ async function doSaveEntry() {
     payMethod: st.payMethod||'',
     payStage: st.tab==='매출' ? (st.stage||'') : '',
     taxInvoice: !!st.invoice && st.tab==='매출',
-    imageBase64: window._entryPhotos?.[0]||null,
-    extraPhotos: window._entryPhotos?.slice(1)||[],
+    imageBase64: photoUrl || null,   // 호환 필드 — 이제 Cloudinary URL이 들어간다
+    extraPhotos: [],
   };
   try { await window.FB_API.saveEntry(entry); return true; }
   catch(e) { return false; }
@@ -983,25 +1007,30 @@ function updateAmountDisplay() {
   if (nx) { nx.disabled = !amt; nx.style.opacity = amt ? '1' : '.5'; }
 }
 
-window._entryPhotos=[];
+window._entryPhotos=[];        // 미리보기용 (blob: objectURL 또는 예외적 base64/URL)
+window._entryPhotoFiles=[];    // 업로드용 원본 File — 저장 시 압축→Cloudinary
 function entryOpenCamera() { document.getElementById('entry-file-camera')?.click(); }
 function entryOpenGallery() { document.getElementById('entry-file-gallery')?.click(); }
 function entryHandleFile(e) {
   const files = Array.from(e.target.files||[]);
   if (files.length && (window._entryPhotos||[]).length < 1) {   // 영수증 1장만
-    const r=new FileReader();
-    r.onload=ev=>{
-      window._entryPhotos=[ev.target.result];
-      if (currentPage==='input' && inputState.step===4) navigate('input');
-    };
-    r.readAsDataURL(files[0]);
+    // 원본 File은 그대로 들고, 미리보기는 objectURL — base64 문자열을 만들지 않는다.
+    (window._entryPhotos||[]).forEach(u => {
+      if (typeof u === 'string' && u.startsWith('blob:')) { try { URL.revokeObjectURL(u); } catch (_) {} }
+    });
+    window._entryPhotoFiles=[files[0]];
+    window._entryPhotos=[URL.createObjectURL(files[0])];
+    if (currentPage==='input' && inputState.step===4) navigate('input');
   }
   e.target.value='';
 }
 // 영수증 미리보기는 inputStepReceipt가 window._entryPhotos에서 직접 렌더 (navigate 재호출 시 no-op)
 function entryRenderPhotos() {}
 function entryRemovePhoto(idx) {
+  const u = window._entryPhotos[idx];
+  if (typeof u === 'string' && u.startsWith('blob:')) { try { URL.revokeObjectURL(u); } catch (_) {} }
   window._entryPhotos.splice(idx,1);
+  if (window._entryPhotoFiles) window._entryPhotoFiles.splice(idx,1);
   if (currentPage==='input' && inputState.step===4) navigate('input');
 }
 

@@ -911,18 +911,43 @@ function modalTxEdit(entryKey) {
   txeFillPhotos(entryKey, entry);   // 사진 노드를 항상 조회 → 있으면 무조건 표시
 }
 
-async function txeFillPhotos(key, entry) {
-  let photos = [];
-  try { photos = await window.loadEntryPhotos(key, entry); } catch (e) { photos = []; }
-  window._txeViewPhotos = photos;
+// Cloudinary URL이면 썸네일 변형(w_160)만 로드해 원본(수백 KB) 다운로드를 막는다.
+function _thumbUrl(u) {
+  if (typeof u === 'string' && u.includes('res.cloudinary.com') && u.includes('/upload/')) {
+    return u.replace('/upload/', '/upload/w_160,h_160,c_fill,q_auto,f_auto/');
+  }
+  return u;
+}
+
+function _txeRenderStrip(photos) {
   const field = document.getElementById('txe-photo-field');
   const strip = document.getElementById('txe-photo-strip');
   const cap = document.getElementById('txe-photo-cap');
   if (!field || !strip) return;
-  if (!photos.length) { field.style.display = 'none'; return; }
+  if (!photos || !photos.length) { field.style.display = 'none'; return; }
   field.style.display = '';
   if (cap) cap.textContent = photos.length + '장 · 탭하면 크게 보기';
-  strip.innerHTML = photos.map((p, i) => `<img src="${p}" onclick="txeViewPhoto(${i})" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);cursor:pointer;">`).join('');
+  strip.innerHTML = photos.map((p, i) =>
+    `<img src="${_thumbUrl(p)}" loading="lazy" onclick="txeViewPhoto(${i})" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1.5px solid var(--hair);cursor:pointer;">`
+  ).join('');
+}
+
+async function txeFillPhotos(key, entry) {
+  // 1) 메모리에 이미 있는 사진으로 즉시 렌더 — DB 왕복을 기다리지 않는다.
+  const immediate = [];
+  if (entry && entry.imageBase64) immediate.push(entry.imageBase64);
+  if (entry && Array.isArray(entry.extraPhotos)) entry.extraPhotos.forEach(p => { if (p) immediate.push(p); });
+  if (immediate.length) {
+    window._txeViewPhotos = immediate;
+    _txeRenderStrip(immediate);
+  }
+  // 2) 정식 소스(entryPhotos)와 대조 — 다르면 교체 (보통 URL 배열, 가벼움)
+  let photos = immediate;
+  try { photos = await window.loadEntryPhotos(key, entry); } catch (e) { photos = immediate; }
+  if (Array.isArray(photos) && photos.join('|') !== immediate.join('|')) {
+    window._txeViewPhotos = photos;
+    _txeRenderStrip(photos);
+  }
 }
 
 // 거래 수정 화면에서 사진을 탭하면 전체화면으로 크게 보기

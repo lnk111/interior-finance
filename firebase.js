@@ -438,17 +438,19 @@ function formatWhen(dateStr) {
   return dateStr.slice(5).replace('-', '/');
 }
 
-// ── 거래 사진 로드 (entryPhotos 우선, 옛 entries 내장은 폴백 + 자동 분리) ──
+// ── 거래 사진 로드 (entryPhotos 우선, 옛 entries 내장은 메모리 즉시 반환 + 백그라운드 이전) ──
 window.loadEntryPhotos = async function(key, entry) {
   entry = entry || {};
   const embedded = [];
   if (entry.imageBase64) embedded.push(entry.imageBase64);
   if (Array.isArray(entry.extraPhotos)) entry.extraPhotos.forEach(p => { if (p) embedded.push(p); });
   if (embedded.length) {
-    try {
-      await db.ref('entryPhotos/' + key).set({ photos: embedded });
-      await db.ref('entries/' + key).update({ imageBase64: null, extraPhotos: null, photoCount: embedded.length, hasPhoto: true });
-    } catch (e) {}
+    // entries에 내장된 사진은 이미 메모리에 있으므로 DB 왕복·재기록 없이 즉시 반환한다.
+    // (예전 코드는 모달 열 때마다 수 MB base64를 RTDB에 되써서 창이 느려졌다.)
+    // base64가 섞여 있으면 UI 흐름과 분리해 백그라운드에서 1회만 Cloudinary로 이전한다.
+    if (embedded.some(p => typeof p === 'string' && p.startsWith('data:image'))) {
+      _migrateEntryEmbeddedPhotos(key, entry, embedded);
+    }
     return embedded;
   }
   try {
@@ -457,6 +459,29 @@ window.loadEntryPhotos = async function(key, entry) {
     return (v && Array.isArray(v.photos)) ? v.photos : [];
   } catch (e) { return []; }
 };
+
+// 내장 base64 사진을 백그라운드에서 Cloudinary URL로 1회 이전 (중복 실행 가드)
+const _migratingEntryPhotos = new Set();
+async function _migrateEntryEmbeddedPhotos(key, entry, embedded) {
+  if (_migratingEntryPhotos.has(key)) return;
+  _migratingEntryPhotos.add(key);
+  try {
+    const enc = s => (s || '').replace(/[.#$/ \[\]]/g, '_');
+    const folder = `designfor/${enc(entry.site || 'unknown')}/entries`;
+    const tags = [enc(entry.site || ''), 'entry', 'migrated'];
+    const urls = await _migrateItemPhotos(embedded, folder, tags);
+    if (!urls.length) return;
+    await db.ref('entryPhotos/' + key).set({ photos: urls });
+    await db.ref('entries/' + key).update({
+      imageBase64: null, extraPhotos: null,
+      photoCount: urls.length, hasPhoto: true,
+    });
+  } catch (e) {
+    console.error('[entry 사진 백그라운드 이전 실패]', key, e);
+  } finally {
+    _migratingEntryPhotos.delete(key);
+  }
+}
 
 // ── 2026.06: pending/entries의 base64 사진을 Cloudinary로 이전 (1회, 안전·재실행 가능) ──
 // base64는 Firebase 데이터를 27MB까지 부풀게 만들고 첫 접속을 느리게 만듦
