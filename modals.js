@@ -788,9 +788,7 @@ function modalPhase() {
 // 7. Transaction edit modal
 function modalTxEdit(entryKey) {
   if (window.ensureEntries) window.ensureEntries();
-  const entry = window.FB?.entries?.[entryKey]
-    || window.FB?._recentEntries?.[entryKey]   // 홈 최근거래에서 바로 열 때 (전체 entries 로드 전)
-    || {};
+  const entry = window.FB?.entries?.[entryKey] || {};
   const typeMap = { revenue: '매출', cost: '매입', as: 'AS' };
   const curType = typeMap[entry.type] || '매입';
   const sitesOpts = (window.MOCK?.sites || []).map(s =>

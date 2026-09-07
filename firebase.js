@@ -224,9 +224,8 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     targetMargin: 25,
   };
 
-  // 최근 거래 — 전체 entries가 있으면 그걸로, 아니면 바운디드 쿼리 결과(_recentEntries)로.
-  const _recentSrc = _entriesLoaded ? FB.entries : (FB._recentEntries || {});
-  const entryArr = Object.entries(_recentSrc)
+  // 최근 거래 — entries 로드 후 채워짐(첫 틱에 로드 시작).
+  const entryArr = Object.entries(FB.entries || {})
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
     .slice(0, 7)
     .map(([key, e]) => ({
@@ -798,45 +797,34 @@ function initFirebase() {
   db.ref('siteInfo').on('value', snap => { FB.sites = snap.val() || {}; FB._sitesReady = true; onDataChange(); });
   db.ref('pending').on('value', snap => { FB.pending = snap.val() || {}; onDataChange(); });
 
-  // 손익 합계 캐시 — 작아서 즉시 도착. 홈 숫자를 여기서 먼저 채운다.
-  // 없으면(최초 배포·초기화) 실장 세션이 1회 자동 시드.
+  // 손익 합계 캐시 — 시드돼 있으면 홈 숫자를 전체 entries 없이 즉시 채운다.
+  // ⚠️ 자동 시드는 entries가 이미 메모리에 있을 때만(= 추가 다운로드 0). 그 외엔 설정의
+  //    "손익 합계 재계산" 버튼으로 1회 시드. 시드 전엔 entries 폴백이라 예전과 동일 동작.
+  function _maybeSeedSummary() {
+    const seeded = FB._summary && FB._summary.rebuiltAt;
+    if (seeded || FB._summarySeeding || FB._summarySeedFailed || !FB._entriesReady) return;
+    if (window.AUTH?.role?.() !== 'boss') return;
+    FB._summarySeeding = true;
+    window.recomputeSummary()
+      .then(ok => { if (!ok) FB._summarySeedFailed = true; })
+      .finally(() => { FB._summarySeeding = false; });
+  }
   db.ref('summary').on('value', snap => {
     FB._summary = snap.val() || null;
     FB._summaryReady = true;
-    // 시드 안 됨(rebuiltAt 없음) + 실장 세션이면 1회 자동 시드. ensureEntries 다운로드를 재사용.
-    const seeded = FB._summary && FB._summary.rebuiltAt;
-    if (!seeded && !FB._summarySeeding && window.AUTH?.role?.() === 'boss') {
-      FB._summarySeeding = true;
-      const seed = () => window.recomputeSummary().finally(() => { FB._summarySeeding = false; });
-      if (FB._entriesReady) { seed(); }
-      else {
-        window.ensureEntries && window.ensureEntries();
-        const iv = setInterval(() => { if (FB._entriesReady) { clearInterval(iv); seed(); } }, 300);
-        setTimeout(() => { clearInterval(iv); if (FB._summarySeeding) seed(); }, 8000);
-      }
-    }
+    _maybeSeedSummary();
     onDataChange();
   });
 
-  // 홈 '최근거래내역' 전용 — 최신 10건만 (전체 entries 없이 즉시 표시).
-  // push() 키는 생성 시각 순으로 정렬되므로 orderByChild 없이 limitToLast만으로 최신 10건 → 인덱스 불필요, ~10건만 다운로드.
-  db.ref('entries').limitToLast(10).on('value', snap => {
-    FB._recentEntries = snap.val() || {};
+  // 전체 entries — 예전과 동일하게 즉시 로드(회귀 방지). ensureEntries()는 호출부 호환용 별칭.
+  db.ref('entries').on('value', snap => {
+    FB.entries = snap.val() || {};
+    FB._entriesReady = true;
+    _maybeSeedSummary();
     onDataChange();
   });
-
-  // 전체 entries — 목록·수정·현장상세에서만 필요. 첫 페인트 뒤로 미뤄 코어 데이터에 소켓을 양보.
-  FB._entriesLoaded = false;
-  window.ensureEntries = function() {
-    if (FB._entriesLoaded) return;
-    FB._entriesLoaded = true;
-    db.ref('entries').on('value', snap => {
-      FB.entries = snap.val() || {};
-      FB._entriesReady = true;
-      onDataChange();
-    });
-  };
-  setTimeout(() => window.ensureEntries(), 600);
+  FB._entriesLoaded = true;
+  window.ensureEntries = function() {};
 
   db.ref('staffData').on('value', snap => { FB.staffData = snap.val() || {}; onDataChange(); });
   db.ref('asData').on('value', snap => { FB.asData = snap.val() || {}; onDataChange(); });
@@ -928,6 +916,7 @@ function _summaryUpdatePaths(entry, sign) {
 }
 // oldE(제거)·newE(추가) 델타를 summary에 반영. 증분은 서버 측에서 합산되므로 순차 update로 충분.
 async function _applyEntrySummary(oldE, newE) {
+  if (FB._summarySeedFailed) return;   // 쓰기 권한 없는 환경 — 헛된 왕복 생략(홈은 entries로 계산)
   try {
     if (oldE) {
       const p = _summaryUpdatePaths(oldE, -1);
@@ -967,11 +956,14 @@ window.recomputeSummary = async function(btn) {
     });
     await db.ref('summary').set({ total, bySite, count, rebuiltAt: Date.now() });
     if (btn) alert('✅ 손익 합계를 다시 계산했어요.');
+    if (btn) { btn.disabled = false; btn.textContent = '손익 합계 재계산'; }
+    return true;
   } catch (e) {
-    console.error('[summary 재계산 실패]', e);
-    if (btn) alert('재계산에 실패했어요. 잠시 후 다시 시도해주세요.');
+    // 쓰기 권한 없음 등 — 조용히 폴백(홈은 entries로 계산). 자동 재시도는 안 함.
+    console.warn('[summary 재계산 실패 — entries 폴백 사용]', e && e.message);
+    if (btn) { alert('재계산에 실패했어요. 잠시 후 다시 시도해주세요.'); btn.disabled = false; btn.textContent = '손익 합계 재계산'; }
+    return false;
   }
-  if (btn) { btn.disabled = false; btn.textContent = '손익 합계 재계산'; }
 };
 
 // ── 거래 저장 (app.js에서 호출) ──
