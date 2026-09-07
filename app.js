@@ -1478,7 +1478,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       const ls = document.getElementById('loading-screen');
       if (ls && !ls.__hidden) {
-        if (!document.querySelector('.page.is-active')) navigate('home');
+        if (window.FB) window.FB._bootRendered = true;   // 이후 데이터 변경은 즉시 렌더
+        if (window.syncMockFromFirebase) window.syncMockFromFirebase();
+        navigate('home');
         hideLanding(true);
       }
     }, 5000);

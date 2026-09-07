@@ -408,6 +408,7 @@ function renderSettings() {
       </button>
       ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runPhotoMigration(this)" style="margin-top:10px;">사진 저장방식 최적화 (1회 실행)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">기존 거래에 들어있는 사진을 분리해 홈·목록 로딩을 빠르게 합니다. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
       ${canFC ? `<button class="btn btn-ghost btn-block" onclick="runFullPhotoMigration(this)" style="margin-top:10px;">사진 정리 (Cloudinary 이전)</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">미정리·거래에 base64로 저장된 사진을 Cloudinary로 이전합니다. 첫 접속 속도가 크게 빨라져요. 중간에 멈춰도 안전하고, 다시 눌러 이어서 할 수 있어요.</div>` : ''}
+      ${canFC ? `<button class="btn btn-ghost btn-block" onclick="recomputeSummary(this)" style="margin-top:10px;">손익 합계 재계산</button><div style="margin:5px 2px 0;color:var(--muted);font-size:12px;line-height:1.5;">홈 화면의 매출·매입·순이익 합계 캐시를 전체 거래로 다시 계산합니다. 숫자가 실제와 어긋나 보일 때 눌러주세요. 평소엔 자동으로 유지됩니다.</div>` : ''}
       ${canFC ? `
       <div class="settings-group-label">월 고정비</div>
       ${ymSelect(new Date().getFullYear(), new Date().getMonth()+1)}
@@ -741,6 +742,7 @@ window.procStatusByDate = procStatusByDate;
 
 function renderSiteDetail() {
   if (window.ensureRenderData) window.ensureRenderData();
+  if (window.ensureEntries) window.ensureEntries();   // 현장 거래내역 — 전체 entries 필요
   const s = PMS.sites.find(x => x && x.name === window._siteDetailName) || PMS.sites[0];
   const procRaw = window._procCache || {};
   // 시작일 시간순 정렬 — 시작일 없는 공정은 기존 order 순으로 뒤에 배치, 같은 날짜는 order로 2차 정렬

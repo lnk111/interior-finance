@@ -46,16 +46,29 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   const M = window.MOCK;
   if (!M) return;
 
-  // 현장별 합계 1회 패스 (기존 O(현장수×거래수) → O(현장수+거래수))
+  // 현장별 합계 — entries가 로드됐으면 그걸로(진실 원천), 아니면 summary 캐시로.
+  // summary는 recomputeSummary로 1회 시드된 것만 신뢰 (rebuiltAt 존재). 시드 전 델타만 쌓인 상태는 무시.
+  const _entriesLoaded = !!FB._entriesReady;
+  const _sum = (FB._summary && FB._summary.rebuiltAt) ? FB._summary : null;
   const _agg = {};
   const _A = n => (_agg[n] || (_agg[n] = { rev: 0, cost: 0, as: 0 }));
-  Object.values(FB.entries).forEach(e => {
-    if (!e || !e.site) return;
-    const a = _A(e.site);
-    if (e.type === 'revenue') a.rev += e.amount || 0;
-    else if (e.type === 'cost') a.cost += e.amount || 0;
-    else if (e.type === 'as') a.as += e.amount || 0;
-  });
+  if (_entriesLoaded || !_sum) {
+    Object.values(FB.entries).forEach(e => {
+      if (!e || !e.site) return;
+      const a = _A(e.site);
+      if (e.type === 'revenue') a.rev += e.amount || 0;
+      else if (e.type === 'cost') a.cost += e.amount || 0;
+      else if (e.type === 'as') a.as += e.amount || 0;
+    });
+  } else {
+    Object.values(_sum.bySite || {}).forEach(s => {
+      if (!s || !s.name) return;
+      const a = _A(s.name);
+      a.rev += s.revenue || 0;
+      a.cost += s.cost || 0;
+      a.as += s.as || 0;
+    });
+  }
   Object.values(FB.pending).forEach(p => {
     if (!p || p.status !== 'done') return;
     (p.allocations || []).forEach(al => {
@@ -168,13 +181,19 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   upcoming.sort((a, b) => a.dDays - b.dDays);
   M.upcomingSites = upcoming;
 
-  // 총합 계산
+  // 총합 계산 — 현장별과 같은 원천을 쓴다.
   let totalRev = 0, totalCost = 0, totalAs = 0;
-  Object.values(FB.entries).forEach(e => {
-    if (e.type === 'revenue') totalRev += e.amount || 0;
-    else if (e.type === 'cost') totalCost += e.amount || 0;
-    else if (e.type === 'as') totalAs += e.amount || 0;
-  });
+  if (_entriesLoaded || !_sum) {
+    Object.values(FB.entries).forEach(e => {
+      if (e.type === 'revenue') totalRev += e.amount || 0;
+      else if (e.type === 'cost') totalCost += e.amount || 0;
+      else if (e.type === 'as') totalAs += e.amount || 0;
+    });
+  } else {
+    totalRev = (_sum.total && _sum.total.revenue) || 0;
+    totalCost = (_sum.total && _sum.total.cost) || 0;
+    totalAs = (_sum.total && _sum.total.as) || 0;
+  }
   Object.values(FB.pending).forEach(p => {
     if (p.status !== 'done') return;
     (p.allocations || []).forEach(a => {
@@ -205,8 +224,9 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     targetMargin: 25,
   };
 
-  // 최근 거래
-  const entryArr = Object.entries(FB.entries)
+  // 최근 거래 — 전체 entries가 있으면 그걸로, 아니면 바운디드 쿼리 결과(_recentEntries)로.
+  const _recentSrc = _entriesLoaded ? FB.entries : (FB._recentEntries || {});
+  const entryArr = Object.entries(_recentSrc)
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
     .slice(0, 7)
     .map(([key, e]) => ({
@@ -623,6 +643,17 @@ window.runFullPhotoMigration = async function(btn) {
     alert('이 작업은 실장만 실행할 수 있어요.');
     return;
   }
+  if (window.ensureEntries) window.ensureEntries();
+  if (!FB._entriesReady) {
+    if (btn) { btn.disabled = true; btn.textContent = '거래 불러오는 중…'; }
+    await new Promise(r => {
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        if (FB._entriesReady || Date.now() - t0 > 15000) { clearInterval(iv); r(); }
+      }, 200);
+    });
+    if (btn) { btn.disabled = false; }
+  }
   // 대상 건수 사전 점검
   const isBase64 = s => typeof s === 'string' && s.startsWith('data:image');
   const pendingTargets = Object.values(FB.pending || {}).filter(p => {
@@ -714,6 +745,17 @@ window.migrateEntryPhotos = async function(onProgress) {
 
 window.runPhotoMigration = async function(btn) {
   if (!window.migrateEntryPhotos) return;
+  if (window.ensureEntries) window.ensureEntries();
+  if (!FB._entriesReady) {
+    if (btn) { btn.disabled = true; btn.textContent = '거래 불러오는 중…'; }
+    await new Promise(r => {
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        if (FB._entriesReady || Date.now() - t0 > 15000) { clearInterval(iv); r(); }
+      }, 200);
+    });
+    if (btn) btn.disabled = false;
+  }
   const all = FB.entries || {};
   const pending = Object.keys(all).filter(k => { const e = all[k] || {}; return e.imageBase64 || (Array.isArray(e.extraPhotos) && e.extraPhotos.length); }).length;
   if (pending === 0) { alert('이미 최적화되어 있어요. 옮길 사진이 없습니다.'); return; }
@@ -753,10 +795,49 @@ function initFirebase() {
   });
 
   // 핵심 데이터 — 실시간 리스너로 한 번만 로드 + 변경 감지
-  // (.once() 중복 다운로드 제거: 무거운 entries 노드를 두 번 받지 않음)
   db.ref('siteInfo').on('value', snap => { FB.sites = snap.val() || {}; FB._sitesReady = true; onDataChange(); });
-  db.ref('entries').on('value', snap => { FB.entries = snap.val() || {}; onDataChange(); });
   db.ref('pending').on('value', snap => { FB.pending = snap.val() || {}; onDataChange(); });
+
+  // 손익 합계 캐시 — 작아서 즉시 도착. 홈 숫자를 여기서 먼저 채운다.
+  // 없으면(최초 배포·초기화) 실장 세션이 1회 자동 시드.
+  db.ref('summary').on('value', snap => {
+    FB._summary = snap.val() || null;
+    FB._summaryReady = true;
+    // 시드 안 됨(rebuiltAt 없음) + 실장 세션이면 1회 자동 시드. ensureEntries 다운로드를 재사용.
+    const seeded = FB._summary && FB._summary.rebuiltAt;
+    if (!seeded && !FB._summarySeeding && window.AUTH?.role?.() === 'boss') {
+      FB._summarySeeding = true;
+      const seed = () => window.recomputeSummary().finally(() => { FB._summarySeeding = false; });
+      if (FB._entriesReady) { seed(); }
+      else {
+        window.ensureEntries && window.ensureEntries();
+        const iv = setInterval(() => { if (FB._entriesReady) { clearInterval(iv); seed(); } }, 300);
+        setTimeout(() => { clearInterval(iv); if (FB._summarySeeding) seed(); }, 8000);
+      }
+    }
+    onDataChange();
+  });
+
+  // 홈 '최근거래내역' 전용 — 최신 10건만 (전체 entries 없이 즉시 표시).
+  // push() 키는 생성 시각 순으로 정렬되므로 orderByChild 없이 limitToLast만으로 최신 10건 → 인덱스 불필요, ~10건만 다운로드.
+  db.ref('entries').limitToLast(10).on('value', snap => {
+    FB._recentEntries = snap.val() || {};
+    onDataChange();
+  });
+
+  // 전체 entries — 목록·수정·현장상세에서만 필요. 첫 페인트 뒤로 미뤄 코어 데이터에 소켓을 양보.
+  FB._entriesLoaded = false;
+  window.ensureEntries = function() {
+    if (FB._entriesLoaded) return;
+    FB._entriesLoaded = true;
+    db.ref('entries').on('value', snap => {
+      FB.entries = snap.val() || {};
+      FB._entriesReady = true;
+      onDataChange();
+    });
+  };
+  setTimeout(() => window.ensureEntries(), 600);
+
   db.ref('staffData').on('value', snap => { FB.staffData = snap.val() || {}; onDataChange(); });
   db.ref('asData').on('value', snap => { FB.asData = snap.val() || {}; onDataChange(); });
   db.ref('fixedCosts').on('value', snap => { FB.fixedCosts = snap.val() || {}; onDataChange(); });
@@ -805,11 +886,17 @@ function initFirebase() {
 let _debounce = null;
 function onDataChange() {
   clearTimeout(_debounce);
-  _debounce = setTimeout(() => {
-    window.syncMockFromFirebase();
-    const page = window.currentPage || 'home';
-    if (window.navigate) window.navigate(page);
-  }, 100);
+  _debounce = setTimeout(_flushDataChange, 100);
+}
+function _flushDataChange() {
+  const fb = window.FB || {};
+  window.syncMockFromFirebase();   // 항상 실행 (가벼움) — M을 최신 데이터로 유지
+  // 부팅 중에는 코어(현장 + 공정)가 올 때까지 화면 재빌드만 미룬다 — 노드마다 빈 홈을
+  // 다시 그리는 낭비 제거. 한 번 그린 뒤로는(_bootRendered) 모든 변경을 즉시 반영.
+  if (!fb._bootRendered && !(fb._sitesReady && fb._procAllReady)) return;
+  fb._bootRendered = true;
+  const page = window.currentPage || 'home';
+  if (window.navigate) window.navigate(page);
 }
 
 function updateConnStatus() {
@@ -819,6 +906,73 @@ function updateConnStatus() {
     el.textContent = FB.connected ? '🟢 연결됨' : '🔴 오프라인';
   });
 }
+
+// ── /summary 집계 노드 ──────────────────────────────────────────────
+// 홈 화면 합계를 전체 entries 순회 없이 즉시 표시하기 위한 비정규화 캐시.
+// entries가 유일한 진실 원천 — 로드되면 sync가 entries로 다시 계산해 드리프트를 self-heal 한다.
+// 모양: summary/{ total:{revenue,cost,as}, bySite:{<encName>:{revenue,cost,as,name}}, count, rebuiltAt }
+function _entryField(type) {
+  return type === 'revenue' ? 'revenue' : type === 'as' ? 'as' : 'cost';
+}
+function _summaryUpdatePaths(entry, sign) {
+  const amt = (entry && entry.amount) || 0;
+  if (!entry || !entry.site || !amt) return {};
+  const field = _entryField(entry.type);
+  const enc = encKey(entry.site);
+  const inc = firebase.database.ServerValue.increment(sign * amt);
+  const out = {};
+  out['total/' + field] = inc;
+  out['bySite/' + enc + '/' + field] = inc;
+  out['bySite/' + enc + '/name'] = entry.site;
+  return out;
+}
+// oldE(제거)·newE(추가) 델타를 summary에 반영. 증분은 서버 측에서 합산되므로 순차 update로 충분.
+async function _applyEntrySummary(oldE, newE) {
+  try {
+    if (oldE) {
+      const p = _summaryUpdatePaths(oldE, -1);
+      if (Object.keys(p).length) await db.ref('summary').update(p);
+    }
+    if (newE) {
+      const p = _summaryUpdatePaths(newE, +1);
+      if (Object.keys(p).length) await db.ref('summary').update(p);
+    }
+    const cd = (newE ? 1 : 0) - (oldE ? 1 : 0);
+    if (cd) await db.ref('summary').update({ count: firebase.database.ServerValue.increment(cd) });
+  } catch (e) {
+    console.warn('[summary 갱신 실패 — entries 로드 시 자동 보정됨]', e && e.message);
+  }
+}
+// 전체 entries로 summary를 처음부터 다시 계산 (관리자 버튼 + 최초 자동 시드)
+window.recomputeSummary = async function(btn) {
+  const role = window.AUTH?.role?.();
+  if (btn && role !== 'boss') { alert('이 작업은 실장만 실행할 수 있어요.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '집계 계산 중…'; }
+  try {
+    // entries가 이미 메모리에 있으면 재다운로드 없이 그걸로 계산
+    const all = FB._entriesReady ? (FB.entries || {}) : ((await db.ref('entries').once('value')).val() || {});
+    const total = { revenue: 0, cost: 0, as: 0 };
+    const bySite = {};
+    let count = 0;
+    Object.values(all).forEach(e => {
+      if (!e) return;
+      count++;
+      const f = _entryField(e.type);
+      const amt = e.amount || 0;
+      total[f] += amt;
+      if (e.site) {
+        const enc = encKey(e.site);
+        (bySite[enc] || (bySite[enc] = { revenue: 0, cost: 0, as: 0, name: e.site }))[f] += amt;
+      }
+    });
+    await db.ref('summary').set({ total, bySite, count, rebuiltAt: Date.now() });
+    if (btn) alert('✅ 손익 합계를 다시 계산했어요.');
+  } catch (e) {
+    console.error('[summary 재계산 실패]', e);
+    if (btn) alert('재계산에 실패했어요. 잠시 후 다시 시도해주세요.');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '손익 합계 재계산'; }
+};
 
 // ── 거래 저장 (app.js에서 호출) ──
 window.FB_API = {
@@ -839,23 +993,40 @@ window.FB_API = {
     if (imageBase64) photos.push(imageBase64);
     if (Array.isArray(extraPhotos)) extraPhotos.forEach(p => { if (p) photos.push(p); });
     if (hasPhotoField) { rest.photoCount = photos.length; rest.hasPhoto = photos.length > 0; }
+    // 집계 델타 대상 — 금액/현장/종류가 바뀔 수 있으므로 수정 시 이전 값을 조회한다.
+    const newAgg = { type: rest.type, site: rest.site, amount: rest.amount };
     if (key) {
+      let oldAgg = null;
+      try {
+        const s = await db.ref('entries/' + key).once('value');
+        const o = s.val();
+        if (o) oldAgg = { type: o.type, site: o.site, amount: o.amount };
+      } catch (e) {}
       await db.ref('entries/' + key).update(rest);
       if (hasPhotoField) {
         if (photos.length) await db.ref('entryPhotos/' + key).set({ photos });
         else await db.ref('entryPhotos/' + key).remove();
       }
+      await _applyEntrySummary(oldAgg, newAgg);
     } else {
       const ref = db.ref('entries').push();
       await ref.set({ ...rest, createdAt: Date.now() });
       if (photos.length) await db.ref('entryPhotos/' + ref.key).set({ photos });
+      await _applyEntrySummary(null, newAgg);
     }
   },
 
   // 거래 삭제
   async deleteEntry(key) {
+    let oldAgg = null;
+    try {
+      const s = await db.ref('entries/' + key).once('value');
+      const o = s.val();
+      if (o) oldAgg = { type: o.type, site: o.site, amount: o.amount };
+    } catch (e) {}
     await db.ref('entries/' + key).remove();
     db.ref('entryPhotos/' + key).remove();
+    await _applyEntrySummary(oldAgg, null);
   },
 
   // 빠른기록 저장
@@ -888,6 +1059,9 @@ window.FB_API = {
       if (_pendPhotos.length) batch.push(db.ref('entryPhotos/' + ref.key).set({ photos: _pendPhotos }));
     });
     await Promise.all(batch);
+    for (const a of allocations) {
+      await _applyEntrySummary(null, { type: updates.type, site: a.site, amount: a.amount });
+    }
   },
 
   // AS 저장
@@ -953,6 +1127,7 @@ window.FB_API = {
 
   // 현장명 일괄 변경
   async renameSite(oldName, newName, siteKey) {
+    if (window.ensureEntries) window.ensureEntries();
     const updates = {};
     Object.entries(FB.entries).forEach(([k, e]) => {
       if (e.site === oldName) updates['entries/' + k + '/site'] = newName;
@@ -970,6 +1145,8 @@ window.FB_API = {
       if (procData) { updates['procData/' + newKey] = procData; updates['procData/' + oldKey] = null; }
     }
     if (Object.keys(updates).length > 0) await db.ref('/').update(updates);
+    // 현장명이 바뀌면 bySite 키가 달라지므로 집계를 다시 계산한다.
+    await window.recomputeSummary?.();
   },
 
   // 공정 데이터

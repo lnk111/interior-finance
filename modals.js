@@ -787,7 +787,10 @@ function modalPhase() {
 
 // 7. Transaction edit modal
 function modalTxEdit(entryKey) {
-  const entry = window.FB?.entries?.[entryKey] || {};
+  if (window.ensureEntries) window.ensureEntries();
+  const entry = window.FB?.entries?.[entryKey]
+    || window.FB?._recentEntries?.[entryKey]   // 홈 최근거래에서 바로 열 때 (전체 entries 로드 전)
+    || {};
   const typeMap = { revenue: '매출', cost: '매입', as: 'AS' };
   const curType = typeMap[entry.type] || '매입';
   const sitesOpts = (window.MOCK?.sites || []).map(s =>
@@ -988,13 +991,15 @@ async function txEditSave() {
   if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
 
   try {
-    await db.ref('entries/' + key).update({
+    // FB_API.saveEntry 경유 — /summary 집계 델타가 자동 반영됨. imageBase64/extraPhotos를
+    // 넘기지 않으므로 사진은 건드리지 않는다 (saveEntry의 hasPhotoField 분기).
+    await window.FB_API.saveEntry({
       type: typeMap[window._txEditType] || 'cost',
       site, amount, date, memo, writer,
       payStage: window._txStage || '',
       payMethod: window._txPay || '',
       process: window._txPhase || '',
-    });
+    }, key);
     closeModal();
   } catch(e) {
     alert('저장 실패');
@@ -1031,8 +1036,7 @@ async function txEditDelete() {
   if (!key) { alert('삭제할 거래를 찾지 못했어요'); return; }
   if (!(await uiConfirm('이 거래를 삭제할까요?'))) return;
   try {
-    await db.ref('entries/' + key).remove();
-    db.ref('entryPhotos/' + key).remove();
+    await window.FB_API.deleteEntry(key);   // /summary 집계 델타 포함
     closeModal();
   } catch(e) { alert('삭제 실패: ' + (e && e.message || e)); }
 }
