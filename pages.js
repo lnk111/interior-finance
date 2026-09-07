@@ -863,6 +863,7 @@ function renderSiteDetail() {
         <div style="display:flex;align-items:center;gap:8px;">
           <h1 class="h-title" style="font-weight:600;">${s.name}</h1>
           <span class="pill status-${s.status}">${s.status}</span>
+          ${AUTH.role() === 'boss' ? `<button onclick="modalSiteRename('${(s.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" aria-label="현장 이름 수정" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--hair);background:none;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>` : ''}
         </div>
         <div class="h-sub">${s.start}</div>
       </div>

@@ -1117,28 +1117,72 @@ window.FB_API = {
     await db.ref('scheduleData/' + key).remove();
   },
 
-  // 현장명 일괄 변경
+  // 현장명 일괄 변경 — 이름이 복사된 모든 노드를 한 번의 원자적 update로 교체
   async renameSite(oldName, newName, siteKey) {
+    oldName = (oldName || '').trim();
+    newName = (newName || '').trim();
+    if (!newName || oldName === newName) return;
+
+    // 전체 entries가 필요 — 로드 대기
     if (window.ensureEntries) window.ensureEntries();
+    if (!FB._entriesReady) {
+      await new Promise(r => {
+        const t0 = Date.now();
+        const iv = setInterval(() => {
+          if (FB._entriesReady || Date.now() - t0 > 15000) { clearInterval(iv); r(); }
+        }, 200);
+      });
+    }
+
+    const oldKey = encKey(oldName), newKey = encKey(newName);
     const updates = {};
-    Object.entries(FB.entries).forEach(([k, e]) => {
-      if (e.site === oldName) updates['entries/' + k + '/site'] = newName;
+
+    // siteInfo 정본
+    if (!siteKey) {
+      const found = Object.entries(FB.sites || {}).find(([, s]) => s && s.name === oldName);
+      siteKey = found ? found[0] : null;
+    }
+    if (siteKey) updates['siteInfo/' + siteKey + '/name'] = newName;
+
+    // 필드에 site 문자열이 복사된 노드들
+    Object.entries(FB.entries || {}).forEach(([k, e]) => {
+      if (e && e.site === oldName) updates['entries/' + k + '/site'] = newName;
     });
-    Object.entries(FB.pending).forEach(([k, p]) => {
+    Object.entries(FB.pending || {}).forEach(([k, p]) => {
+      if (!p) return;
       if (p.site === oldName) updates['pending/' + k + '/site'] = newName;
       (p.allocations || []).forEach((a, i) => {
-        if (a.site === oldName) updates['pending/' + k + '/allocations/' + i + '/site'] = newName;
+        if (a && a.site === oldName) updates['pending/' + k + '/allocations/' + i + '/site'] = newName;
       });
     });
-    const oldKey = encKey(oldName), newKey = encKey(newName);
+    Object.entries(FB.scheduleData || {}).forEach(([k, s]) => {
+      if (s && s.site === oldName) updates['scheduleData/' + k + '/site'] = newName;
+    });
+    Object.entries(FB.asData || {}).forEach(([k, a]) => {
+      if (a && a.site === oldName) updates['asData/' + k + '/site'] = newName;
+    });
+
+    // 인코딩 키가 바뀌면 노드 자체를 이동 (procData / photoData / renderData / summary.bySite)
     if (oldKey !== newKey) {
-      const procSnap = await db.ref('procData/' + oldKey).once('value');
-      const procData = procSnap.val();
-      if (procData) { updates['procData/' + newKey] = procData; updates['procData/' + oldKey] = null; }
+      const moveNode = async root => {
+        const snap = await db.ref(root + '/' + oldKey).once('value');
+        const val = snap.val();
+        if (val != null) { updates[root + '/' + newKey] = val; updates[root + '/' + oldKey] = null; }
+      };
+      await moveNode('procData');
+      await moveNode('photoData');
+      await moveNode('renderData');
+      const sSnap = await db.ref('summary/bySite/' + oldKey).once('value');
+      const sVal = sSnap.val();
+      if (sVal != null) {
+        updates['summary/bySite/' + newKey] = { ...sVal, name: newName };
+        updates['summary/bySite/' + oldKey] = null;
+      }
+    } else if (FB._summary && FB._summary.bySite && FB._summary.bySite[newKey]) {
+      updates['summary/bySite/' + newKey + '/name'] = newName;
     }
+
     if (Object.keys(updates).length > 0) await db.ref('/').update(updates);
-    // 현장명이 바뀌면 bySite 키가 달라지므로 집계를 다시 계산한다.
-    await window.recomputeSummary?.();
   },
 
   // 공정 데이터

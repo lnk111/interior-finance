@@ -116,6 +116,84 @@ async function saveSiteRegister() {
   }
 }
 
+// 1b. Site rename modal — 현장 상세 헤더 연필에서 진입 (실장 전용)
+function modalSiteRename(oldName) {
+  oldName = oldName || '';
+  const enc = s => s.replace(/[.#$/ \[\]]/g, '_');
+  const esc = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  if (window.ensureEntries) window.ensureEntries();
+  if (window.ensurePhotoData) window.ensurePhotoData();
+
+  const F = window.FB || {};
+  const txN = Object.values(F.entries || {}).filter(e => e && e.site === oldName).length;
+  const schN = Object.values(F.scheduleData || {}).filter(s => s && s.site === oldName).length;
+  const asN = Object.values(F.asData || {}).filter(a => a && a.site === oldName).length;
+  const procN = Object.keys((F._procAll || {})[enc(oldName)] || {}).length;
+  let photoN = 0;
+  Object.values((F.photoData || {})[enc(oldName)] || {}).forEach(g => { photoN += ((g && g.photos) || []).length; });
+
+  const parts = [];
+  if (txN) parts.push(`거래 ${txN}건`);
+  if (photoN) parts.push(`사진 ${photoN}장`);
+  if (schN) parts.push(`일정 ${schN}개`);
+  if (asN) parts.push(`AS ${asN}건`);
+  if (procN) parts.push(`공정 ${procN}개`);
+  const impact = parts.length ? parts.join(' · ') + '가 함께 바뀝니다.' : '연결된 기록이 없어 이름만 바뀝니다.';
+
+  window._siteRenameOld = oldName;
+  return openModal(`
+    ${modalHeader('현장 이름 수정', '이 이름이 쓰인 모든 기록이 함께 바뀝니다')}
+    <div class="modal-body">
+      <div class="field">
+        <label class="field-label">현장 이름 <span class="req">*</span></label>
+        <input class="input" id="site-rename-input" value="${esc(oldName)}" autocomplete="off">
+      </div>
+      <div id="site-rename-err" style="color:var(--warn);font-size:12.5px;margin:-2px 0 0;min-height:1.2em;"></div>
+      <div style="font-size:12.5px;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:11px 12px;line-height:1.6;">${impact}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-modal-close onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveSiteRename(this)">변경</button>
+    </div>
+  `);
+}
+
+async function saveSiteRename(btn) {
+  const oldName = window._siteRenameOld || '';
+  const errEl = document.getElementById('site-rename-err');
+  const setErr = m => { if (errEl) errEl.textContent = m || ''; };
+  const enc = s => s.replace(/[.#$/ \[\]]/g, '_');
+  const newName = (document.getElementById('site-rename-input')?.value || '').trim();
+  setErr('');
+
+  if (!newName) { setErr('이름을 입력하세요.'); return; }
+  if (newName === oldName) { closeModal(); return; }
+
+  const siteEntries = Object.entries(window.FB?.sites || {});
+  if (siteEntries.some(([, s]) => s && s.name === newName)) { setErr('이미 있는 현장 이름이에요.'); return; }
+  const collide = siteEntries.find(([, s]) => s && s.name !== oldName && enc(s.name) === enc(newName));
+  if (collide) { setErr(`'${collide[1].name}'와 저장 키가 겹쳐요. 다른 이름을 써주세요.`); return; }
+
+  const found = siteEntries.find(([, s]) => s && s.name === oldName);
+  const siteKey = found ? found[0] : null;
+
+  if (btn) { btn.disabled = true; btn.textContent = '변경 중…'; }
+  try {
+    await window.FB_API.renameSite(oldName, newName, siteKey);
+    if (window._siteDetailName === oldName) window._siteDetailName = newName;
+    if (window.MOCK && Array.isArray(window.MOCK.sites)) {
+      window.MOCK.sites.forEach(s => { if (s && s.name === oldName) s.name = newName; });
+    }
+    closeModal();
+    if (window.openSiteDetail) window.openSiteDetail(newName);
+    else if (window.navigate) window.navigate('siteDetail');
+  } catch (e) {
+    console.error('[현장 이름 변경 실패]', e);
+    setErr('변경에 실패했어요. 잠시 후 다시 시도해주세요.');
+    if (btn) { btn.disabled = false; btn.textContent = '변경'; }
+  }
+}
+
 // 2. Schedule add modal
 function modalSchedule(editKey = null, prefillDate = null) {
   const today = toToday();
