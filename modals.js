@@ -810,9 +810,7 @@ function modalTxEdit(entryKey) {
   const escP = esc(customProc);
   const escMemo = esc(memoInit);
   const stages = ['계약금','착수금','중도금','잔금'];
-  const pays = ['현금','계좌이체','신용카드'];
   const stageIcons = {'계약금':'📋','착수금':'🔨','중도금':'💼','잔금':'✅'};
-  const payIcons = {'현금':'💵','계좌이체':'🏦','신용카드':'💳'};
 
   window._txEditType = curType;
   window._txEditKey = entryKey;
@@ -868,12 +866,6 @@ function modalTxEdit(entryKey) {
               <div class="chip-group">
                 ${stages.map(s=>`<button type="button" class="chip ${entry.payStage===s?'is-active':''}" onclick="txEditChip(this,'stage','${s}')">${s}</button>`).join('')}
               </div>
-            </div>
-          </div>
-          <div class="field">
-            <label class="field-label">결제 방법</label>
-            <div class="chip-group">
-              ${pays.map(p=>`<button type="button" class="chip ${entry.payMethod===p?'is-active':''}" onclick="txEditChip(this,'pay','${p}')">${p}</button>`).join('')}
             </div>
           </div>
           <div id="txe-phase-wrap" style="${curType==='매입'||curType==='AS'?'':'display:none;'}">
