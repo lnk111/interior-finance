@@ -25,6 +25,47 @@ let _calSelected = null;   // 선택한 날짜 (null이면 오늘)
 let _calCache = null;
 let _calCacheKey = '';
 
+// 대한민국 공휴일 (관공서의 공휴일에 관한 규정 · 네이버 달력 기준).
+// 음력 기반(설날·부처님오신날·추석)과 대체공휴일은 연도별로 직접 명시. 2028년 이후는 추가 필요.
+const KR_HOLIDAYS = {
+  // 2025
+  '2025-01-01': '신정',
+  '2025-01-27': '임시공휴일', '2025-01-28': '설날 연휴', '2025-01-29': '설날', '2025-01-30': '설날 연휴',
+  '2025-03-01': '삼일절', '2025-03-03': '대체공휴일(삼일절)',
+  '2025-05-05': '어린이날·부처님오신날', '2025-05-06': '대체공휴일',
+  '2025-06-06': '현충일',
+  '2025-08-15': '광복절',
+  '2025-10-03': '개천절',
+  '2025-10-05': '추석 연휴', '2025-10-06': '추석', '2025-10-07': '추석 연휴', '2025-10-08': '대체공휴일(추석)',
+  '2025-10-09': '한글날',
+  '2025-12-25': '성탄절',
+  // 2026
+  '2026-01-01': '신정',
+  '2026-02-16': '설날 연휴', '2026-02-17': '설날', '2026-02-18': '설날 연휴',
+  '2026-03-01': '삼일절', '2026-03-02': '대체공휴일(삼일절)',
+  '2026-05-05': '어린이날',
+  '2026-05-24': '부처님오신날', '2026-05-25': '대체공휴일(부처님오신날)',
+  '2026-06-06': '현충일',
+  '2026-08-15': '광복절', '2026-08-17': '대체공휴일(광복절)',
+  '2026-09-24': '추석 연휴', '2026-09-25': '추석', '2026-09-26': '추석 연휴', '2026-09-28': '대체공휴일(추석)',
+  '2026-10-03': '개천절', '2026-10-05': '대체공휴일(개천절)',
+  '2026-10-09': '한글날',
+  '2026-12-25': '성탄절',
+  // 2027
+  '2027-01-01': '신정',
+  '2027-02-06': '설날 연휴', '2027-02-07': '설날', '2027-02-08': '설날 연휴', '2027-02-09': '대체공휴일(설날)',
+  '2027-03-01': '삼일절',
+  '2027-05-05': '어린이날',
+  '2027-05-13': '부처님오신날',
+  '2027-06-06': '현충일',
+  '2027-08-15': '광복절', '2027-08-16': '대체공휴일(광복절)',
+  '2027-09-14': '추석 연휴', '2027-09-15': '추석', '2027-09-16': '추석 연휴',
+  '2027-10-03': '개천절', '2027-10-04': '대체공휴일(개천절)',
+  '2027-10-09': '한글날', '2027-10-11': '대체공휴일(한글날)',
+  '2027-12-25': '성탄절', '2027-12-27': '대체공휴일(성탄절)',
+};
+function krHoliday(dateStr) { return KR_HOLIDAYS[dateStr] || ''; }
+
 function renderCalendar() {
   if (window.ensureProcAll) window.ensureProcAll();
   const cacheKey = `${_calYear}-${_calMonth}-${_calSelected||''}-${Object.keys(window.FB?.scheduleData||{}).length}-${Object.keys(window.FB?._procAll||{}).length}`;
@@ -135,7 +176,8 @@ function _buildCalendarHtml() {
     // 이벤트는 현장색 점으로 (최대 4개) — 탭하면 아래 "선택한 날"이 갱신됨
     const dots = ev.slice(0, 4).map(e => `<span class="cal-dot" style="background:${e.color || 'var(--faint)'};"></span>`).join('');
     const isSel = dateStr === (_calSelected || todayStr);
-    cells.push(`<div class="cal-day ${isToday?'today':''} ${isSel?'cal-selected':''} ${col===0?'sun':col===6?'sat':''}" data-date="${dateStr}" onclick="calSelectDay('${dateStr}')">
+    const hol = krHoliday(dateStr);
+    cells.push(`<div class="cal-day ${isToday?'today':''} ${isSel?'cal-selected':''} ${col===0?'sun':col===6?'sat':''} ${hol?'holiday':''}" data-date="${dateStr}" onclick="calSelectDay('${dateStr}')"${hol?` title="${hol}"`:''}>
       <span class="cal-num">${d}</span>
       <span class="cal-dots">${dots}</span>
     </div>`);
@@ -247,9 +289,11 @@ function _calUpcomingSection() {
   const selD = new Date(sel + 'T00:00:00');
   const selLabel = `${selD.getMonth()+1}월 ${selD.getDate()}일 (${CAL_WD[selD.getDay()]})`;
   const isToday = sel === todayStr;
+  const selHol = krHoliday(sel);
   const selHead = `<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;">
       <span style="font-size:13px;font-weight:700;color:var(--ink);">${selLabel}</span>
       ${isToday ? '<span style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:9px;">오늘</span>' : ''}
+      ${selHol ? `<span style="font-size:11px;font-weight:700;color:#C4514B;background:rgba(196,81,75,0.12);padding:2px 7px;border-radius:9px;">${selHol}</span>` : ''}
     </div>`;
   const week = [];
   for (let j = 1; j <= 7; j++) { const d = new Date(selD); d.setDate(d.getDate() + j); week.push(d); }
@@ -258,7 +302,9 @@ function _calUpcomingSection() {
   const weekBody = week.map(d => {
     const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const isT = ds === todayStr;
-    return `<div style="margin-top:14px;"><span style="font-size:13px;font-weight:700;color:${isT?'var(--accent)':'var(--ink)'};">${f(d)} (${CAL_WD[d.getDay()]})</span></div>${_calDayRows(ds)}`;
+    const hol = krHoliday(ds);
+    const nameColor = hol ? '#C4514B' : (isT ? 'var(--accent)' : 'var(--ink)');
+    return `<div style="margin-top:14px;"><span style="font-size:13px;font-weight:700;color:${nameColor};">${f(d)} (${CAL_WD[d.getDay()]})</span>${hol ? ` <span style="font-size:11px;font-weight:700;color:#C4514B;">· ${hol}</span>` : ''}</div>${_calDayRows(ds)}`;
   }).join('');
   return `
     <div style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:4px;">선택한 날</div>
