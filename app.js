@@ -664,7 +664,8 @@ function inputSiteRowsNew(q) {
     return (all.length ? label(`검색 결과 ${all.length}건`) + all.map(row).join('') : '') + directBtn;
   }
   const gongsa = sites.filter(s => s.status === '공사중');
-  const recent = sites.filter(s => s.status !== '공사중');
+  const recent = sites.filter(s => s.status !== '공사중')
+    .sort((a, b) => (a.status === '계약완료' ? 0 : 1) - (b.status === '계약완료' ? 0 : 1));
   let html = '';
   if (gongsa.length) html += label('공사중 현장') + gongsa.map(row).join('');
   if (recent.length) html += label('최근 현장') + recent.map(row).join('');
