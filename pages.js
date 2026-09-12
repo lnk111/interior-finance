@@ -637,7 +637,7 @@ function renderEntryList(siteName, grouped) {
         ${sub ? `<div style="font-size:11px;color:var(--faint);margin-top:1px;">${sub}</div>` : ''}
       </div>`;
     return `
-      <div style="background:var(--surface);border:1.5px solid var(--hair);border-radius:14px;padding:14px;margin-bottom:12px;">
+      <div style="padding:16px 2px 2px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="display:flex;align-items:center;gap:7px;font-size:15px;font-weight:800;color:var(--ink);">
             <span style="width:9px;height:9px;border-radius:3px;background:var(--accent);flex-shrink:0;"></span>${groupName}
@@ -646,7 +646,9 @@ function renderEntryList(siteName, grouped) {
         </div>
         <div style="margin-top:6px;">${g.entries.map(logRow).join('')}</div>
       </div>`;
-  }).join('');
+  }).map((html, i) => i === 0 ? html.replace('padding:16px 2px 2px;', 'padding:2px 2px 8px;')
+      : `<div style="height:8px;background:var(--surface-2);margin:0 calc(-1 * var(--pad));"></div>${html}`
+  ).join('');
 }
 
 async function onRenderPick(input) {
