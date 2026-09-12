@@ -254,7 +254,6 @@ input, textarea, select { font-family: inherit; }
 /* Hero */
 .hero {
   background: var(--surface);
-  border: 1px solid var(--hair);
   border-radius: 18px;
   padding: 22px;
   margin-bottom: 14px;
@@ -275,7 +274,7 @@ input, textarea, select { font-family: inherit; }
 
 /* Stat row */
 .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.stat { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+.stat { background: var(--surface); border-radius: 14px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: 0.02em; }
 .stat-value { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
 .stat-delta { font-size: 12px; margin-top: 2px; font-weight: 600; }
@@ -286,7 +285,6 @@ input, textarea, select { font-family: inherit; }
 /* Alert */
 .alert {
   background: var(--warn-soft);
-  border: 1px solid #E8D6C0;
   border-radius: 12px;
   padding: 14px;
   margin-bottom: 12px;
