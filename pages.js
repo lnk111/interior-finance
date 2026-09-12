@@ -569,9 +569,10 @@ function renderEntryList(siteName, grouped) {
   function entryRow([key, e]) {
     const cls = e.type==='revenue'?'pill-accent':e.type==='as'?'pill-pin':'pill-warn';
     const label = e.type==='revenue'?'매출':e.type==='as'?'AS':'매입';
-    const isRev = e.type==='revenue';                                  // 매출=입금(양수), 매입·AS=지출(음수)
+    const isRev = e.type==='revenue';                                  // 매출=입금(양수), AS=지출(음수), 매입=부호 없음
     const amtColor = isRev ? '#2563EB' : 'var(--ink)';                 // 양수=파랑, 음수=흑백
-    const amtText = (isRev ? '' : '-') + (e.amount||0).toLocaleString('ko-KR') + '원';
+    const sign = isRev ? '' : e.type==='as' ? '-' : '';
+    const amtText = sign + (e.amount||0).toLocaleString('ko-KR') + '원';
     const proc = e.process || e.payStage || '기타';
     const ava = proc.replace(/\s/g,'').slice(0,2) || '—';             // 공정 앞 2글자 아바타 (현장 상세라 현장명은 공통)
     const date = e.date ? e.date.slice(5).replace('-', '/') : '';
@@ -591,7 +592,7 @@ function renderEntryList(siteName, grouped) {
   function logRow([key, e]) {
     const isRev = e.type==='revenue';
     const isAS = e.type==='as';
-    const sign = isRev ? '' : '−';
+    const sign = isRev ? '' : isAS ? '−' : '';                         // 매입=부호 없음
     const amtStyle = isRev ? 'color:#2563EB;' : 'color:var(--ink);';
     const date = e.date ? e.date.slice(5).replace('-', '.') : '';
     const tag = isRev
@@ -622,7 +623,8 @@ function renderEntryList(siteName, grouped) {
 
   return Object.entries(groups).map(([groupName, g]) => {
     const totalColor = g.total >= 0 ? 'var(--accent)' : 'var(--warn)';
-    const totalSign = g.total >= 0 ? '' : '−';
+    const allCost = g.entries.every(([, e]) => e.type === 'cost');     // 매입만 있는 공정은 부호 없이 표시
+    const totalSign = allCost ? '' : (g.total >= 0 ? '' : '−');
     // 작업 기간
     const dates = g.entries.map(([, e]) => e.date).filter(Boolean).sort();
     let periodStr = '—', daysStr = '';
