@@ -655,6 +655,7 @@ function inputSiteRowsNew(q) {
       </span>
     </button>`;
   const label = t => `<div style="font-size:15px;font-weight:600;color:var(--ink);margin:16px 2px 2px;">${t}</div>`;
+  const subLabel = t => `<div style="font-size:12px;font-weight:600;color:var(--muted);padding:12px 2px 4px;border-top:1px solid var(--hair);margin-top:2px;">${t}</div>`;
   if (query) {
     const all = sites.filter(s => String(s.name).replace(/\s/g,'').indexOf(query) > -1);
     const directBtn = `<button data-iact="site-direct" style="display:flex;align-items:center;gap:14px;width:100%;background:none;border:0;padding:12px 2px;cursor:pointer;font-family:inherit;text-align:left;">
@@ -668,7 +669,15 @@ function inputSiteRowsNew(q) {
     .sort((a, b) => (a.status === '계약완료' ? 0 : 1) - (b.status === '계약완료' ? 0 : 1));
   let html = '';
   if (gongsa.length) html += label('공사중 현장') + gongsa.map(row).join('');
-  if (recent.length) html += label('최근 현장') + recent.map(row).join('');
+  if (recent.length) {
+    html += label('최근 현장');
+    let prevStatus = null;
+    recent.forEach(s => {
+      if (prevStatus !== null && s.status !== prevStatus) html += subLabel(s.status || '');
+      html += row(s);
+      prevStatus = s.status;
+    });
+  }
   return html || `<div style="padding:20px 2px;color:var(--muted);font-size:14px;">등록된 현장이 없어요 · 위 입력창에 이름을 입력하세요</div>`;
 }
 
