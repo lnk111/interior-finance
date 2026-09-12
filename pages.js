@@ -207,7 +207,7 @@ function _buildCalendarHtml() {
       <div id="cal-upcoming">${_calUpcomingSection()}</div>
       <div style="height:40px;"></div>
     </div>
-    <button data-modal="schedule" class="site-fab">일정 추가</button>`;
+    <button onclick="modalSchedule(null, _calSelected || toToday())" class="site-fab">일정 추가</button>`;
 }
 
 // ── 달력: 선택한 날 + 다음날 7일 ──

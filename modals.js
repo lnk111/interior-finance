@@ -236,7 +236,7 @@ function modalSchedule(editKey = null, prefillDate = null) {
             </div>
             <div class="field">
               <label class="field-label">종료일</label>
-              <input class="input" type="date" id="sched-enddate" value="${existing.endDate || ''}">
+              <input class="input" type="date" id="sched-enddate" value="${existing.endDate || (!isEdit ? (prefillDate || '') : '')}">
             </div>
           </div>
           <div class="field">
