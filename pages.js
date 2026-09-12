@@ -647,7 +647,7 @@ function renderEntryList(siteName, grouped) {
         <div style="margin-top:6px;">${g.entries.map(logRow).join('')}</div>
       </div>`;
   }).map((html, i) => i === 0 ? html.replace('padding:16px 2px 2px;', 'padding:2px 2px 8px;')
-      : `<div style="height:8px;background:var(--surface-2);margin:0 calc(-1 * var(--pad));"></div>${html}`
+      : `<div style="height:1px;background:var(--hair);margin:8px 0 0;"></div>${html}`
   ).join('');
 }
 
