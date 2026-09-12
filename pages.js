@@ -544,21 +544,6 @@ function renderTax() {
 }
 
 // ===== Site Detail =====
-let _entryGrouped = true;
-
-function toggleEntryGrouping() {
-  _entryGrouped = !_entryGrouped;
-  const btn = document.getElementById('group-toggle-btn');
-  if (btn) {
-    btn.textContent = _entryGrouped ? '공정별 묶기 ON' : '공정별 묶기 OFF';
-    btn.style.background = _entryGrouped ? 'var(--accent)' : 'var(--surface-2)';
-    btn.style.color = _entryGrouped ? '#fff' : 'var(--ink)';
-  }
-  const siteName = window.MOCK?.sites?.[0]?.name || '';
-  const wrap = document.getElementById('entry-list-wrap');
-  if (wrap) wrap.innerHTML = renderEntryList(siteName, _entryGrouped);
-}
-
 function renderEntryList(siteName, grouped) {
   const entries = Object.entries(window.FB?.entries || {})
     .filter(([, e]) => e.site === siteName)
@@ -1110,12 +1095,9 @@ function _sdExecTab() {
       </div>
       <div style="height:6px;background:#F1F1F5;margin:24px calc(-1 * var(--pad)) 18px;"></div>
       <div class="section-label">거래내역
-        <span style="display:flex;gap:6px;align-items:center;">
-          <button onclick="toggleEntryGrouping()" id="group-toggle-btn" style="background:${_entryGrouped?'var(--accent)':'var(--surface-2)'};color:${_entryGrouped?'#fff':'var(--ink)'};border:none;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">공정별 묶기 ${_entryGrouped?'ON':'OFF'}</button>
-          <span class="more" onclick="navigate('input')" style="cursor:pointer;">+ 입력</span>
-        </span>
+        <span class="more" onclick="navigate('input')" style="cursor:pointer;">+ 입력</span>
       </div>
-      <div id="entry-list-wrap">${renderEntryList(s.name, _entryGrouped)}</div>
+      <div id="entry-list-wrap">${renderEntryList(s.name, true)}</div>
       <button class="btn btn-ghost btn-block" onclick="modalAS(null)" style="margin-top:14px;">AS 등록</button>`;
 }
 
