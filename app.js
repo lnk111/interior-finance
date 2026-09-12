@@ -281,11 +281,11 @@ function renderHome() {
         </div>
       </div>` : ''}
       <div class="stat-row">
-        <div class="stat"><div class="stat-label">총 매출</div><div class="stat-value num">${fmtSlim(t.revenue)}</div><div class="stat-delta flat">고객에게 받은 금액</div></div>
-        <div class="stat"><div class="stat-label">총 매입</div><div class="stat-value num">${fmtSlim(t.cost)}</div><div class="stat-delta flat">업체에 지급한 금액</div></div>
+        <div class="stat"><div class="stat-label">총 매출</div><div class="stat-value num" style="color:#DC2626;">${fmtSlim(t.revenue)}</div><div class="stat-delta flat">고객에게 받은 금액</div></div>
+        <div class="stat"><div class="stat-label">총 매입</div><div class="stat-value num" style="color:#2563EB;">${fmtSlim(t.cost)}</div><div class="stat-delta flat">업체에 지급한 금액</div></div>
       </div>
       <div class="stat-row">
-        <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:var(--ink);">${fmtSigned(t.siteProfit)}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
+        <div class="stat"><div class="stat-label">현장 순이익</div><div class="stat-value num" style="color:${t.siteProfit>0?'#DC2626':t.siteProfit<0?'#2563EB':'var(--ink)'};">${fmtSlim(Math.abs(t.siteProfit))}</div><div class="stat-delta flat">매출 − 매입 − AS</div></div>
         <div class="stat"><div class="stat-label">이익률</div><div class="stat-value num">${t.margin}%</div><div class="stat-delta flat">목표 ${t.targetMargin}%</div></div>
       </div>`;
 
