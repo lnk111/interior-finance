@@ -952,11 +952,13 @@ function modalTxEdit(entryKey) {
           <div id="txe-phase-wrap" style="${curType==='매입'||curType==='AS'?'':'display:none;'}">
             <div class="field">
               <label class="field-label">공정</label>
-              <div class="chip-group" style="flex-wrap:wrap;">
+              <div class="chip-group" style="flex-wrap:wrap;" id="txe-phase-chips">
                 ${phases.map(p=>`<button type="button" class="chip ${entry.process===p?'is-active':''}" onclick="txEditChip(this,'phase','${p}')">${p}</button>`).join('')}
                 ${mealOpt ? `<button type="button" class="chip ${entry.process===mealOpt?'is-active':''}" onclick="txEditChip(this,'phase','${mealOpt}')">${mealOpt}</button>` : ''}
                 ${showCustomChip ? `<button type="button" class="chip is-active" data-v="${escP}" onclick="txEditChip(this,'phase',this.dataset.v)">${escP}</button>` : ''}
+                <button type="button" class="chip" id="txe-phase-custom-btn" style="background:var(--surface-2);border-style:dashed;" onclick="txEditShowCustomPhase()">＋ 직접입력</button>
               </div>
+              <input class="input" id="txe-phase-custom-input" placeholder="공정명을 입력하세요" style="display:none;margin-top:8px;" oninput="txEditCustomPhaseInput(this.value)">
             </div>
           </div>
           <div class="field">
@@ -1051,6 +1053,19 @@ function txEditChip(el, kind, val) {
   if (kind === 'stage') window._txStage = val;
   if (kind === 'pay') window._txPay = val;
   if (kind === 'phase') window._txPhase = val;
+}
+
+function txEditShowCustomPhase() {
+  const btn = document.getElementById('txe-phase-custom-btn');
+  const input = document.getElementById('txe-phase-custom-input');
+  if (btn) btn.style.display = 'none';
+  if (input) { input.style.display = ''; input.focus(); }
+}
+
+function txEditCustomPhaseInput(val) {
+  const group = document.getElementById('txe-phase-chips');
+  if (group) group.querySelectorAll('.chip').forEach(b => b.classList.remove('is-active'));
+  window._txPhase = val.trim();
 }
 
 async function txEditSave() {
