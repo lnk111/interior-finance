@@ -1461,14 +1461,16 @@ async function savePending(key) {
 
 // 랜딩(로딩) 화면 숨김 — 최소 1초 노출 + '오늘의 브리핑' 데이터(공정) 로드 완료 후 페이드아웃.
 // force=true(안전장치·비로그인)면 데이터 대기 없이 강제 종료. 여러 번 호출해도 1회만 실행.
-function hideLanding(force) {
+// immediate=true(캐시로 이미 화면을 그린 경우)면 최소 노출 시간 없이 바로 닫는다 —
+// "로딩"을 아예 못 느끼게 하는 게 목적이라, 이때는 브랜드 노출용 1초 유지가 방해만 됨.
+function hideLanding(force, immediate) {
   const ls = document.getElementById('loading-screen');
   if (!ls || ls.__hidden) return;
   const fb = window.FB || {};
   // 오늘의 브리핑 = 현장 목록(siteInfo) + 공정 데이터(procData) 필요. 둘 다 오기 전엔 유지.
   if (!force && !(fb._sitesReady && fb._procAllReady)) return;
   ls.__hidden = true;
-  const wait = Math.max(0, 1000 - performance.now());
+  const wait = immediate ? 0 : Math.max(0, 1000 - performance.now());
   setTimeout(function() {
     ls.style.opacity = '0';
     setTimeout(function() { ls.style.display = 'none'; }, 300);

@@ -422,22 +422,12 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     briefing.push({ kind: 'task', icon: '✅', label: '오늘은 처리할 일이 없어요', meta: '좋은 하루 되세요!', color: 'accent' });
   }
   M.briefing = briefing;
-  // 즉시-페인트 캐시 저장 (두 번째 접속부터 0.1초 안에 화면 표시)
-  // ⚠️ base64 사진 데이터를 빼고 저장 — localStorage 5MB 한도 안 넘기게
+  // 즉시-페인트 캐시 저장 — 홈에 보이는 전부(합계·브리핑·최근거래·진행률용 공정)를 담아
+  // 재접속 시 네트워크 없이 바로 그릴 수 있게 한다. 같은 모양의 객체를 반환해서
+  // 호출부(_flushDataChange)가 "이전과 달라졌는지" 비교(조용한 갱신)에도 재사용한다.
+  const snapshot = _buildDashboardSnapshot(M);
   try {
-    // tips에서 무거운 사진 필드 제거 (메타데이터만 캐시)
-    const lightTips = (M.tips || []).map(t => {
-      const { problemPhotos, solutionPhotos, ...rest } = t;
-      return rest;
-    });
-    const snapshot = {
-      sites: M.sites, totals: M.totals, tax: M.tax, briefing: M.briefing,
-      unsorted: M.unsorted, staff: M.staff, inputters: M.inputters,
-      tips: lightTips,
-      upcomingSites: M.upcomingSites,
-      _cachedAt: Date.now(),
-    };
-    const serialized = JSON.stringify(snapshot);
+    const serialized = JSON.stringify({ ...snapshot, _cachedAt: Date.now() });
     localStorage.setItem('mf_snapshot', serialized);
     // 디버깅용 (콘솔에서 캐시 크기 확인 가능)
     if (window._cacheDebug) console.log(`[캐시 저장] ${(serialized.length / 1024).toFixed(1)}KB`);
@@ -446,6 +436,37 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
     console.warn('[캐시 저장 실패]', e.message, '— 다음 접속에 즉시 페인트가 작동 안 할 수 있어요');
     try { localStorage.removeItem('mf_snapshot'); } catch(e2) {}
   }
+  return snapshot;
+}
+
+// 로컬 캐시(mf_snapshot)와 "변경 없음" 비교에 쓰는 홈 대시보드 스냅샷.
+// base64 사진 등 무거운 필드는 빼고, 진행률 카드에 필요한 procData는 공사중 현장 것만 최소 필드로 추린다.
+function _buildDashboardSnapshot(M) {
+  // tips에서 무거운 사진 필드 제거 (메타데이터만 캐시)
+  const lightTips = (M.tips || []).map(t => {
+    const { problemPhotos, solutionPhotos, ...rest } = t;
+    return rest;
+  });
+  const activeKeys = new Set(
+    (M.sites || []).filter(s => s.status === '공사중').map(s => encKey(s.name || ''))
+  );
+  const procAllTrim = {};
+  Object.entries(FB._procAll || {}).forEach(([key, pd]) => {
+    if (!activeKeys.has(key)) return;
+    const trimmed = {};
+    Object.entries(pd || {}).forEach(([id, p]) => {
+      trimmed[id] = { name: p?.name || '', startDate: p?.startDate || null, doneDate: p?.doneDate || null, order: p?.order || 0 };
+    });
+    procAllTrim[key] = trimmed;
+  });
+  return {
+    sites: M.sites, totals: M.totals, tax: M.tax, briefing: M.briefing,
+    unsorted: M.unsorted, staff: M.staff, inputters: M.inputters,
+    tips: lightTips,
+    upcomingSites: M.upcomingSites,
+    recent: M.recent,
+    _procAllTrim: procAllTrim,
+  };
 }
 
 function formatWhen(dateStr) {
@@ -878,11 +899,25 @@ function onDataChange() {
 }
 function _flushDataChange() {
   const fb = window.FB || {};
-  window.syncMockFromFirebase();   // 항상 실행 (가벼움) — M을 최신 데이터로 유지
-  // 부팅 중에는 코어(현장 + 공정)가 올 때까지 화면 재빌드만 미룬다 — 노드마다 빈 홈을
-  // 다시 그리는 낭비 제거. 한 번 그린 뒤로는(_bootRendered) 모든 변경을 즉시 반영.
-  if (!fb._bootRendered && !(fb._sitesReady && fb._procAllReady)) return;
+  const coreReady = fb._sitesReady && fb._procAllReady;
+
+  if (!fb._bootRendered) {
+    // 캐시도 없어 아직 아무것도 못 그린 상태 — 코어(현장 + 공정) 도착 전엔 대기.
+    if (!coreReady) return;
+  } else if (fb._cacheBootPending) {
+    // 캐시로 먼저 그려둔 상태. entries까지 실제로 다 도착하기 전엔 재계산·재렌더를 미룬다 —
+    // 안 그러면 entries가 아직 비어있는 partial 상태로 계산해 화면이 잠깐 비었다가 채워지는
+    // "깜빡임"이 생긴다. 캐시 화면을 그대로 둔 채 조용히 기다렸다가 한 번에 맞춰 넣는다.
+    if (!(coreReady && fb._entriesReady)) return;
+    fb._cacheBootPending = false;
+  }
+
+  const snapshot = window.syncMockFromFirebase();   // 항상 실행 (가벼움) — M을 최신 데이터로 유지
   fb._bootRendered = true;
+  // 조용한 갱신: 지금 화면(캐시 또는 직전 렌더)과 대시보드 내용이 같으면 다시 그리지 않는다.
+  const sig = snapshot ? JSON.stringify(snapshot) : null;
+  if (sig !== null && sig === fb._lastRenderSig) return;
+  fb._lastRenderSig = sig;
   const page = window.currentPage || 'home';
   if (window.navigate) window.navigate(page);
 }
@@ -1306,19 +1341,29 @@ window.bootAuth = function() {
   if (result) {
     try {
       const snap = JSON.parse(localStorage.getItem('mf_snapshot') || 'null');
-      // 24시간 지난 캐시는 무시 (혼란 방지)
-      const MAX_CACHE_AGE = 24 * 60 * 60 * 1000;
-      const isFresh = snap && snap._cachedAt && (Date.now() - snap._cachedAt < MAX_CACHE_AGE);
-      if (isFresh && window.MOCK) {
-        Object.assign(window.MOCK, snap);
+      // 구글 캘린더처럼: 캐시가 있으면 며칠 지났어도 일단 그대로 보여주고 뒤에서 조용히 갱신한다.
+      // 앱 버전이 바뀌어 스키마가 어긋난 옛 캐시만 걸러내는 아주 넉넉한 안전판(30일).
+      const MAX_CACHE_AGE = 30 * 24 * 60 * 60 * 1000;
+      const isUsable = snap && snap._cachedAt && (Date.now() - snap._cachedAt < MAX_CACHE_AGE);
+      if (isUsable && window.MOCK) {
+        const cachedAt = snap._cachedAt;
+        delete snap._cachedAt;
+        const { _procAllTrim, ...mockFields } = snap;
+        Object.assign(window.MOCK, mockFields);
+        if (_procAllTrim) window.FB._procAll = Object.assign({}, window.FB._procAll, _procAllTrim);
+        // 이후 실제 데이터가 캐시와 똑같으면 재렌더를 건너뛰도록(조용한 갱신) 시그니처를 미리 심어둔다.
+        // entries까지 실제로 다 도착하기 전엔 _flushDataChange가 재계산을 보류한다(_cacheBootPending).
+        window.FB._bootRendered = true;
+        window.FB._cacheBootPending = true;
+        window.FB._lastRenderSig = JSON.stringify(snap);
         if (window.navigate) window.navigate(window.currentPage || 'home');
-        if (window.hideLanding) window.hideLanding();
+        if (window.hideLanding) window.hideLanding(true, true);   // 캐시로 이미 그렸으니 로딩 화면은 즉시(대기 없이) 종료
         if (window._cacheDebug) {
-          const ageMin = Math.round((Date.now() - snap._cachedAt) / 60000);
+          const ageMin = Math.round((Date.now() - cachedAt) / 60000);
           console.log(`[캐시 복원] ${ageMin}분 전 데이터로 즉시 표시`);
         }
-      } else if (snap && !isFresh) {
-        // 오래된 캐시는 삭제
+      } else if (snap && !isUsable) {
+        // 너무 오래돼 스키마가 다를 수 있는 캐시만 삭제
         try { localStorage.removeItem('mf_snapshot'); } catch(e2) {}
       }
     } catch (e) {
