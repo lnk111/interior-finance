@@ -108,55 +108,77 @@ function updateHomeProcDots(track) {
   for (let k = 0; k < n; k++) dots[k].style.background = k === idx ? 'var(--ink)' : '#D1D6DB';
 }
 
-// 공사중 현장별 [오늘 공정 » 내일 공정] 카드 — 좌우 스와이프 + 하단 점 인디케이터
+// 홈 카드용 현장 색상 — 달력 탭(_calSiteColorMap)과 같은 규칙(등록순 12색 순환)이지만
+// M.sites(캐시되는 처리된 목록)로 계산해서 캐시 즉시 표시 때도 라이브 FB.sites 없이 바로 색이 나온다.
+const HOME_SITE_PALETTE = ['#2563EB','#DC2626','#16A34A','#EA580C','#9333EA','#CA8A04','#0891B2','#DB2777','#65A30D','#7C3AED','#D97706','#059669'];
+function _homeSiteColorMap() {
+  const map = new Map();
+  (M.sites || []).slice()
+    .sort((a, b) => (a._createdAt || 0) - (b._createdAt || 0))
+    .forEach(s => { if (!map.has(s.name)) map.set(s.name, HOME_SITE_PALETTE[map.size % HOME_SITE_PALETTE.length]); });
+  return map;
+}
+
+// 오늘 해야 하는 항목(달력 '선택한 날'과 같은 기준) 카드 — 하나씩 좌우 스와이프.
+// 공정 하나·일정 하나가 각각 카드 1장. M.sites/FB._procAll/FB.scheduleData는 모두 캐시
+// 복원 대상이라(firebase.js _buildDashboardSnapshot) 캐시 즉시 표시 때도 바로 채워진다.
 function renderHomeProgressHtml() {
-  const activeSites = (M.sites || []).filter(s => s.status === '공사중');
   const cardShadow = '0 2px 8px rgba(0,0,0,0.05)';
-  if (!activeSites.length) {
-    return `<div style="background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};margin-bottom:16px;"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">진행중인 공사 현장이 없어요</div></div>`;
-  }
-  const multi = activeSites.length > 1;
-  const cardBasis = multi ? '88%' : '100%';   // 여러 장은 다음 카드가 살짝 보이게, 한 장은 꽉 차게
   const todayStr = toToday();
-  const calcSt = (s, e) => (!s && !e) ? 'wait' : (s && todayStr < s) ? 'wait' : (e && todayStr > e) ? 'done' : 'active';
-  const cards = activeSites.map(s => {
+  const colors = _homeSiteColorMap();
+
+  const procs = [];
+  (M.sites || []).forEach(s => {
+    if (s.status === 'AS관리') return;
     const key = (s.name || '').replace(/[.#$/ \[\]]/g, '_');
     const pd = window.FB?._procAll?.[key] || {};
-    const phases = Object.entries(pd).map(([id, p]) => ({ ...p, id })).sort((a, b) => {
-      const aHas = !!a.startDate, bHas = !!b.startDate;
-      if (aHas && bHas) {
-        if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1;
-        return (a.order || 0) - (b.order || 0);
+    Object.values(pd).forEach(ph => {
+      const start = ph.startDate || ph.doneDate, end = ph.doneDate || ph.startDate;
+      if (!start) return;
+      if (todayStr >= start && todayStr <= end) {
+        procs.push({ site: s.name, title: ph.name, color: colors.get(s.name) || 'var(--faint)' });
       }
-      if (aHas) return -1;
-      if (bHas) return 1;
-      return (a.order || 0) - (b.order || 0);
     });
-    let curIdx = phases.findIndex(ph => calcSt(ph.startDate, ph.doneDate) === 'active');
-    if (curIdx === -1) curIdx = phases.findIndex(ph => calcSt(ph.startDate, ph.doneDate) === 'wait');
-    if (curIdx === -1) curIdx = phases.length - 1;
-    const curP  = phases[curIdx] || null;                                  // 오늘 공정 (진행 중)
-    // 내일 공정 = 목록상 '다음 공정'이 아니라 '내일 날짜에 실제 진행되는 공정' (연속 공정이면 오늘과 같음)
-    const _td = new Date(todayStr + 'T00:00:00'); _td.setDate(_td.getDate() + 1);
-    const tomorrowStr = `${_td.getFullYear()}-${String(_td.getMonth() + 1).padStart(2, '0')}-${String(_td.getDate()).padStart(2, '0')}`;
-    const activeOn = d => phases.find(ph => { const s = ph.startDate; if (!s) return false; const e = ph.doneDate || ph.startDate; return d >= s && d <= e; }) || null;
-    let tomP = activeOn(tomorrowStr);
-    if (!tomP) tomP = phases.find(ph => ph.startDate && ph.startDate > todayStr) || null;  // 내일 공사 없으면 다음 착수 예정 공정
-    const todayName    = curP  ? curP.name  : '공정 정보 없음';
-    const tomorrowName = tomP ? tomP.name : '—';
-    const nameEsc = (s.name || '').replace(/'/g, "\\'");
+  });
+  const scheds = Object.entries(window.FB?.scheduleData || {})
+    .filter(([, sc]) => sc && sc.date === todayStr)
+    .sort((a, b) => (a[1].time || '').localeCompare(b[1].time || ''))
+    .map(([key, sc]) => ({ key, site: sc.site || '', title: sc.title || '', time: sc.time || '', color: colors.get(sc.site) || 'var(--faint)' }));
+
+  const items = [
+    ...procs.map(p => ({ kind: 'proc', site: p.site, title: p.title, color: p.color })),
+    ...scheds.map(s => ({ kind: 'sched', site: s.site, title: s.title, time: s.time, color: s.color, key: s.key })),
+  ];
+
+  if (!items.length) {
+    return `<div style="background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};margin-bottom:16px;"><div style="padding:6px;text-align:center;color:var(--muted);font-size:13px;">오늘 예정된 공정·일정이 없어요</div></div>`;
+  }
+  const multi = items.length > 1;
+  const cardBasis = multi ? '88%' : '100%';   // 여러 장은 다음 카드가 살짝 보이게, 한 장은 꽉 차게
+
+  const cards = items.map(it => {
+    const siteEsc = (it.site || '').replace(/'/g, "\\'");
+    const clickAttr = it.kind === 'proc'
+      ? `onclick="openSiteDetail('${siteEsc}')"`
+      : (it.key ? `onclick="modalSchedule('${it.key}')"` : '');
+    // 오늘 목록에 뜬 공정은 정의상 항상 '진행중' — 다른 날짜 조회가 아니므로 완료/대기 구분 불필요
+    const badge = it.kind === 'proc'
+      ? `<span style="font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">진행중</span>`
+      : (it.time ? `<span style="font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">${it.time}</span>` : '');
     return `
-      <div style="scroll-snap-align:center;flex:0 0 ${cardBasis};box-sizing:border-box;background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};cursor:pointer;" onclick="openSiteDetail('${nameEsc}')">
-        <div style="font-size:16px;font-weight:400;color:var(--muted);margin-bottom:6px;">${s.name}</div>
-        <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px;min-width:0;">
-          <span style="font-size:28px;font-weight:800;color:var(--ink);line-height:1.05;">${todayName}</span>
-          <span style="font-size:22px;font-weight:700;color:var(--muted);">»</span>
-          <span style="font-size:28px;font-weight:300;color:var(--muted);line-height:1.05;">${tomorrowName}</span>
+      <div style="scroll-snap-align:center;flex:0 0 ${cardBasis};box-sizing:border-box;background:#FAFCFB;border-radius:18px;padding:20px;box-shadow:${cardShadow};cursor:pointer;" ${clickAttr}>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;min-width:0;">
+          <span style="width:7px;height:7px;border-radius:50%;background:${it.color || 'var(--faint)'};flex-shrink:0;"></span>
+          <span style="font-size:16px;font-weight:400;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.site || ''}</span>
+        </div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0;">
+          <span style="font-size:26px;font-weight:800;color:var(--ink);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;">${it.title}</span>
+          ${badge}
         </div>
       </div>`;
   }).join('');
   const dotsHtml = `<div class="home-proc-dots" style="display:flex;justify-content:center;gap:7px;margin-top:12px;">
-      ${activeSites.map((_, i) => `<span style="width:7px;height:7px;border-radius:50%;background:${i === 0 ? 'var(--ink)' : '#D1D6DB'};transition:background .2s;"></span>`).join('')}
+      ${items.map((_, i) => `<span style="width:7px;height:7px;border-radius:50%;background:${i === 0 ? 'var(--ink)' : '#D1D6DB'};transition:background .2s;"></span>`).join('')}
     </div>`;
   return `
     <div style="margin-bottom:16px;">

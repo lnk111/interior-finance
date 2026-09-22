@@ -440,7 +440,8 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
 }
 
 // 로컬 캐시(mf_snapshot)와 "변경 없음" 비교에 쓰는 홈 대시보드 스냅샷.
-// base64 사진 등 무거운 필드는 빼고, 진행률 카드에 필요한 procData는 공사중 현장 것만 최소 필드로 추린다.
+// base64 사진 등 무거운 필드는 빼고, 오늘의 브리핑 카드에 필요한 procData만 최소 필드로 추린다.
+// (브리핑 카드는 _calDayEvents와 동일하게 AS관리 현장만 제외하고 전부 포함 — 그 기준에 맞춘다)
 function _buildDashboardSnapshot(M) {
   // tips에서 무거운 사진 필드 제거 (메타데이터만 캐시)
   const lightTips = (M.tips || []).map(t => {
@@ -448,7 +449,7 @@ function _buildDashboardSnapshot(M) {
     return rest;
   });
   const activeKeys = new Set(
-    (M.sites || []).filter(s => s.status === '공사중').map(s => encKey(s.name || ''))
+    (M.sites || []).filter(s => s.status !== 'AS관리').map(s => encKey(s.name || ''))
   );
   const procAllTrim = {};
   Object.entries(FB._procAll || {}).forEach(([key, pd]) => {
@@ -459,6 +460,16 @@ function _buildDashboardSnapshot(M) {
     });
     procAllTrim[key] = trimmed;
   });
+  // 오늘의 브리핑 카드에 쓰이는 오늘자 일정만 추려서 캐시 — scheduleData는 즉시 로드되지만
+  // entries가 도착할 때까지 재렌더가 보류되는 동안(_cacheBootPending) 브리핑 카드가 비어
+  // 보이지 않도록, 이것도 procAllTrim처럼 첫 페인트에 바로 반영한다.
+  const todayStr = toToday();
+  const todaySchedules = {};
+  Object.entries(FB.scheduleData || {}).forEach(([key, sc]) => {
+    if (sc && sc.date === todayStr) {
+      todaySchedules[key] = { title: sc.title || '', time: sc.time || '', site: sc.site || '', date: sc.date };
+    }
+  });
   return {
     sites: M.sites, totals: M.totals, tax: M.tax, briefing: M.briefing,
     unsorted: M.unsorted, staff: M.staff, inputters: M.inputters,
@@ -466,6 +477,7 @@ function _buildDashboardSnapshot(M) {
     upcomingSites: M.upcomingSites,
     recent: M.recent,
     _procAllTrim: procAllTrim,
+    _todaySchedules: todaySchedules,
   };
 }
 
@@ -1348,9 +1360,10 @@ window.bootAuth = function() {
       if (isUsable && window.MOCK) {
         const cachedAt = snap._cachedAt;
         delete snap._cachedAt;
-        const { _procAllTrim, ...mockFields } = snap;
+        const { _procAllTrim, _todaySchedules, ...mockFields } = snap;
         Object.assign(window.MOCK, mockFields);
         if (_procAllTrim) window.FB._procAll = Object.assign({}, window.FB._procAll, _procAllTrim);
+        if (_todaySchedules) window.FB.scheduleData = Object.assign({}, window.FB.scheduleData, _todaySchedules);
         // 이후 실제 데이터가 캐시와 똑같으면 재렌더를 건너뛰도록(조용한 갱신) 시그니처를 미리 심어둔다.
         // entries까지 실제로 다 도착하기 전엔 _flushDataChange가 재계산을 보류한다(_cacheBootPending).
         window.FB._bootRendered = true;
