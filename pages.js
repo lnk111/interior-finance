@@ -66,6 +66,9 @@ const KR_HOLIDAYS = {
 };
 function krHoliday(dateStr) { return KR_HOLIDAYS[dateStr] || ''; }
 
+// AS관리로 넘어간 현장도 달력에는 "지난 공정"을 그대로 남긴다. 오늘 이후 날짜는 예전처럼 표시하지 않는다.
+function _calIsAsSite(site) { return site.status === 'as' || site.status === 'AS관리'; }
+
 function renderCalendar() {
   if (window.ensureProcAll) window.ensureProcAll();
   const cacheKey = `${_calYear}-${_calMonth}-${_calSelected||''}-${Object.keys(window.FB?.scheduleData||{}).length}-${Object.keys(window.FB?._procAll||{}).length}`;
@@ -135,7 +138,7 @@ function _buildCalendarHtml() {
       }
     });
   Object.values(sites).forEach(site => {
-    if (site.status === 'as' || site.status === 'AS관리') return;
+    const isAs = _calIsAsSite(site);
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const procData = window.FB?._procAll?.[procKey] || {};
     // 같은 현장의 모든 공정은 같은 색
@@ -152,7 +155,7 @@ function _buildCalendarHtml() {
       while (cur <= endDate) {
         const y = cur.getFullYear(), mo = String(cur.getMonth() + 1).padStart(2, '0'), da = String(cur.getDate()).padStart(2, '0');
         const ds = `${y}-${mo}-${da}`;
-        if (ds.startsWith(curYm)) {
+        if (ds.startsWith(curYm) && (!isAs || ds <= todayStr)) {
           const d = cur.getDate();
           if (!evMap[d]) evMap[d] = [];
           const already = evMap[d].some(e => e.t === ph.name && e.color === siteColor);
@@ -235,7 +238,8 @@ function _calDayEvents(dateStr) {
   const todayStr = toToday();
   const procs = [];
   Object.values(sites).forEach(site => {
-    if (site.status === 'as' || site.status === 'AS관리') return;
+    const isAs = _calIsAsSite(site);
+    if (isAs && dateStr > todayStr) return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const pd = window.FB?._procAll?.[procKey] || {};
     Object.values(pd).forEach(ph => {
@@ -355,7 +359,7 @@ function openCalDayPopup(dateStr) {
   const sites = window.FB?.sites || {};
   const dayProcs = [];
   Object.values(sites).forEach(site => {
-    if (site.status === 'as' || site.status === 'AS관리') return;
+    if (_calIsAsSite(site) && dateStr > toToday()) return;
     const procKey = (site.name || '').replace(/[.#$/ \[\]]/g, '_');
     const procData = window.FB?._procAll?.[procKey] || {};
     Object.values(procData).forEach(ph => {

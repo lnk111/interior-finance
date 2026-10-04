@@ -448,9 +448,8 @@ function _buildDashboardSnapshot(M) {
     const { problemPhotos, solutionPhotos, ...rest } = t;
     return rest;
   });
-  const activeKeys = new Set(
-    (M.sites || []).filter(s => s.status !== 'AS관리').map(s => encKey(s.name || ''))
-  );
+  // AS관리 현장도 포함 — 달력이 AS 전환 현장의 지난 공정을 표시하므로 첫 페인트에 바로 그려져야 한다.
+  const activeKeys = new Set((M.sites || []).map(s => encKey(s.name || '')));
   const procAllTrim = {};
   Object.entries(FB._procAll || {}).forEach(([key, pd]) => {
     if (!activeKeys.has(key)) return;
