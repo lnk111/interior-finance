@@ -863,7 +863,22 @@ function initFirebase() {
   db.ref('asData').on('value', snap => { FB.asData = snap.val() || {}; onDataChange(); });
   db.ref('fixedCosts').on('value', snap => { FB.fixedCosts = snap.val() || {}; onDataChange(); });
   db.ref('knowhow').on('value', snap => { FB.knowhow = snap.val() || {}; onDataChange(); });
-  db.ref('scheduleData').on('value', snap => { FB.scheduleData = snap.val() || {}; onDataChange(); });
+  db.ref('scheduleData').on('value', snap => {
+    const next = snap.val() || {};
+    const sig = JSON.stringify(next);
+    const changed = sig !== FB._schedSig;
+    FB.scheduleData = next;
+    FB._schedSig = sig;
+    if (changed) {
+      // 전체 일정을 로컬에 저장 — 다음 접속 때 서버 응답 전에 달력이 바로 그려지도록(구글 캘린더 방식)
+      try { localStorage.setItem(SCHEDULE_CACHE_KEY, sig); } catch (e) {}
+      // 홈 스냅샷 비교(_lastRenderSig)는 오늘자 일정만 보므로, 다른 날짜 일정이 바뀐 경우를 위해 달력 캐시를 비우고 직접 갱신
+      if (typeof _calCache !== 'undefined') _calCache = null;
+      const page = window.currentPage;
+      if (FB._bootRendered && window.navigate && (page === 'calendar' || page === 'sites' || page === 'siteDetail')) window.navigate(page);
+    }
+    onDataChange();
+  });
   db.ref('bossAccount').on('value', snap => { FB.bossAccount = snap.val() || null; onDataChange(); });
 
   // procData 대량 캐시(_procAll) — 다른 데이터와 병렬로 즉시 로드
@@ -1346,6 +1361,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// 전체 일정(scheduleData) 로컬 캐시 — 달력·현장 일정이 서버 응답을 기다리지 않고 켜자마자 뜨게 한다.
+// 서버 값이 도착하면 scheduleData 리스너가 덮어쓰고, 달라진 경우에만 화면을 다시 그린다.
+const SCHEDULE_CACHE_KEY = 'mf_schedule_v1';
+function _hydrateScheduleCache() {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_CACHE_KEY);
+    if (!raw) return;
+    const cached = JSON.parse(raw);
+    if (cached && typeof cached === 'object') {
+      window.FB.scheduleData = cached;
+      window.FB._schedSig = raw;
+    }
+  } catch (e) {
+    try { localStorage.removeItem(SCHEDULE_CACHE_KEY); } catch (e2) {}
+  }
+}
+
 // 앱 초기화 시 Firebase 시작
 const _origBootAuth = window.bootAuth;
 window.bootAuth = function() {
@@ -1364,6 +1396,7 @@ window.bootAuth = function() {
         Object.assign(window.MOCK, mockFields);
         if (_procAllTrim) window.FB._procAll = Object.assign({}, window.FB._procAll, _procAllTrim);
         if (_todaySchedules) window.FB.scheduleData = Object.assign({}, window.FB.scheduleData, _todaySchedules);
+        _hydrateScheduleCache();
         // 이후 실제 데이터가 캐시와 똑같으면 재렌더를 건너뛰도록(조용한 갱신) 시그니처를 미리 심어둔다.
         // entries까지 실제로 다 도착하기 전엔 _flushDataChange가 재계산을 보류한다(_cacheBootPending).
         window.FB._bootRendered = true;
@@ -1382,6 +1415,7 @@ window.bootAuth = function() {
     } catch (e) {
       console.warn('[캐시 복원 실패]', e.message);
     }
+    _hydrateScheduleCache();   // 홈 스냅샷 캐시가 없거나 만료돼도 전체 일정 캐시는 복원
     initFirebase();
   }
   return result;
