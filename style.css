@@ -587,13 +587,13 @@ input, textarea, select { font-family: inherit; }
 .nav-btns { display: flex; gap: 8px; }
 .cal-grid { margin: 0; }
 .cal-week-head { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 2px; }
-.cal-week-head > div { padding: 6px 0; text-align: center; font-size: 12px; font-weight: 500; color: var(--muted); }
+.cal-week-head > div { padding: 6px 0; text-align: center; font-size: 14px; font-weight: 500; color: var(--muted); }
 .cal-week-head .sun { color: #C4514B; }
 .cal-week-head .sat { color: var(--muted); }
-.cal-grid-days { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 54px; }
+.cal-grid-days { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 58px; }
 .cal-day { display: flex; flex-direction: column; align-items: center; gap: 5px; padding-top: 6px; cursor: pointer; }
 .cal-day.empty { cursor: default; }
-.cal-num { width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.cal-num { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 17px; font-weight: 500; color: var(--ink-2); }
 .cal-day.sun .cal-num { color: #C4514B; }
 .cal-day.holiday .cal-num { color: #C4514B; }
 .cal-day.cal-selected .cal-num { background: var(--accent-soft); color: var(--accent); font-weight: 700; }

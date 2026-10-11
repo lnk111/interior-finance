@@ -193,7 +193,7 @@ function _buildCalendarHtml() {
     <div class="page-body" style="padding-top:0;">
       <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin:4px 0 14px;">
         <button id="cal-prev" aria-label="이전 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:35px;line-height:1;padding:0 4px;font-family:inherit;">‹</button>
-        <span class="num" style="font-size:22px;font-weight:700;color:var(--ink);min-width:132px;text-align:center;">${_calYear}년 ${_calMonth}월</span>
+        <span class="num" style="font-size:25px;font-weight:700;color:var(--ink);min-width:140px;text-align:center;">${_calYear}년 ${_calMonth}월</span>
         <button id="cal-next" aria-label="다음 달" style="background:none;border:0;cursor:pointer;color:var(--faint);font-size:35px;line-height:1;padding:0 4px;font-family:inherit;">›</button>
       </div>
       <div class="cal-grid">
