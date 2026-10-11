@@ -259,7 +259,7 @@ function _calDayEvents(dateStr) {
 // 하루 일정 행들 (없으면 (일정없음))
 function _calDayRows(dateStr) {
   const { procs, scheds } = _calDayEvents(dateStr);
-  if (!procs.length && !scheds.length) return `<div style="font-size:13px;color:var(--faint);padding:5px 0 0;">(일정없음)</div>`;
+  if (!procs.length && !scheds.length) return `<div style="font-size:15px;color:var(--faint);padding:5px 0 0;">(일정없음)</div>`;
   let html = '', i = 0;
   procs.forEach(p => {
     const top = i > 0 ? 'border-top:1px solid var(--hair-soft);' : '';
@@ -267,18 +267,18 @@ function _calDayRows(dateStr) {
     const stLabel = p.status === 'done' ? '완료' : p.status === 'active' ? '진행중' : '예정';
     html += `<div style="display:flex;align-items:center;gap:10px;padding:11px 0;${top}">
         <span style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0;"></span>
-        <div style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="font-size:14px;font-weight:600;color:var(--ink);">${p.phName}</span> <span style="font-size:14px;color:var(--muted);">${p.siteName}</span></div>
-        <span style="flex-shrink:0;font-size:12px;font-weight:600;color:${stColor};">${stLabel}</span>
+        <div style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="font-size:16px;font-weight:600;color:var(--ink);">${p.phName}</span> <span style="font-size:16px;color:var(--muted);">${p.siteName}</span></div>
+        <span style="flex-shrink:0;font-size:14px;font-weight:600;color:${stColor};">${stLabel}</span>
       </div>`;
     i++;
   });
   scheds.forEach(s => {
     const top = i > 0 ? 'border-top:1px solid var(--hair-soft);' : '';
-    const schedSite = s.site ? ` <span style="font-size:14px;font-weight:400;color:var(--muted);">${s.site}</span>` : '';
-    const timeLabel = s.time ? `<span style="flex-shrink:0;font-size:12px;font-weight:700;color:var(--accent);">${s.time}</span>` : '';
+    const schedSite = s.site ? ` <span style="font-size:16px;font-weight:400;color:var(--muted);">${s.site}</span>` : '';
+    const timeLabel = s.time ? `<span style="flex-shrink:0;font-size:14px;font-weight:700;color:var(--accent);">${s.time}</span>` : '';
     html += `<div onclick="modalSchedule('${s.key}')" style="display:flex;align-items:center;gap:10px;padding:11px 0;cursor:pointer;${top}">
         <span style="width:7px;height:7px;border-radius:50%;background:${s.color};flex-shrink:0;"></span>
-        <span style="flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="font-weight:600;color:var(--ink);">${s.title}</span>${schedSite}</span>
+        <span style="flex:1;min-width:0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><span style="font-weight:600;color:var(--ink);">${s.title}</span>${schedSite}</span>
         ${timeLabel}
       </div>`;
     i++;
@@ -295,9 +295,9 @@ function _calUpcomingSection() {
   const isToday = sel === todayStr;
   const selHol = krHoliday(sel);
   const selHead = `<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;">
-      <span style="font-size:13px;font-weight:700;color:var(--ink);">${selLabel}</span>
-      ${isToday ? '<span style="font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:9px;">오늘</span>' : ''}
-      ${selHol ? `<span style="font-size:11px;font-weight:700;color:#C4514B;background:rgba(196,81,75,0.12);padding:2px 7px;border-radius:9px;">${selHol}</span>` : ''}
+      <span style="font-size:15px;font-weight:700;color:var(--ink);">${selLabel}</span>
+      ${isToday ? '<span style="font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:9px;">오늘</span>' : ''}
+      ${selHol ? `<span style="font-size:13px;font-weight:700;color:#C4514B;background:rgba(196,81,75,0.12);padding:2px 7px;border-radius:9px;">${selHol}</span>` : ''}
     </div>`;
   const week = [];
   for (let j = 1; j <= 7; j++) { const d = new Date(selD); d.setDate(d.getDate() + j); week.push(d); }
@@ -308,14 +308,14 @@ function _calUpcomingSection() {
     const isT = ds === todayStr;
     const hol = krHoliday(ds);
     const nameColor = hol ? '#C4514B' : (isT ? 'var(--accent)' : 'var(--ink)');
-    return `<div style="margin-top:14px;"><span style="font-size:13px;font-weight:700;color:${nameColor};">${f(d)} (${CAL_WD[d.getDay()]})</span>${hol ? ` <span style="font-size:11px;font-weight:700;color:#C4514B;">· ${hol}</span>` : ''}</div>${_calDayRows(ds)}`;
+    return `<div style="margin-top:14px;"><span style="font-size:15px;font-weight:700;color:${nameColor};">${f(d)} (${CAL_WD[d.getDay()]})</span>${hol ? ` <span style="font-size:13px;font-weight:700;color:#C4514B;">· ${hol}</span>` : ''}</div>${_calDayRows(ds)}`;
   }).join('');
   return `
-    <div style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:4px;">선택한 날</div>
+    <div style="font-size:15px;font-weight:500;color:var(--muted);margin-bottom:4px;">선택한 날</div>
     ${selHead}
     ${_calDayRows(sel)}
     <div style="height:6px;background:#F1F1F5;margin:18px calc(-1 * var(--pad));"></div>
-    <div style="font-size:13px;font-weight:500;color:var(--muted);">다음날 <span style="color:var(--faint);">· ${range}</span></div>
+    <div style="font-size:15px;font-weight:500;color:var(--muted);">다음날 <span style="color:var(--faint);">· ${range}</span></div>
     ${weekBody}`;
 }
 
