@@ -1343,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const staff = await FB_API.checkStaffPin(name, pin);
       if (staff) {
         const role = staff.role || 'staff';
-        AUTH.login(name, pin, role);
+        AUTH.login(name, pin, role, staff.position || '');
         bootAuth();
         if (window.navigate) window.navigate('home');
         return;

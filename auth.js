@@ -18,9 +18,9 @@ window.AUTH = {
   current() {
     try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch { return null; }
   },
-  login(name, pin, role = 'staff') {
+  login(name, pin, role = 'staff', position = '') {
     if (!name) return false;
-    const session = { name: name.trim(), pin: pin || '0000', role, loggedAt: Date.now() };
+    const session = { name: name.trim(), pin: pin || '0000', role, position: position || '', loggedAt: Date.now() };
     localStorage.setItem(AUTH_KEY, JSON.stringify(session));
     return true;
   },
@@ -36,8 +36,21 @@ window.AUTH = {
   role() {
     return this.current()?.role || 'staff';
   },
+  // 화면에 보이는 직함 — 직원 등록 때 입력한 직책(예: 사원)이 있으면 그것을, 없으면 권한 기본 호칭을 쓴다.
+  // 대표(boss)는 항상 '실장'. 로그인 세션에 직책이 없는 기존 로그인은 직원 목록에서 이름으로 찾는다.
   roleLabel() {
-    return ROLE_LABEL[this.role()] || '대리';
+    const s = this.current();
+    const role = this.role();
+    if (role !== 'boss') {
+      const position = (s && s.position) || this._staffPosition(s && s.name);
+      if (position) return position;
+    }
+    return ROLE_LABEL[role] || '대리';
+  },
+  _staffPosition(name) {
+    if (!name) return '';
+    const rec = Object.values(window.FB?.staffData || {}).find(r => r && r.name === name && !r.resignDate);
+    return (rec && rec.position) || '';
   },
   // 입력자 표기 = 로그인한 사용자의 "이름 호칭" (예: '김영애 실장', '이남경 팀장', '김덕수 대리')
   // 입력/저장 시 이 값을 작성자(writer)로 자동 기록 → 로그인 사용자가 바뀌면 자동으로 반영됨
@@ -61,7 +74,7 @@ function bootAuth() {
     tabbar.style.display = 'flex';
     if (window.MOCK) {
       window.MOCK.user = session.name;
-      window.MOCK.role = ROLE_LABEL[session.role || 'staff'];
+      window.MOCK.role = AUTH.roleLabel();
     }
     return true;
   }
