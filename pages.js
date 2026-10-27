@@ -494,7 +494,7 @@ function renderSettings() {
             <div style="display:flex;gap:12px;align-items:center;">
               <div class="avatar" style="width:36px;height:36px;font-size:13px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">${s.name[0]}</div>
               <div>
-                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${ROLE_LABEL[s.role] || s.role}</span></div>
+                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${s.position || ROLE_LABEL[s.role] || s.role}</span></div>
                 <div style="font-size:13px;color:var(--muted);margin-top:2px;">입사 ${s.joined}${canStaffSalary ? ` · ${(s.salary||0).toLocaleString('ko-KR')}원` : ''}</div>
               </div>
             </div>
@@ -509,7 +509,7 @@ function renderSettings() {
             <div style="display:flex;gap:12px;align-items:center;">
               <div class="avatar" style="width:36px;height:36px;background:#E8DFCD;border-radius:50%;display:grid;place-items:center;font-weight:700;">${s.name[0]}</div>
               <div>
-                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${ROLE_LABEL[s.role] || s.role}</span></div>
+                <div class="sr-key">${s.name} <span style="color:var(--muted);font-weight:400;font-size:13px;">${s.position || ROLE_LABEL[s.role] || s.role}</span></div>
                 <div style="font-size:13px;color:var(--muted);margin-top:2px;">입사 ${s.joined}</div>
               </div>
             </div>

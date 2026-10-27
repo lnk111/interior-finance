@@ -267,6 +267,7 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
       _key: key,
       name: s.name || '',
       role: s.role || '',
+      position: s.position || '',
       joined: s.joinDate ? s.joinDate.replace(/-/g, '.') : '',
       salary: s.salary || 0,
       status: '재직중',
@@ -283,7 +284,8 @@ window.syncMockFromFirebase = function syncMockFromFirebase() {
   const inputterByName = new Map();
   staffArr.forEach(s => {
     if (!s.name) return;
-    const label = s.name + (s.role ? ' ' + roleToKr(s.role) : '');
+    const title = s.position || roleToKr(s.role);
+    const label = s.name + (title ? ' ' + title : '');
     inputterByName.set(s.name, label);
   });
   // 로그인된 사용자도 포함 (사장이거나, staffData 등록 전이거나, 데모 로그인이거나)
