@@ -567,6 +567,10 @@ function renderInput() {
   return inputStepSaving();                         // 5단계 = 저장중 → 저장 완료
 }
 
+// 주유비는 공정이 아닌 빠른 항목 — 선택하면 '상세내용' 대신 '차량번호'를 입력받는다
+const FUEL_PHASE = '주유비';
+function inputMemoLabel(st) { return st.tab === '매입' && st.phase === FUEL_PHASE ? '차량번호' : '상세내용'; }
+
 // 2단계 통합 — 공정/결제 선택 → 상세내용 → 금액 (진행형)
 function inputStepDetail() {
   const st = inputState;
@@ -574,6 +578,7 @@ function inputStepDetail() {
   const isRev = st.tab === '매출';
   const ctxWord = isRev ? '매출액' : st.tab === 'AS' ? 'AS비용' : '매입액';
   const midLabel = isRev ? '결제 단계' : '공정';
+  const memoLabel = inputMemoLabel(st);
   const midVal = isRev ? (st.stage||'') : (st.phase||'');
   const items = isRev ? (M.paymentStages||[]) : (M.phases||[]);
   const pickAct = isRev ? 'stage2' : 'proc2';
@@ -600,8 +605,9 @@ function inputStepDetail() {
   if (st.sub === 'proc') {
     const btns = items.map(p => `<button data-iact="${pickAct}" data-val="${esc(p)}" style="display:flex;align-items:center;justify-content:center;margin:4px 0;background:none;border:0;padding:16px 0;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">${p}</button>`).join('');
     // 매입 거래에서만 — 공정이 아닌 매입 성격의 빠른 항목(가로 전체 띠)
+    const bandBtn = (val, extra) => `<button data-iact="proc2" data-val="${val}" style="display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);border:0;border-top:1px solid var(--hair);${extra}padding:16px 0;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">${val}</button>`;
     const mealBand = st.tab === '매입'
-      ? `<button data-iact="proc2" data-val="식대 + 음료" style="display:flex;align-items:center;justify-content:center;width:100%;background:var(--accent-soft);color:var(--accent);border:0;border-top:1px solid var(--hair);padding:16px 0;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">식대 + 음료</button>`
+      ? `<div style="display:grid;grid-template-columns:1fr auto 1fr;background:var(--accent-soft);border-top:1px solid var(--hair);">${bandBtn('식대 + 음료', 'border-top:0;')}<span aria-hidden="true" style="align-self:center;width:1.5px;height:22px;background:var(--accent);opacity:.35;border-radius:1px;"></span>${bandBtn(FUEL_PHASE, 'border-top:0;')}</div>`
       : '';
     const direct = `<button data-iact="proc2-direct" style="display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin:4px 0;background:none;border:0;padding:16px 0;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink);">직접입력 ${PENCIL}</button>`;
     content = `<div style="padding:22px var(--pad) 0;">
@@ -616,9 +622,9 @@ function inputStepDetail() {
   } else if (st.sub === 'detail') {
     content = `<div style="padding:22px var(--pad) 0;">
         <div>${fieldLine(midLabel, midVal)}</div>
-        <div style="${LAB}margin-top:26px;">상세내용</div>
+        <div style="${LAB}margin-top:26px;">${memoLabel}</div>
         <div style="position:relative;margin:12px 0;">
-          <input id="iflow-detail" placeholder="예) 걸레받이 교체, 자재비" value="${esc(st.memo)}" onkeydown="if(event.key==='Enter'){event.preventDefault();handleInputFlow('detail-ok',this);}"
+          <input id="iflow-detail" placeholder="${memoLabel === '차량번호' ? '예) 12가 3456' : '예) 걸레받이 교체, 자재비'}" value="${esc(st.memo)}" onkeydown="if(event.key==='Enter'){event.preventDefault();handleInputFlow('detail-ok',this);}"
             style="width:100%;box-sizing:border-box;border:1.5px solid var(--hair);border-radius:12px;padding:14px 72px 14px 14px;font-size:19px;font-family:inherit;outline:none;">
           <button data-iact="detail-ok" id="iflow-detail-ok" style="display:${(st.memo||'').trim()?'block':'none'};position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--ink);color:#fff;border:0;border-radius:9px;padding:8px 12px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button>
         </div>
@@ -629,7 +635,7 @@ function inputStepDetail() {
     const nextBtn = amt ? `<button data-iact="detail-next" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:15px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:8px;">다음</button>` : '';
     content = `<div style="padding:22px var(--pad) 0;">
         <div>${fieldLine(midLabel, midVal)}</div>
-        <div style="margin-top:20px;">${fieldLine('상세내용', (st.memo||'').trim()||'(없음)')}</div>
+        <div style="margin-top:20px;">${fieldLine(memoLabel, (st.memo||'').trim()||'(없음)')}</div>
         <div style="margin-top:28px;font-size:27px;font-weight:${amt?'700':'500'};color:${amt?'var(--ink)':'#8B95A1'};">${amt ? amt.toLocaleString('ko-KR')+'원' : '금액을 입력해주세요'}</div>
       </div>`;
     bottom = `<div style="padding:0 var(--pad) 6px;">${nextBtn}${pad}</div>`;
@@ -937,7 +943,7 @@ function inputStepConfirm() {
       <div style="padding:26px var(--pad) 0;">
         <div style="font-size:18px;font-weight:400;">${siteHtml}</div>
         <div style="margin-top:18px;">${fieldLine(midLabel, midVal)}</div>
-        <div style="margin-top:16px;">${fieldLine('상세내용', memo)}</div>
+        <div style="margin-top:16px;">${fieldLine(inputMemoLabel(st), memo)}</div>
         <div style="margin-top:30px;font-size:15px;font-weight:400;color:var(--muted);">${ctxWord}</div>
         <div style="margin-top:2px;font-size:32px;font-weight:800;letter-spacing:-0.03em;color:var(--ink);">${amt.toLocaleString('ko-KR')}<span style="font-size:20px;font-weight:700;">원</span></div>
       </div>
