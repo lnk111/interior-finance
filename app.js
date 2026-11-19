@@ -508,7 +508,7 @@ async function startSave() {
   if (!site)   { alert('현장을 선택해주세요'); return; }
   if (!amount) { alert('금액을 입력해주세요'); return; }
   st.step = 5; st._saveDone = false; navigate('input');       // "저장하고 있어요"
-  const minWait = new Promise(r => setTimeout(r, 900));        // 최소 노출 시간
+  const minWait = new Promise(r => setTimeout(r, 350));        // 최소 노출 시간 (깜빡임 방지용, 짧게)
   const ok = await doSaveEntry();
   await minWait;
   if (ok) { st._saveDone = true; navigate('input'); }         // "저장 완료!"

@@ -965,32 +965,32 @@ function updateConnStatus() {
 function _entryField(type) {
   return type === 'revenue' ? 'revenue' : type === 'as' ? 'as' : 'cost';
 }
-function _summaryUpdatePaths(entry, sign) {
+// 경로별 증감량을 acc에 누적 (수정 시 old/new가 같은 경로를 건드려도 한 번에 합산된다)
+function _addSummaryDeltas(entry, sign, acc) {
   const amt = (entry && entry.amount) || 0;
-  if (!entry || !entry.site || !amt) return {};
+  if (!entry || !entry.site || !amt) return;
   const field = _entryField(entry.type);
   const enc = encKey(entry.site);
-  const inc = firebase.database.ServerValue.increment(sign * amt);
-  const out = {};
-  out['total/' + field] = inc;
-  out['bySite/' + enc + '/' + field] = inc;
-  out['bySite/' + enc + '/name'] = entry.site;
-  return out;
+  const tp = 'total/' + field;
+  const sp = 'bySite/' + enc + '/' + field;
+  acc[tp] = (acc[tp] || 0) + sign * amt;
+  acc[sp] = (acc[sp] || 0) + sign * amt;
 }
-// oldE(제거)·newE(추가) 델타를 summary에 반영. 증분은 서버 측에서 합산되므로 순차 update로 충분.
+// oldE(제거)·newE(추가) 델타를 summary에 반영 — 왕복 1회짜리 단일 update (증분은 서버 측에서 합산)
 async function _applyEntrySummary(oldE, newE) {
   if (FB._summarySeedFailed) return;   // 쓰기 권한 없는 환경 — 헛된 왕복 생략(홈은 entries로 계산)
   try {
-    if (oldE) {
-      const p = _summaryUpdatePaths(oldE, -1);
-      if (Object.keys(p).length) await db.ref('summary').update(p);
-    }
-    if (newE) {
-      const p = _summaryUpdatePaths(newE, +1);
-      if (Object.keys(p).length) await db.ref('summary').update(p);
-    }
+    const deltas = {};
+    _addSummaryDeltas(oldE, -1, deltas);
+    _addSummaryDeltas(newE, +1, deltas);
     const cd = (newE ? 1 : 0) - (oldE ? 1 : 0);
-    if (cd) await db.ref('summary').update({ count: firebase.database.ServerValue.increment(cd) });
+    if (cd) deltas['count'] = cd;
+    const paths = {};
+    Object.keys(deltas).forEach(p => {
+      if (deltas[p]) paths[p] = firebase.database.ServerValue.increment(deltas[p]);
+    });
+    if (newE && newE.site && newE.amount) paths['bySite/' + encKey(newE.site) + '/name'] = newE.site;
+    if (Object.keys(paths).length) await db.ref('summary').update(paths);
   } catch (e) {
     console.warn('[summary 갱신 실패 — entries 로드 시 자동 보정됨]', e && e.message);
   }
@@ -1057,17 +1057,21 @@ window.FB_API = {
         const o = s.val();
         if (o) oldAgg = { type: o.type, site: o.site, amount: o.amount };
       } catch (e) {}
-      await db.ref('entries/' + key).update(rest);
-      if (hasPhotoField) {
-        if (photos.length) await db.ref('entryPhotos/' + key).set({ photos });
-        else await db.ref('entryPhotos/' + key).remove();
-      }
-      await _applyEntrySummary(oldAgg, newAgg);
+      // 서로 의존하지 않는 쓰기는 동시에 보낸다 — 순차 대기하면 왕복 시간이 그대로 쌓인다
+      await Promise.all([
+        db.ref('entries/' + key).update(rest),
+        hasPhotoField
+          ? (photos.length ? db.ref('entryPhotos/' + key).set({ photos }) : db.ref('entryPhotos/' + key).remove())
+          : null,
+        _applyEntrySummary(oldAgg, newAgg),
+      ]);
     } else {
       const ref = db.ref('entries').push();
-      await ref.set({ ...rest, createdAt: Date.now() });
-      if (photos.length) await db.ref('entryPhotos/' + ref.key).set({ photos });
-      await _applyEntrySummary(null, newAgg);
+      await Promise.all([
+        ref.set({ ...rest, createdAt: Date.now() }),
+        photos.length ? db.ref('entryPhotos/' + ref.key).set({ photos }) : null,
+        _applyEntrySummary(null, newAgg),
+      ]);
     }
   },
 
