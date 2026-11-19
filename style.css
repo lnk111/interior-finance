@@ -988,3 +988,46 @@ button svg * {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ===== 저장 중 → 저장 완료 애니메이션 (입력 5단계) ===== */
+.sv-pop { width: 96px; height: 96px; }
+.sv-stage { position: relative; width: 96px; height: 96px; }
+.sv-spin, .sv-full, .sv-chk { position: absolute; inset: 0; width: 96px; height: 96px; }
+.sv-spin { animation: svSpin 1.4s linear infinite; transition: opacity .15s; }
+.sv-spin circle { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; animation: svGrow 1.4s ease-in-out infinite; }
+.sv-full { transform: rotate(-90deg); }
+.sv-full circle { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 289; stroke-dashoffset: 289; }
+.sv-coin { position: absolute; left: 12px; top: 12px; width: 72px; height: 72px; border-radius: 50%; box-sizing: border-box;
+  border: 1.5px solid var(--hair); box-shadow: 0 6px 16px rgba(0,0,0,0.16); background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .25s .2s, border-color .25s .2s, box-shadow .25s .2s; }
+.sv-coin span { font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1; transition: opacity .15s; }
+.sv-chk path { fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 44; stroke-dashoffset: 44; transition: stroke-dashoffset .3s .35s ease-out; }
+.sv-st { position: relative; height: 1.4em; }
+.sv-st span { position: absolute; left: 0; right: 0; top: 0; font-weight: 500; transition: opacity .2s, transform .25s; }
+.sv-st .a { color: var(--faint); }
+.sv-st .b { color: var(--ink); opacity: 0; transform: translateY(8px); }
+.sv-ok-wrap { opacity: 0; transform: translateY(14px); pointer-events: none; transition: opacity .25s .6s, transform .3s .6s; }
+
+.sv-done .sv-spin { opacity: 0; }
+.sv-done .sv-full circle { stroke-dashoffset: 0; transition: stroke-dashoffset .35s ease-out; }
+.sv-done .sv-coin { background: var(--accent); border-color: var(--accent); box-shadow: none; }
+.sv-done .sv-coin span { opacity: 0; }
+.sv-done .sv-chk path { stroke-dashoffset: 0; }
+.sv-done .sv-st .a { opacity: 0; transform: translateY(-8px); }
+.sv-done .sv-st .b { opacity: 1; transform: none; transition-delay: .35s; }
+.sv-done .sv-ok-wrap { opacity: 1; transform: none; pointer-events: auto; }
+.sv-popping { animation: svPop .45s .3s ease-out; }
+
+@keyframes svSpin { to { transform: rotate(360deg); } }
+@keyframes svGrow {
+  0%   { stroke-dasharray: 20 269;  stroke-dashoffset: 0; }
+  50%  { stroke-dasharray: 180 109; stroke-dashoffset: -60; }
+  100% { stroke-dasharray: 20 269;  stroke-dashoffset: -289; }
+}
+@keyframes svPop { 0% { transform: scale(1); } 55% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .sv-spin, .sv-spin circle { animation-duration: 3s; }
+  .sv-popping { animation: none; }
+}

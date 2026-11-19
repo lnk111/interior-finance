@@ -511,8 +511,17 @@ async function startSave() {
   const minWait = new Promise(r => setTimeout(r, 350));        // 최소 노출 시간 (깜빡임 방지용, 짧게)
   const ok = await doSaveEntry();
   await minWait;
-  if (ok) { st._saveDone = true; navigate('input'); }         // "저장 완료!"
+  if (ok) { st._saveDone = true; if (!playSaveDone()) navigate('input'); }   // "저장 완료!" — 화면을 새로 그리지 않고 애니메이션으로 전환
   else    { alert('저장 실패. 다시 시도해주세요.'); st.step = 4; navigate('input'); }
+}
+
+// 떠 있는 저장 화면에 완료 상태를 입힌다 (링이 닫히고 체크가 그려짐). 화면이 없으면 false → 호출부가 다시 그림
+function playSaveDone() {
+  const el = document.getElementById('save-anim');
+  if (!el || window.currentPage !== 'input' || inputState.step !== 5) return false;
+  el.classList.add('sv-done');
+  document.getElementById('save-anim-pop')?.classList.add('sv-popping');
+  return true;
 }
 
 function openSiteDropdown() {
@@ -891,8 +900,13 @@ function inputStepSaving() {
   const done = !!st._saveDone;
   const full = 'min-height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom));';
   const center = inner => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;">${inner}</div>`;
-  const coin = `<div style="width:72px;height:72px;border-radius:50%;border:1.5px solid var(--hair);box-shadow:0 6px 16px rgba(0,0,0,0.16);display:flex;align-items:center;justify-content:center;box-sizing:border-box;"><span style="font-size:24px;font-weight:700;color:var(--ink);line-height:1;">₩</span></div>`;
-  const check = `<svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="36" fill="var(--accent)"/><path d="M22 37l10 10 18-20" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  // 저장중(돌아가는 호) → 저장 완료(링이 닫히고 체크가 그려짐): 같은 요소에 .sv-done 클래스만 붙여 이어지게 한다
+  const anim = `<div class="sv-pop" id="save-anim-pop"><div class="sv-stage">
+    <svg class="sv-spin" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46"/></svg>
+    <svg class="sv-full" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="46"/></svg>
+    <div class="sv-coin"><span>₩</span></div>
+    <svg class="sv-chk" viewBox="0 0 96 96" aria-hidden="true"><path d="M34 49l10 10 19-21"/></svg>
+  </div></div>`;
   // 현장명: 아파트명 700/ink + 동·호수 400/muted
   const dm = site.match(/\d+동/);
   const siteHtml = dm
@@ -901,14 +915,10 @@ function inputStepSaving() {
   // [입력값] 800/ink + 원을 500/muted
   const amtLine = `<span style="font-weight:800;color:var(--ink);">${amtStr}</span><span style="font-weight:500;color:var(--muted);">원을</span>`;
   // 저장중 ↔ 저장완료: 아이콘 / 상태문구+색 / 확인버튼만 달라지고 현장명·금액은 완전히 동일
-  const statusColor = done ? 'var(--ink)' : 'var(--faint)';
-  const statusText = done ? '저장 완료!' : '저장하고 있어요';
-  const block = `<div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}<br><span style="font-weight:500;color:${statusColor};">${statusText}</span></div>`;
-  // 확인 버튼은 absolute로 하단 고정 → 버튼 유무가 가운데 콘텐츠 위치에 영향 주지 않음
-  const btn = done
-    ? `<div style="position:absolute;left:0;right:0;bottom:0;padding:0 var(--pad) 12px;"><button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button></div>`
-    : '';
-  return `<div style="display:flex;flex-direction:column;position:relative;${full}">${center(`<div>${done ? check : coin}</div>${block}`)}${btn}</div>`;
+  const block = `<div style="font-size:22px;line-height:1.4;margin-top:22px;">${siteHtml}<br>${amtLine}<div class="sv-st"><span class="a">저장하고 있어요</span><span class="b">저장 완료!</span></div></div>`;
+  // 확인 버튼은 absolute로 하단 고정 → 항상 그려두고 완료 때만 올라오며 나타남 (가운데 콘텐츠 위치에 영향 없음)
+  const btn = `<div class="sv-ok-wrap" style="position:absolute;left:0;right:0;bottom:0;padding:0 var(--pad) 12px;"><button data-iact="save-done-ok" style="width:100%;background:var(--ink);color:#fff;border:0;border-radius:14px;padding:17px;font-size:19px;font-weight:700;font-family:inherit;cursor:pointer;">확인</button></div>`;
+  return `<div id="save-anim" class="${done ? 'sv-done' : ''}" style="display:flex;flex-direction:column;position:relative;${full}">${center(`${anim}${block}`)}${btn}</div>`;
 }
 
 // 3단계 — 입력 내용 확인 (현장·공정·상세·금액 + 작성자 자동) → 인증하기
